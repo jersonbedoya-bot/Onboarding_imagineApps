@@ -6,7 +6,18 @@ export type AuditAction =
   | "USER_CREATED"
   | "USER_DEACTIVATED"
   | "USER_REACTIVATED"
-  | "USER_ROLE_CHANGED";
+  | "USER_ROLE_CHANGED"
+  | "ROUTE_CREATED"
+  | "ROUTE_PUBLISHED"
+  | "ROUTE_ARCHIVED"
+  | "STAGE_CREATED"
+  | "STAGE_UPDATED"
+  | "STAGE_PUBLISHED"
+  | "STAGE_ARCHIVED"
+  | "CONTENT_CREATED"
+  | "CONTENT_UPDATED"
+  | "CONTENT_PUBLISHED"
+  | "CONTENT_ARCHIVED";
 
 export type AuditLogDocument = {
   _id: ObjectId;

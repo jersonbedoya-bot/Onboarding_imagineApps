@@ -17,3 +17,18 @@ export type InvitationStatus = (typeof INVITATION_STATUSES)[number];
 // (DEVELOPER, QA, etc. se agregan como nuevas filas en `roles`, no acá).
 export const FUNCTIONAL_ROLE_KEYS = ["PDM", "UX_UI_DESIGNER"] as const;
 export type FunctionalRoleKey = (typeof FUNCTIONAL_ROLE_KEYS)[number];
+
+// Ciclo de vida de todo contenido administrable (regla 29 del PRD):
+// rutas, etapas, content_items y — en 3B — líderes/procesos/pasos.
+export const CONTENT_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
+export type ContentStatus = (typeof CONTENT_STATUSES)[number];
+
+export const CONTENT_ITEM_TYPES = ["TEXT", "VIDEO", "IMAGE", "MIXED"] as const;
+export type ContentItemType = (typeof CONTENT_ITEM_TYPES)[number];
+
+export const CONTENT_SCOPES = ["COMMON", "ROLE"] as const;
+export type ContentScope = (typeof CONTENT_SCOPES)[number];
+
+// Solo relevante para contenido tipo "No negociables" (PRD sección 20).
+export const CONTENT_REQUIREMENTS = ["OBLIGATORY", "INFORMATIONAL"] as const;
+export type ContentRequirement = (typeof CONTENT_REQUIREMENTS)[number];

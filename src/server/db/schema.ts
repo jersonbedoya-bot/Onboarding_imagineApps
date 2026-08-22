@@ -95,8 +95,12 @@ export const collections: CollectionDef[] = [
     ],
   },
   {
+    // Una sola ruta por tenant (no una por rol funcional — ver decisión de
+    // Fase 3A: lo común/específico vive en content_items.scope, no en la
+    // estructura de la ruta). Índice único para que el upsert perezoso de
+    // route.repository.getOrCreate sea atómico ante creación concurrente.
     name: "onboarding_routes",
-    indexes: [{ spec: { tenantId: 1, roleId: 1 } }],
+    indexes: [{ spec: { tenantId: 1 }, options: { unique: true } }],
   },
   {
     name: "onboarding_stages",
