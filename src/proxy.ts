@@ -5,6 +5,14 @@ import { auth } from "@/server/auth/auth";
 // Todo lo que no está acá requiere sesión por default (seguro por defecto).
 const PUBLIC_PATHS = new Set(["/", "/login"]);
 
+// Rutas públicas con un token en el path: quien tiene el link/token (que el
+// admin comparte a mano, ver invitation.service) puede previsualizar y
+// aceptar la invitación sin estar logueado. `POST /api/invitations` (sin
+// segmento extra, la creación por el admin) NO matchea acá y sigue protegida.
+function isPublicTokenRoute(pathname: string): boolean {
+  return pathname.startsWith("/accept-invite/") || /^\/api\/invitations\/[^/]+(\/accept)?$/.test(pathname);
+}
+
 /**
  * Chequeo OPTIMISTA únicamente: solo verifica que exista un JWT de sesión
  * válido, sin tocar Mongo (evita un round-trip a la base en cada
@@ -15,7 +23,7 @@ const PUBLIC_PATHS = new Set(["/", "/login"]);
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.has(pathname)) {
+  if (PUBLIC_PATHS.has(pathname) || isPublicTokenRoute(pathname)) {
     return NextResponse.next();
   }
 

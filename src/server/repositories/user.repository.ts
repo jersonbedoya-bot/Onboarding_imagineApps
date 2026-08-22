@@ -65,3 +65,51 @@ export async function create(input: {
   await (await collection()).insertOne(doc);
   return doc;
 }
+
+export async function listByTenant(
+  tenantId: ObjectId,
+  pagination: { page: number; pageSize: number },
+): Promise<{ items: UserDocument[]; total: number }> {
+  const skip = (pagination.page - 1) * pagination.pageSize;
+  const col = await collection();
+
+  const [items, total] = await Promise.all([
+    col.find({ tenantId }).sort({ createdAt: -1 }).skip(skip).limit(pagination.pageSize).toArray(),
+    col.countDocuments({ tenantId }),
+  ]);
+
+  return { items, total };
+}
+
+/**
+ * Scoping por tenantId en el propio filtro de update, no en un read previo:
+ * si el user pertenece a otro tenant, no matchea y devuelve null (404 en
+ * el service) — nunca un 403 que confirme que el recurso existe.
+ */
+export async function updateStatus(
+  tenantId: ObjectId,
+  userId: ObjectId,
+  status: UserStatus,
+): Promise<UserDocument | null> {
+  return (await collection()).findOneAndUpdate(
+    { _id: userId, tenantId },
+    { $set: { status } },
+    { returnDocument: "after" },
+  );
+}
+
+export async function updateFunctionalRole(
+  tenantId: ObjectId,
+  userId: ObjectId,
+  functionalRoleId: ObjectId,
+): Promise<UserDocument | null> {
+  return (await collection()).findOneAndUpdate(
+    { _id: userId, tenantId },
+    { $set: { functionalRoleId } },
+    { returnDocument: "after" },
+  );
+}
+
+export async function findById(tenantId: ObjectId, userId: ObjectId): Promise<UserDocument | null> {
+  return (await collection()).findOne({ _id: userId, tenantId });
+}

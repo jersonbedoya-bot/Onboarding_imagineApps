@@ -20,6 +20,14 @@ export async function findByKey(tenantId: ObjectId, key: FunctionalRoleKey): Pro
   return (await collection()).findOne({ tenantId, key });
 }
 
+export async function findById(tenantId: ObjectId, roleId: ObjectId): Promise<RoleDocument | null> {
+  return (await collection()).findOne({ _id: roleId, tenantId });
+}
+
+export async function listByTenant(tenantId: ObjectId): Promise<RoleDocument[]> {
+  return (await collection()).find({ tenantId, status: "ACTIVE" }).sort({ key: 1 }).toArray();
+}
+
 export async function create(input: {
   tenantId: ObjectId;
   key: FunctionalRoleKey;

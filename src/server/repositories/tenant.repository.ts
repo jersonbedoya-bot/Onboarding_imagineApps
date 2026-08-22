@@ -18,6 +18,10 @@ export async function findBySlug(slug: string): Promise<TenantDocument | null> {
   return (await collection()).findOne({ slug });
 }
 
+export async function findById(tenantId: ObjectId): Promise<TenantDocument | null> {
+  return (await collection()).findOne({ _id: tenantId });
+}
+
 export async function create(input: { name: string; slug: string }): Promise<TenantDocument> {
   const doc: TenantDocument = {
     _id: new ObjectId(),
