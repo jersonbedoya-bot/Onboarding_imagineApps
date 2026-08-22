@@ -1,36 +1,40 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
 
-export type AuditAction =
-  | "INVITATION_CREATED"
-  | "USER_CREATED"
-  | "USER_DEACTIVATED"
-  | "USER_REACTIVATED"
-  | "USER_ROLE_CHANGED"
-  | "ROUTE_CREATED"
-  | "ROUTE_PUBLISHED"
-  | "ROUTE_ARCHIVED"
-  | "STAGE_CREATED"
-  | "STAGE_UPDATED"
-  | "STAGE_PUBLISHED"
-  | "STAGE_ARCHIVED"
-  | "CONTENT_CREATED"
-  | "CONTENT_UPDATED"
-  | "CONTENT_PUBLISHED"
-  | "CONTENT_ARCHIVED"
-  | "LEADER_CREATED"
-  | "LEADER_UPDATED"
-  | "LEADER_PUBLISHED"
-  | "LEADER_ARCHIVED"
-  | "PROCESS_CREATED"
-  | "PROCESS_UPDATED"
-  | "PROCESS_PUBLISHED"
-  | "PROCESS_ARCHIVED"
-  | "STEP_CREATED"
-  | "STEP_UPDATED"
-  | "STEP_PUBLISHED"
-  | "STEP_ARCHIVED"
-  | "MEDIA_UPLOADED";
+// Array en runtime (no solo tipo) para poder validar el filtro `action`
+// que llega por query param en GET /api/audit — ver audit.schema.ts.
+export const AUDIT_ACTIONS = [
+  "INVITATION_CREATED",
+  "USER_CREATED",
+  "USER_DEACTIVATED",
+  "USER_REACTIVATED",
+  "USER_ROLE_CHANGED",
+  "ROUTE_CREATED",
+  "ROUTE_PUBLISHED",
+  "ROUTE_ARCHIVED",
+  "STAGE_CREATED",
+  "STAGE_UPDATED",
+  "STAGE_PUBLISHED",
+  "STAGE_ARCHIVED",
+  "CONTENT_CREATED",
+  "CONTENT_UPDATED",
+  "CONTENT_PUBLISHED",
+  "CONTENT_ARCHIVED",
+  "LEADER_CREATED",
+  "LEADER_UPDATED",
+  "LEADER_PUBLISHED",
+  "LEADER_ARCHIVED",
+  "PROCESS_CREATED",
+  "PROCESS_UPDATED",
+  "PROCESS_PUBLISHED",
+  "PROCESS_ARCHIVED",
+  "STEP_CREATED",
+  "STEP_UPDATED",
+  "STEP_PUBLISHED",
+  "STEP_ARCHIVED",
+  "MEDIA_UPLOADED",
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export type AuditLogDocument = {
   _id: ObjectId;
@@ -67,4 +71,37 @@ export async function record(input: {
     timestamp: new Date(),
   };
   await (await collection()).insertOne(doc);
+}
+
+/**
+ * Lectura paginada para /admin/audit. El filtro se arma solo con las
+ * claves presentes: según cuáles vengan, Mongo elige entre
+ * {tenantId,timestamp}, {tenantId,userId,timestamp} o
+ * {tenantId,action,timestamp} (ver explain() en Fase 5 / MIGRATIONS.md —
+ * los 3 índices están pensados exactamente para estas combinaciones).
+ */
+export async function listByTenant(
+  tenantId: ObjectId,
+  filters: { userId?: ObjectId; action?: AuditAction; from?: Date; to?: Date },
+  pagination: { page: number; pageSize: number },
+): Promise<{ items: AuditLogDocument[]; total: number }> {
+  const filter: Record<string, unknown> = { tenantId };
+  if (filters.userId) filter.userId = filters.userId;
+  if (filters.action) filter.action = filters.action;
+  if (filters.from || filters.to) {
+    filter.timestamp = {
+      ...(filters.from ? { $gte: filters.from } : {}),
+      ...(filters.to ? { $lte: filters.to } : {}),
+    };
+  }
+
+  const skip = (pagination.page - 1) * pagination.pageSize;
+  const col = await collection();
+
+  const [items, total] = await Promise.all([
+    col.find(filter).sort({ timestamp: -1 }).skip(skip).limit(pagination.pageSize).toArray(),
+    col.countDocuments(filter),
+  ]);
+
+  return { items, total };
 }

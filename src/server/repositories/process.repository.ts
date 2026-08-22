@@ -99,6 +99,8 @@ export async function maxOrder(tenantId: ObjectId, stageId: ObjectId): Promise<n
   return last[0]?.order ?? 0;
 }
 
+// Mismo $or sin índice dedicado que content.repository.findVisibleForRole
+// — misma decisión medida (ver comentario ahí y MIGRATIONS.md).
 export async function findVisibleForRole(
   tenantId: ObjectId,
   stageIds: ObjectId[],

@@ -42,3 +42,13 @@ export type VideoProvider = (typeof VIDEO_PROVIDERS)[number];
 // pasa por acá, ver VIDEO_PROVIDERS arriba.
 export const MEDIA_TYPES = ["IMAGE"] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
+
+// Referencia polimórfica de `user_progress` (Fase 4). Un registro por
+// target = un hecho puntual "esto quedó completado por este usuario, en
+// esta fecha" — no hay estados intermedios (PENDING/IN_PROGRESS) porque
+// nada en el flujo los escribe: la existencia del registro ES el hecho.
+// STAGE es el hecho sticky de "esta etapa quedó completa" (ver
+// progress-derivation.ts) — vive en la misma colección porque es el
+// mismo tipo de hecho, solo que a nivel etapa en vez de item.
+export const PROGRESS_TARGET_TYPES = ["STEP", "CONTENT_ITEM", "STAGE"] as const;
+export type ProgressTargetType = (typeof PROGRESS_TARGET_TYPES)[number];

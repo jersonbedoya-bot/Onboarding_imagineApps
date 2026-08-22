@@ -3,6 +3,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "UNAUTHORIZED"
   | "VALIDATION_ERROR"
+  | "RATE_LIMITED"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
@@ -49,5 +50,11 @@ export class ValidationError extends AppError {
   constructor(message = "Los datos enviados no son válidos.", details?: unknown) {
     super("VALIDATION_ERROR", 400, message);
     this.details = details;
+  }
+}
+
+export class RateLimitedError extends AppError {
+  constructor(message = "Demasiados intentos. Esperá unos minutos y volvé a intentar.") {
+    super("RATE_LIMITED", 429, message);
   }
 }

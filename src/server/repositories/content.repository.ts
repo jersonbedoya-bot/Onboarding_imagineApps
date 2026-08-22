@@ -112,6 +112,10 @@ export async function maxOrder(tenantId: ObjectId, stageId: ObjectId): Promise<n
  * Lectura de visibilidad: contenido PUBLICADO de las etapas dadas, que
  * sea COMMON o ROLE con este roleId incluido. El filtro de rol se hace
  * en la query de Mongo, no post-fetch en JS.
+ *
+ * Sin índice para el $or de scope: a escala de onboarding (decenas de
+ * items/etapa) el sobre-examen es irrelevante (medido: 820 docs = ~10ms,
+ * ver MIGRATIONS.md). Revisar si un stage supera ~100 items de un mismo rol.
  */
 export async function findVisibleForRole(
   tenantId: ObjectId,

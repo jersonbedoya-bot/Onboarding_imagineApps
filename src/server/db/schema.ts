@@ -3,6 +3,20 @@
  * $jsonSchema e índices. La usan tanto scripts/bootstrap-db.ts (Atlas
  * real) como el setup de tests de integración (Mongo en memoria) —
  * nunca duplicar esta definición en otro lado.
+ *
+ * VERIFICADO en Fase 5: este archivo refleja el estado final correcto.
+ * Se comparó, colección por colección, `bootstrapSchema()` sobre un
+ * Mongo temporal 100% vacío (no el Atlas de desarrollo) contra el
+ * estado real del Atlas de desarrollo — mismas colecciones, mismos
+ * índices, mismos validadores en las 14. Un `npm run db:bootstrap`
+ * contra una base nueva y vacía no necesita ningún paso manual.
+ *
+ * Para una base EXISTENTE que ya venía de fases anteriores, en cambio,
+ * `db:bootstrap` NO alcanza — `ensureCollection` nunca modifica el
+ * validador ni dropea índices viejos de una colección que ya existe (ver
+ * comentario en scripts/bootstrap-db.ts). Las migraciones manuales
+ * aplicadas a mano contra Atlas (y cómo replicarlas en otra base con
+ * historia previa) están documentadas en MIGRATIONS.md, no acá.
  */
 import type { CreateIndexesOptions, Db, Document, IndexSpecification } from "mongodb";
 import { logger } from "@/lib/logger";
@@ -61,8 +75,11 @@ export const collections: CollectionDef[] = [
     indexes: [
       // Email único GLOBAL (decisión de producto: una cuenta = un tenant, login sin selección de tenant).
       { spec: { email: 1 }, options: { unique: true } },
-      { spec: { tenantId: 1, platformRole: 1 } },
       { spec: { tenantId: 1, functionalRoleId: 1 } },
+      // Fase 5 (explain()): user.repository.listByTenant filtra por tenantId
+      // y ordena por createdAt — sin este índice, Mongo hacía SORT en
+      // memoria trayendo TODOS los usuarios del tenant antes de paginar.
+      { spec: { tenantId: 1, createdAt: -1 } },
     ],
   },
   {
@@ -133,26 +150,32 @@ export const collections: CollectionDef[] = [
     indexes: [{ spec: { tenantId: 1, processId: 1, order: 1 } }],
   },
   {
+    // Referencia polimórfica (ver PROGRESS_TARGET_TYPES en src/types/enums.ts
+    // y la decisión de Fase 4): un registro = un hecho puntual de
+    // completado, para un STEP, un CONTENT_ITEM (solo OBLIGATORY) o un
+    // STAGE (el hecho sticky "esta etapa quedó completa para este
+    // usuario"). Sin status/startedAt: nada escribe estados intermedios,
+    // la existencia del documento ES "completado".
     name: "user_progress",
     validator: {
       $jsonSchema: {
         bsonType: "object",
-        required: ["tenantId", "userId", "stepId", "processId", "stageId", "status", "updatedAt"],
+        required: ["tenantId", "userId", "targetType", "targetId", "stageId", "completedAt"],
         properties: {
           tenantId: objectId,
           userId: objectId,
-          stepId: objectId,
-          processId: objectId,
+          targetType: { enum: ["STEP", "CONTENT_ITEM", "STAGE"] },
+          targetId: objectId,
           stageId: objectId,
-          status: { enum: ["PENDING", "IN_PROGRESS", "COMPLETED"] },
-          startedAt: { bsonType: ["date", "null"] },
-          completedAt: { bsonType: ["date", "null"] },
-          updatedAt: date,
+          processId: { bsonType: ["objectId", "null"] }, // solo cuando targetType === "STEP"
+          completedAt: date,
         },
       },
     },
     indexes: [
-      { spec: { tenantId: 1, userId: 1, stepId: 1 }, options: { unique: true } },
+      // Único: un usuario no puede tener dos hechos de completado para el
+      // mismo target — esto es lo que hace idempotente el upsert.
+      { spec: { tenantId: 1, userId: 1, targetType: 1, targetId: 1 }, options: { unique: true } },
       { spec: { tenantId: 1, userId: 1, stageId: 1 } },
       { spec: { tenantId: 1, userId: 1 } },
     ],
@@ -166,6 +189,27 @@ export const collections: CollectionDef[] = [
     indexes: [
       { spec: { tenantId: 1, timestamp: -1 } },
       { spec: { tenantId: 1, userId: 1, timestamp: -1 } },
+      // Fase 5 (explain()): filtrar por acción sin este índice forzaba a
+      // recorrer TODO el audit_logs del tenant ordenado por fecha,
+      // descartando en memoria lo que no matcheaba la acción.
+      { spec: { tenantId: 1, action: 1, timestamp: -1 } },
+    ],
+  },
+  {
+    // Fase 5: rate limiting de /login y /accept-invite (Redis vetado por
+    // el PRD — ver punto 38). Global, no tenant-scoped: el login es por
+    // email global (una cuenta = un tenant, sin selección), y accept-invite
+    // se limita por token, ninguno de los dos tiene tenantId disponible
+    // de antemano. `identifier` lleva un prefijo (`email:`, `ip:`,
+    // `token:`) para poder compartir la misma colección entre dimensiones
+    // sin que un email colisione con un token. El TTL borra intentos
+    // vencidos solos; la ventana activa se calcula contando documentos
+    // con expiresAt > ahora, no confiando en que el TTL ya los haya
+    // limpiado (el background task de Mongo corre cada ~60s, no al instante).
+    name: "rate_limit_attempts",
+    indexes: [
+      { spec: { scope: 1, identifier: 1, expiresAt: 1 } },
+      { spec: { expiresAt: 1 }, options: { expireAfterSeconds: 0 } },
     ],
   },
 ];

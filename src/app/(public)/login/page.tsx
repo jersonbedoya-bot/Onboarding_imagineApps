@@ -23,6 +23,10 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (!result || result.error) {
+      if (result?.code === "rate_limited") {
+        setError("Demasiados intentos. Esperá unos minutos y volvé a intentar.");
+        return;
+      }
       // Mensaje genérico: nunca distinguimos "no existe" de "password incorrecta"
       // ni de "cuenta no activa" — esa distinción solo vive en los logs del servidor.
       setError("Credenciales inválidas o cuenta no activa.");
