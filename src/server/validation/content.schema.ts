@@ -10,6 +10,10 @@ const baseFields = {
   roleIds: z.array(objectIdString).default([]),
   title: z.string().trim().min(2, { message: "El título debe tener al menos 2 caracteres." }),
   body: z.string().trim().min(1, { message: "El contenido no puede estar vacío." }),
+  mediaId: objectIdString.optional(),
+  // Validación/normalización real (allowlist YouTube/Vimeo/Loom) pasa en
+  // el Service — acá solo se descarta lo que ni siquiera es una URL.
+  videoUrl: z.string().trim().url({ message: "URL de video inválida." }).optional(),
   requirement: z.enum(CONTENT_REQUIREMENTS).nullable().default(null),
   order: z.number().int().positive().optional(),
 };
@@ -35,6 +39,8 @@ export const updateContentItemSchema = z
     roleIds: z.array(objectIdString).optional(),
     title: baseFields.title.optional(),
     body: baseFields.body.optional(),
+    mediaId: objectIdString.nullable().optional(),
+    videoUrl: z.string().trim().url({ message: "URL de video inválida." }).nullable().optional(),
     requirement: baseFields.requirement.optional(),
     order: baseFields.order,
   })

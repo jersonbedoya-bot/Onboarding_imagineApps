@@ -103,6 +103,9 @@ describe("aislamiento de tenant — content.repository", () => {
       roleIds: [],
       title: "Bienvenida",
       body: "Hola",
+      mediaId: null,
+      videoUrl: null,
+      videoProvider: null,
       requirement: null,
       order: 1,
     });

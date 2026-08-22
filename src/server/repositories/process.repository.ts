@@ -1,20 +1,18 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
-import type { ContentItemType, ContentRequirement, ContentScope, ContentStatus, VideoProvider } from "@/types/enums";
+import type { ContentScope, ContentStatus } from "@/types/enums";
 
-export type ContentItemDocument = {
+export type ProcessDocument = {
   _id: ObjectId;
   tenantId: ObjectId;
   stageId: ObjectId;
-  type: ContentItemType;
   scope: ContentScope;
-  roleIds: ObjectId[]; // vacío cuando scope === "COMMON"
+  roleIds: ObjectId[]; // vacío cuando scope === "COMMON" — mismo patrón que content_items/leaders
   title: string;
-  body: string;
-  mediaId: ObjectId | null; // imagen (type === "IMAGE" o "MIXED")
-  videoUrl: string | null; // embed canónico (type === "VIDEO" o "MIXED")
-  videoProvider: VideoProvider | null;
-  requirement: ContentRequirement | null;
+  objective: string;
+  context: string;
+  expectedResult: string;
+  resources: string[];
   order: number;
   status: ContentStatus;
   createdAt: Date;
@@ -22,36 +20,32 @@ export type ContentItemDocument = {
 
 async function collection() {
   const db = await getDb();
-  return db.collection<ContentItemDocument>("content_items");
+  return db.collection<ProcessDocument>("processes");
 }
 
 export async function create(input: {
   tenantId: ObjectId;
   stageId: ObjectId;
-  type: ContentItemType;
   scope: ContentScope;
   roleIds: ObjectId[];
   title: string;
-  body: string;
-  mediaId: ObjectId | null;
-  videoUrl: string | null;
-  videoProvider: VideoProvider | null;
-  requirement: ContentRequirement | null;
+  objective: string;
+  context: string;
+  expectedResult: string;
+  resources: string[];
   order: number;
-}): Promise<ContentItemDocument> {
-  const doc: ContentItemDocument = {
+}): Promise<ProcessDocument> {
+  const doc: ProcessDocument = {
     _id: new ObjectId(),
     tenantId: input.tenantId,
     stageId: input.stageId,
-    type: input.type,
     scope: input.scope,
     roleIds: input.scope === "COMMON" ? [] : input.roleIds,
     title: input.title,
-    body: input.body,
-    mediaId: input.mediaId,
-    videoUrl: input.videoUrl,
-    videoProvider: input.videoProvider,
-    requirement: input.requirement,
+    objective: input.objective,
+    context: input.context,
+    expectedResult: input.expectedResult,
+    resources: input.resources,
     order: input.order,
     status: "DRAFT",
     createdAt: new Date(),
@@ -60,7 +54,7 @@ export async function create(input: {
   return doc;
 }
 
-export async function findById(tenantId: ObjectId, id: ObjectId): Promise<ContentItemDocument | null> {
+export async function findById(tenantId: ObjectId, id: ObjectId): Promise<ProcessDocument | null> {
   return (await collection()).findOne({ _id: id, tenantId });
 }
 
@@ -68,7 +62,7 @@ export async function listByStage(
   tenantId: ObjectId,
   stageId: ObjectId,
   options?: { status?: ContentStatus },
-): Promise<ContentItemDocument[]> {
+): Promise<ProcessDocument[]> {
   const filter: Record<string, unknown> = { tenantId, stageId };
   if (options?.status) filter.status = options.status;
   return (await collection()).find(filter).sort({ order: 1, createdAt: 1 }).toArray();
@@ -78,12 +72,9 @@ export async function update(
   tenantId: ObjectId,
   id: ObjectId,
   patch: Partial<
-    Pick<
-      ContentItemDocument,
-      "type" | "scope" | "roleIds" | "title" | "body" | "mediaId" | "videoUrl" | "videoProvider" | "requirement" | "order"
-    >
+    Pick<ProcessDocument, "scope" | "roleIds" | "title" | "objective" | "context" | "expectedResult" | "resources" | "order">
   >,
-): Promise<ContentItemDocument | null> {
+): Promise<ProcessDocument | null> {
   const normalizedPatch = { ...patch };
   if (normalizedPatch.scope === "COMMON") {
     normalizedPatch.roleIds = [];
@@ -99,7 +90,7 @@ export async function updateStatus(
   tenantId: ObjectId,
   id: ObjectId,
   status: ContentStatus,
-): Promise<ContentItemDocument | null> {
+): Promise<ProcessDocument | null> {
   return (await collection()).findOneAndUpdate({ _id: id, tenantId }, { $set: { status } }, { returnDocument: "after" });
 }
 
@@ -108,16 +99,11 @@ export async function maxOrder(tenantId: ObjectId, stageId: ObjectId): Promise<n
   return last[0]?.order ?? 0;
 }
 
-/**
- * Lectura de visibilidad: contenido PUBLICADO de las etapas dadas, que
- * sea COMMON o ROLE con este roleId incluido. El filtro de rol se hace
- * en la query de Mongo, no post-fetch en JS.
- */
 export async function findVisibleForRole(
   tenantId: ObjectId,
   stageIds: ObjectId[],
   roleId: ObjectId,
-): Promise<ContentItemDocument[]> {
+): Promise<ProcessDocument[]> {
   return (await collection())
     .find({
       tenantId,

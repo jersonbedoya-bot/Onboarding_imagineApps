@@ -1,13 +1,15 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
+import { normalizeVideoUrl } from "@/lib/video-url";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
-import type { ContentItemType, ContentRequirement, ContentScope } from "@/types/enums";
+import type { ContentItemType, ContentRequirement, ContentScope, VideoProvider } from "@/types/enums";
 import * as contentRepository from "@/server/repositories/content.repository";
 import * as stageRepository from "@/server/repositories/stage.repository";
-import * as roleRepository from "@/server/repositories/role.repository";
+import * as mediaRepository from "@/server/repositories/media.repository";
 import * as routeRepository from "@/server/repositories/route.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
+import { assertRoleIdsBelongToTenant } from "@/server/services/scope-validation";
 
 async function assertStageBelongsToTenant(tenantId: ObjectId, stageId: ObjectId) {
   const stage = await stageRepository.findById(tenantId, stageId);
@@ -15,14 +17,16 @@ async function assertStageBelongsToTenant(tenantId: ObjectId, stageId: ObjectId)
   return stage;
 }
 
-async function assertRoleIdsBelongToTenant(tenantId: ObjectId, roleIds: ObjectId[]) {
-  if (roleIds.length === 0) {
-    throw new ValidationError("Un content_item con scope ROLE necesita al menos un roleId.");
-  }
-  const roles = await Promise.all(roleIds.map((roleId) => roleRepository.findById(tenantId, roleId)));
-  if (roles.some((role) => !role)) {
-    throw new ValidationError("Alguno de los roleIds no corresponde a un rol de este tenant.");
-  }
+async function assertMediaBelongsToTenant(tenantId: ObjectId, mediaId: ObjectId) {
+  const media = await mediaRepository.findById(tenantId, mediaId);
+  if (!media) throw new ValidationError("mediaId no corresponde a un archivo de este tenant.");
+}
+
+/** Video = URL embebida, nunca archivo. Normaliza y valida contra la allowlist. */
+function resolveVideo(rawVideoUrl: string | undefined): { videoUrl: string | null; videoProvider: VideoProvider | null } {
+  if (!rawVideoUrl) return { videoUrl: null, videoProvider: null };
+  const { provider, embedUrl } = normalizeVideoUrl(rawVideoUrl);
+  return { videoUrl: embedUrl, videoProvider: provider };
 }
 
 export async function listContentByStage(actingAdmin: RequestIdentity, stageId: ObjectId) {
@@ -39,6 +43,8 @@ export async function createContentItem(
     roleIds: ObjectId[];
     title: string;
     body: string;
+    mediaId?: ObjectId;
+    videoUrl?: string;
     requirement: ContentRequirement | null;
     order?: number;
   },
@@ -47,6 +53,17 @@ export async function createContentItem(
   if (input.scope === "ROLE") {
     await assertRoleIdsBelongToTenant(actingAdmin.tenantId, input.roleIds);
   }
+
+  if (input.type === "VIDEO" && !input.videoUrl) {
+    throw new ValidationError("Contenido de tipo VIDEO necesita videoUrl.");
+  }
+  if (input.type === "IMAGE" && !input.mediaId) {
+    throw new ValidationError("Contenido de tipo IMAGE necesita mediaId.");
+  }
+  if (input.mediaId) {
+    await assertMediaBelongsToTenant(actingAdmin.tenantId, input.mediaId);
+  }
+  const { videoUrl, videoProvider } = resolveVideo(input.videoUrl);
 
   const order = input.order ?? (await contentRepository.maxOrder(actingAdmin.tenantId, input.stageId)) + 1;
 
@@ -58,6 +75,9 @@ export async function createContentItem(
     roleIds: input.roleIds,
     title: input.title,
     body: input.body,
+    mediaId: input.mediaId ?? null,
+    videoUrl,
+    videoProvider,
     requirement: input.requirement,
     order,
   });
@@ -82,6 +102,8 @@ export async function updateContentItem(
     roleIds?: ObjectId[];
     title?: string;
     body?: string;
+    mediaId?: ObjectId | null;
+    videoUrl?: string | null;
     requirement?: ContentRequirement | null;
     order?: number;
   },
@@ -95,8 +117,28 @@ export async function updateContentItem(
     await assertRoleIdsBelongToTenant(actingAdmin.tenantId, effectiveRoleIds);
   }
 
+  if (patch.mediaId) {
+    await assertMediaBelongsToTenant(actingAdmin.tenantId, patch.mediaId);
+  }
+
+  const repoPatch: Parameters<typeof contentRepository.update>[2] = {
+    type: patch.type,
+    scope: patch.scope,
+    roleIds: patch.roleIds,
+    title: patch.title,
+    body: patch.body,
+    mediaId: patch.mediaId,
+    requirement: patch.requirement,
+    order: patch.order,
+  };
+  if (patch.videoUrl !== undefined) {
+    const resolved = patch.videoUrl === null ? { videoUrl: null, videoProvider: null } : resolveVideo(patch.videoUrl);
+    repoPatch.videoUrl = resolved.videoUrl;
+    repoPatch.videoProvider = resolved.videoProvider;
+  }
+
   // Editar contenido PUBLISHED está permitido explícitamente (con audit).
-  const updated = await contentRepository.update(actingAdmin.tenantId, id, patch);
+  const updated = await contentRepository.update(actingAdmin.tenantId, id, repoPatch);
   if (!updated) throw new NotFoundError();
 
   await auditRepository.record({

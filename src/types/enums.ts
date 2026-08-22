@@ -32,3 +32,13 @@ export type ContentScope = (typeof CONTENT_SCOPES)[number];
 // Solo relevante para contenido tipo "No negociables" (PRD sección 20).
 export const CONTENT_REQUIREMENTS = ["OBLIGATORY", "INFORMATIONAL"] as const;
 export type ContentRequirement = (typeof CONTENT_REQUIREMENTS)[number];
+
+// Video = URL embebida (YouTube/Vimeo/Loom), nunca archivo subido — evita
+// el límite de tamaño de las funciones serverless. Ver src/lib/video-url.ts.
+export const VIDEO_PROVIDERS = ["YOUTUBE", "VIMEO", "LOOM"] as const;
+export type VideoProvider = (typeof VIDEO_PROVIDERS)[number];
+
+// Media (colección `media`) es solo imágenes en el MVP — el video nunca
+// pasa por acá, ver VIDEO_PROVIDERS arriba.
+export const MEDIA_TYPES = ["IMAGE"] as const;
+export type MediaType = (typeof MEDIA_TYPES)[number];

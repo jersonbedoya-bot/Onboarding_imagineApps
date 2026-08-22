@@ -119,10 +119,13 @@ export const collections: CollectionDef[] = [
     indexes: [{ spec: { tenantId: 1, status: 1 } }],
   },
   {
+    // scope+roleIds, NO roleId singular (ver decisión de Fase 3B: mismo
+    // patrón de control de acceso que content_items/leaders).
     name: "processes",
     indexes: [
-      { spec: { tenantId: 1, roleId: 1, status: 1 } },
       { spec: { tenantId: 1, stageId: 1, order: 1 } },
+      { spec: { tenantId: 1, status: 1 } },
+      { spec: { tenantId: 1, roleIds: 1 } },
     ],
   },
   {

@@ -16,6 +16,9 @@ function serialize(item: ContentItemDocument) {
     roleIds: item.roleIds.map((id) => id.toString()),
     title: item.title,
     body: item.body,
+    mediaId: item.mediaId?.toString() ?? null,
+    videoUrl: item.videoUrl,
+    videoProvider: item.videoProvider,
     requirement: item.requirement,
     order: item.order,
     status: item.status,
@@ -54,6 +57,8 @@ export async function POST(request: Request) {
       roleIds: parsed.data.roleIds.map((id) => new ObjectId(id)),
       title: parsed.data.title,
       body: parsed.data.body,
+      mediaId: parsed.data.mediaId ? new ObjectId(parsed.data.mediaId) : undefined,
+      videoUrl: parsed.data.videoUrl,
       requirement: parsed.data.requirement,
       order: parsed.data.order,
     });
