@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/Card";
+import { Button } from "@/components/Button";
+import { Input, Select, Checkbox } from "@/components/Field";
 
 type StageOption = { id: string; title: string };
 
-// Estructural, sin estilo definido.
 export function StageForm({ existingStages }: { existingStages: StageOption[] }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -46,26 +48,21 @@ export function StageForm({ existingStages }: { existingStages: StageOption[] })
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Nueva etapa</h2>
-      <div>
-        <label htmlFor="stage-title">Título</label>
-        <input id="stage-title" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      </div>
-      <div>
-        <label htmlFor="stage-order">Orden (opcional)</label>
-        <input
+    <Card as="form" onSubmit={handleSubmit} className="max-w-lg">
+      <h2 className="mb-4 font-display text-lg font-semibold text-ink">Nueva etapa</h2>
+      <div className="flex flex-col gap-4">
+        <Input id="stage-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
+        <Input
           id="stage-order"
+          label="Orden (opcional)"
           type="number"
           min={1}
           value={order}
           onChange={(event) => setOrder(event.target.value)}
         />
-      </div>
-      <div>
-        <label htmlFor="stage-depends">Depende de (opcional)</label>
-        <select
+        <Select
           id="stage-depends"
+          label="Depende de (opcional)"
           value={dependsOnStageId}
           onChange={(event) => setDependsOnStageId(event.target.value)}
         >
@@ -75,23 +72,18 @@ export function StageForm({ existingStages }: { existingStages: StageOption[] })
               {stage.title}
             </option>
           ))}
-        </select>
+        </Select>
+        <Checkbox
+          id="stage-blocking"
+          label="Bloquea la siguiente etapa hasta completarse"
+          checked={isBlocking}
+          onChange={(event) => setIsBlocking(event.target.checked)}
+        />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <Button type="submit" isLoading={isSubmitting} className="self-start">
+          Crear etapa
+        </Button>
       </div>
-      <div>
-        <label htmlFor="stage-blocking">
-          <input
-            id="stage-blocking"
-            type="checkbox"
-            checked={isBlocking}
-            onChange={(event) => setIsBlocking(event.target.checked)}
-          />
-          Bloquea la siguiente etapa hasta completarse
-        </label>
-      </div>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creando…" : "Crear etapa"}
-      </button>
-    </form>
+    </Card>
   );
 }

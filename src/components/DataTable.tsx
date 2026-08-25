@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
+import { EmptyState } from "@/components/EmptyState";
 
 export type DataTableColumn<T> = {
   header: string;
   render: (row: T) => ReactNode;
 };
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe. Reusado por los listados de admin (usuarios, etapas,
-// contenido, y lo que siga en 3B).
+/** Listado tabular reusado en todo el admin (usuarios, etapas, contenido, auditoría, ...). */
 export function DataTable<T>({
   columns,
   rows,
@@ -20,27 +19,36 @@ export function DataTable<T>({
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
-    return <p>{emptyMessage}</p>;
+    return <EmptyState title={emptyMessage} />;
   }
 
   return (
-    <table>
-      <thead>
-        <tr>
-          {columns.map((column) => (
-            <th key={column.header}>{column.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={rowKey(row)}>
+    <div className="overflow-x-auto rounded-lg border border-line bg-card shadow-sm">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-line bg-paper">
             {columns.map((column) => (
-              <td key={column.header}>{column.render(row)}</td>
+              <th
+                key={column.header}
+                className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-ink-soft"
+              >
+                {column.header}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={rowKey(row)} className="border-b border-line last:border-0 hover:bg-brand-tint/40">
+              {columns.map((column) => (
+                <td key={column.header} className="px-4 py-3 text-ink">
+                  {column.render(row)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

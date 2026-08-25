@@ -169,3 +169,21 @@ export async function archiveLeader(actingAdmin: RequestIdentity, id: ObjectId) 
 export async function resolveVisibleLeaders(tenantId: ObjectId, roleId: ObjectId) {
   return leaderRepository.findVisibleForRole(tenantId, roleId);
 }
+
+/** Igual que resolveVisibleLeaders, pero ya con la foto resuelta a URL — lo que consume /onboarding. */
+export async function resolveVisibleLeadersWithMedia(tenantId: ObjectId, roleId: ObjectId) {
+  const leaders = await leaderRepository.findVisibleForRole(tenantId, roleId);
+  const mediaIds = leaders.map((leader) => leader.photoMediaId).filter((id): id is ObjectId => id !== null);
+  const mediaDocs = await mediaRepository.findByIds(tenantId, mediaIds);
+  const photoUrlById = new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
+
+  return leaders.map((leader) => ({
+    id: leader._id.toString(),
+    name: leader.name,
+    title: leader.title,
+    description: leader.description,
+    photoUrl: leader.photoMediaId ? (photoUrlById.get(leader.photoMediaId.toString()) ?? null) : null,
+    videoUrl: leader.videoUrl,
+    videoProvider: leader.videoProvider,
+  }));
+}

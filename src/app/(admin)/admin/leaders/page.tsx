@@ -3,11 +3,11 @@ import { requireAdmin } from "@/server/auth/session";
 import { listLeaders } from "@/server/services/leader.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
 import { LeaderForm } from "./LeaderForm";
 import { LeaderActions } from "./LeaderActions";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminLeadersPage() {
   let identity;
   try {
@@ -20,8 +20,8 @@ export default async function AdminLeadersPage() {
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
   return (
-    <main>
-      <h1>Líderes</h1>
+    <div>
+      <PageHeader title="Líderes" description="Personas relevantes del equipo — comunes o específicas por rol." />
 
       <DataTable
         rows={leaders}
@@ -39,7 +39,10 @@ export default async function AdminLeadersPage() {
                 : leader.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
           },
           { header: "Video", render: (leader) => (leader.videoUrl ? leader.videoProvider : "—") },
-          { header: "Estado", render: (leader) => leader.status },
+          {
+            header: "Estado",
+            render: (leader) => <Badge variant={leader.status === "PUBLISHED" ? "success" : "neutral"}>{leader.status}</Badge>,
+          },
           {
             header: "Acciones",
             render: (leader) => <LeaderActions id={leader._id.toString()} status={leader.status} />,
@@ -47,7 +50,9 @@ export default async function AdminLeadersPage() {
         ]}
       />
 
-      <LeaderForm roles={roleOptions} />
-    </main>
+      <div className="mt-8">
+        <LeaderForm roles={roleOptions} />
+      </div>
+    </div>
   );
 }

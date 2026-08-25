@@ -4,12 +4,14 @@ import { listStages } from "@/server/services/stage.service";
 import { listContentByStage } from "@/server/services/content.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
+import { EmptyState } from "@/components/EmptyState";
+import { CONTENT_TYPE_LABELS } from "@/lib/content-labels";
 import { StageSelector } from "./StageSelector";
 import { ContentForm } from "./ContentForm";
 import { ContentActions } from "./ContentActions";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminContentPage({
   searchParams,
 }: {
@@ -26,13 +28,18 @@ export default async function AdminContentPage({
 
   if (stages.length === 0) {
     return (
-      <main>
-        <h1>Contenido</h1>
-        <p>
-          Todavía no hay etapas. Creá al menos una en{" "}
-          <a href="/admin/routes">Ruta de onboarding</a> antes de agregar contenido.
-        </p>
-      </main>
+      <div>
+        <PageHeader title="Contenido" />
+        <EmptyState
+          title="Todavía no hay etapas"
+          description="Creá al menos una en Ruta de onboarding antes de agregar contenido."
+          action={
+            <a href="/admin/routes" className="text-sm font-semibold text-brand-strong hover:underline">
+              Ir a Ruta de onboarding →
+            </a>
+          }
+        />
+      </div>
     );
   }
 
@@ -45,8 +52,8 @@ export default async function AdminContentPage({
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
 
   return (
-    <main>
-      <h1>Contenido</h1>
+    <div>
+      <PageHeader title="Contenido" description="Texto, video e imágenes por etapa — común o específico de un rol." />
       <StageSelector stages={stageOptions} selectedStageId={selectedStage._id.toString()} />
 
       <DataTable
@@ -56,25 +63,45 @@ export default async function AdminContentPage({
         columns={[
           { header: "Orden", render: (item) => item.order },
           { header: "Título", render: (item) => item.title },
-          { header: "Tipo", render: (item) => item.type },
+          { header: "Tipo", render: (item) => CONTENT_TYPE_LABELS[item.type] },
           {
             header: "Alcance",
             render: (item) =>
               item.scope === "COMMON"
                 ? "Común"
-                : item.roleIds
-                    .map((roleId) => roleOptions.find((r) => r.id === roleId.toString())?.label ?? "?")
-                    .join(", "),
+                : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
           },
-          { header: "Estado", render: (item) => item.status },
+          {
+            header: "Estado",
+            render: (item) => <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{item.status}</Badge>,
+          },
           {
             header: "Acciones",
-            render: (item) => <ContentActions id={item._id.toString()} status={item.status} />,
+            render: (item) => (
+              <ContentActions
+                item={{
+                  id: item._id.toString(),
+                  stageId: item.stageId.toString(),
+                  status: item.status,
+                  title: item.title,
+                  body: item.body,
+                  type: item.type,
+                  mediaId: item.mediaId ? item.mediaId.toString() : null,
+                  videoUrl: item.videoUrl,
+                  scope: item.scope,
+                  roleIds: item.roleIds.map((id) => id.toString()),
+                  requirement: item.requirement,
+                }}
+                roles={roleOptions}
+              />
+            ),
           },
         ]}
       />
 
-      <ContentForm stageId={selectedStage._id.toString()} roles={roleOptions} />
-    </main>
+      <div className="mt-8">
+        <ContentForm stageId={selectedStage._id.toString()} roles={roleOptions} />
+      </div>
+    </div>
   );
 }

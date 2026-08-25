@@ -27,7 +27,10 @@ export const updateLeaderSchema = z
   .object({
     name: baseFields.name.optional(),
     title: baseFields.title.optional(),
-    description: baseFields.description.optional(),
+    // Fresco, no baseFields.description: trae .default(""), que pisaría la
+    // descripción existente con vacío en cualquier PATCH que no la
+    // mencione (bug real encontrado en dev).
+    description: z.string().trim().optional(),
     photoMediaId: objectIdString.nullable().optional(),
     videoUrl: z.string().trim().url({ message: "URL de video inválida." }).nullable().optional(),
     scope: baseFields.scope.optional(),

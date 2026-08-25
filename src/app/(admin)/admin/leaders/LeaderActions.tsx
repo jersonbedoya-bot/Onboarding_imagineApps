@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/Button";
 
-// Estructural, sin estilo definido.
 export function LeaderActions({ id, status }: { id: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
@@ -24,18 +24,27 @@ export function LeaderActions({ id, status }: { id: string; status: "DRAFT" | "P
   }
 
   return (
-    <span>
+    <div className="flex items-center gap-2">
       {status === "DRAFT" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("publish")}>
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("publish")}>
           Publicar
-        </button>
+        </Button>
       )}
       {status !== "ARCHIVED" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("archive")}>
+        <Button
+          variant="ghost"
+          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={() => callAction("archive")}
+        >
           Archivar
-        </button>
+        </Button>
       )}
-      {error && <span role="alert"> {error}</span>}
-    </span>
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+    </div>
   );
 }

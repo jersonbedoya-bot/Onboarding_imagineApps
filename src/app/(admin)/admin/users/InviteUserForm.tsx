@@ -2,11 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/Card";
+import { Button } from "@/components/Button";
+import { Input, Select, Textarea } from "@/components/Field";
 
 type RoleOption = { id: string; label: string };
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -46,48 +47,32 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
   }
 
   return (
-    <section>
-      <h2>Invitar usuario</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="invite-email">Email</label>
-          <input
-            id="invite-email"
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="invite-role">Rol funcional</label>
-          <select
-            id="invite-role"
-            value={functionalRoleId}
-            onChange={(event) => setFunctionalRoleId(event.target.value)}
-          >
-            {roles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creando…" : "Crear invitación"}
-        </button>
+    <Card className="max-w-lg">
+      <h2 className="mb-4 font-display text-lg font-semibold text-ink">Invitar usuario</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input id="invite-email" label="Email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+        <Select id="invite-role" label="Rol funcional" value={functionalRoleId} onChange={(event) => setFunctionalRoleId(event.target.value)}>
+          {roles.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.label}
+            </option>
+          ))}
+        </Select>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <Button type="submit" isLoading={isSubmitting} className="self-start">
+          Crear invitación
+        </Button>
       </form>
 
       {result && (
-        <div>
-          <p>Compartí este mensaje con la persona invitada (no se envía por email):</p>
-          <textarea readOnly value={result.message} rows={3} />
-          <button type="button" onClick={copyMessage}>
+        <div className="mt-5 rounded-md border border-brand-soft bg-brand-tint p-4">
+          <p className="mb-2 text-sm font-medium text-ink">Compartí este mensaje con la persona invitada (no se envía por email):</p>
+          <Textarea readOnly value={result.message} rows={3} className="bg-card" />
+          <Button type="button" variant="secondary" onClick={copyMessage} className="mt-3 px-4 py-1.5 text-xs">
             Copiar mensaje
-          </button>
+          </Button>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

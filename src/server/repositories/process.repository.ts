@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
+import { omitUndefined } from "@/lib/mongo-patch";
 import type { ContentScope, ContentStatus } from "@/types/enums";
 
 export type ProcessDocument = {
@@ -75,7 +76,7 @@ export async function update(
     Pick<ProcessDocument, "scope" | "roleIds" | "title" | "objective" | "context" | "expectedResult" | "resources" | "order">
   >,
 ): Promise<ProcessDocument | null> {
-  const normalizedPatch = { ...patch };
+  const normalizedPatch = omitUndefined({ ...patch });
   if (normalizedPatch.scope === "COMMON") {
     normalizedPatch.roleIds = [];
   }

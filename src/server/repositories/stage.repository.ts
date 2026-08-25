@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
+import { omitUndefined } from "@/lib/mongo-patch";
 import type { ContentStatus } from "@/types/enums";
 
 export type StageDocument = {
@@ -66,7 +67,7 @@ export async function update(
   stageId: ObjectId,
   patch: Partial<Pick<StageDocument, "title" | "order" | "dependsOnStageId" | "isBlocking">>,
 ): Promise<StageDocument | null> {
-  return (await collection()).findOneAndUpdate({ _id: stageId, tenantId }, { $set: patch }, { returnDocument: "after" });
+  return (await collection()).findOneAndUpdate({ _id: stageId, tenantId }, { $set: omitUndefined(patch) }, { returnDocument: "after" });
 }
 
 export async function updateStatus(

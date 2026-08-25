@@ -5,12 +5,13 @@ import { listStages } from "@/server/services/stage.service";
 import { listProcessesByStage } from "@/server/services/process.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
+import { EmptyState } from "@/components/EmptyState";
 import { StageSelector } from "../content/StageSelector";
 import { ProcessForm } from "./ProcessForm";
 import { ProcessActions } from "./ProcessActions";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminProcessesPage({
   searchParams,
 }: {
@@ -27,13 +28,18 @@ export default async function AdminProcessesPage({
 
   if (stages.length === 0) {
     return (
-      <main>
-        <h1>Procesos</h1>
-        <p>
-          Todavía no hay etapas. Creá al menos una en <a href="/admin/routes">Ruta de onboarding</a> antes de agregar
-          procesos.
-        </p>
-      </main>
+      <div>
+        <PageHeader title="Procesos" />
+        <EmptyState
+          title="Todavía no hay etapas"
+          description="Creá al menos una en Ruta de onboarding antes de agregar procesos."
+          action={
+            <a href="/admin/routes" className="text-sm font-semibold text-brand-strong hover:underline">
+              Ir a Ruta de onboarding →
+            </a>
+          }
+        />
+      </div>
     );
   }
 
@@ -46,8 +52,8 @@ export default async function AdminProcessesPage({
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
 
   return (
-    <main>
-      <h1>Procesos</h1>
+    <div>
+      <PageHeader title="Procesos" description="Guías paso a paso por etapa — común o específico de un rol." />
       <StageSelector stages={stageOptions} selectedStageId={selectedStage._id.toString()} />
 
       <DataTable
@@ -58,7 +64,11 @@ export default async function AdminProcessesPage({
           { header: "Orden", render: (process) => process.order },
           {
             header: "Título",
-            render: (process) => <Link href={`/admin/processes/${process._id.toString()}`}>{process.title}</Link>,
+            render: (process) => (
+              <Link href={`/admin/processes/${process._id.toString()}`} className="font-medium text-brand-strong hover:underline">
+                {process.title}
+              </Link>
+            ),
           },
           {
             header: "Alcance",
@@ -67,15 +77,35 @@ export default async function AdminProcessesPage({
                 ? "Común"
                 : process.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
           },
-          { header: "Estado", render: (process) => process.status },
+          {
+            header: "Estado",
+            render: (process) => <Badge variant={process.status === "PUBLISHED" ? "success" : "neutral"}>{process.status}</Badge>,
+          },
           {
             header: "Acciones",
-            render: (process) => <ProcessActions id={process._id.toString()} status={process.status} />,
+            render: (process) => (
+              <ProcessActions
+                item={{
+                  id: process._id.toString(),
+                  stageId: process.stageId.toString(),
+                  status: process.status,
+                  title: process.title,
+                  objective: process.objective,
+                  context: process.context,
+                  expectedResult: process.expectedResult,
+                  scope: process.scope,
+                  roleIds: process.roleIds.map((id) => id.toString()),
+                }}
+                roles={roleOptions}
+              />
+            ),
           },
         ]}
       />
 
-      <ProcessForm stageId={selectedStage._id.toString()} roles={roleOptions} />
-    </main>
+      <div className="mt-8">
+        <ProcessForm stageId={selectedStage._id.toString()} roles={roleOptions} />
+      </div>
+    </div>
   );
 }

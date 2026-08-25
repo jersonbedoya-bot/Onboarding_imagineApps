@@ -81,10 +81,71 @@ async function ensureAdmin(tenantId: Awaited<ReturnType<typeof ensureTenant>>["_
   logger.info("seed_admin_created", { email: normalizeEmail(email) });
 }
 
+type TestUserEnvVars = { emailVar: string; passwordVar: string; nameVar: string; defaultName: string };
+
+/**
+ * Usuario funcional ya activo, SOLO PARA DESARROLLO — para poder entrar
+ * directo a /onboarding con un rol dado sin correr el flujo manual de
+ * invitación cada vez. Opcional a propósito: si las env vars de email/
+ * password no están seteadas (ej. en un entorno real), no hace nada. A
+ * diferencia del admin, sí pasa por el mismo shape que crearía
+ * acceptInvitation (USER activo con rol funcional ya asignado) — es un
+ * atajo de datos, no un camino de código nuevo.
+ */
+async function ensureTestFunctionalUser(
+  tenantId: Awaited<ReturnType<typeof ensureTenant>>["_id"],
+  roleKey: (typeof FUNCTIONAL_ROLE_KEYS)[number],
+  vars: TestUserEnvVars,
+) {
+  const email = process.env[vars.emailVar];
+  const password = process.env[vars.passwordVar];
+  if (!email || !password) {
+    logger.info("seed_test_user_skipped", { role: roleKey, reason: `${vars.emailVar}/${vars.passwordVar} no están seteados` });
+    return;
+  }
+
+  const existing = await userRepository.findByEmail(email);
+  if (existing) {
+    logger.info("seed_test_user_skipped", { role: roleKey, email: normalizeEmail(email), reason: "already_exists" });
+    return;
+  }
+
+  const role = await roleRepository.findByKey(tenantId, roleKey);
+  if (!role) {
+    logger.error("seed_test_user_failed", { role: roleKey, reason: "rol no existe todavía — no debería pasar después de ensureRoles" });
+    return;
+  }
+
+  const name = process.env[vars.nameVar] ?? vars.defaultName;
+  const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+  await userRepository.create({
+    tenantId,
+    email,
+    name,
+    passwordHash,
+    platformRole: "USER",
+    functionalRoleId: role._id,
+    status: "ACTIVE",
+  });
+  logger.info("seed_test_user_created", { role: roleKey, email: normalizeEmail(email) });
+}
+
 async function main() {
   const tenant = await ensureTenant();
   await ensureRoles(tenant._id);
   await ensureAdmin(tenant._id);
+  await ensureTestFunctionalUser(tenant._id, "PDM", {
+    emailVar: "SEED_PDM_EMAIL",
+    passwordVar: "SEED_PDM_PASSWORD",
+    nameVar: "SEED_PDM_NAME",
+    defaultName: "PDM de prueba",
+  });
+  await ensureTestFunctionalUser(tenant._id, "UX_UI_DESIGNER", {
+    emailVar: "SEED_UX_EMAIL",
+    passwordVar: "SEED_UX_PASSWORD",
+    nameVar: "SEED_UX_NAME",
+    defaultName: "UX/UI de prueba",
+  });
 
   logger.info("seed_completed", {});
   process.exit(0);

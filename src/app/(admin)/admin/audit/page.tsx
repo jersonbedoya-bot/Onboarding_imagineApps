@@ -5,12 +5,11 @@ import { listUsers } from "@/server/services/user.service";
 import { AUDIT_ACTIONS, type AuditAction } from "@/server/repositories/audit.repository";
 import { ObjectId } from "mongodb";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
 import { AuditFilters } from "./AuditFilters";
 
 const PAGE_SIZE = 20;
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminAuditPage({
   searchParams,
 }: {
@@ -40,8 +39,8 @@ export default async function AdminAuditPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <main>
-      <h1>Auditoría</h1>
+    <div>
+      <PageHeader title="Auditoría" description="Registro de acciones administrativas de tu tenant." />
 
       <AuditFilters
         users={userOptions}
@@ -56,14 +55,14 @@ export default async function AdminAuditPage({
         columns={[
           { header: "Fecha", render: (item) => item.timestamp.toISOString() },
           { header: "Usuario", render: (item) => usersById.get(item.userId.toString()) ?? item.userId.toString() },
-          { header: "Acción", render: (item) => item.action },
+          { header: "Acción", render: (item) => <span className="font-mono text-xs">{item.action}</span> },
           { header: "Recurso", render: (item) => `${item.resource}:${item.resourceId.toString()}` },
         ]}
       />
 
-      <p>
+      <p className="mt-4 text-xs text-ink-soft">
         Página {page} de {totalPages} ({total} eventos)
       </p>
-    </main>
+    </div>
   );
 }

@@ -16,13 +16,16 @@ const baseFields = {
 
 export const createStepSchema = z.object({ processId: objectIdString, ...baseFields });
 
+// Los campos de texto/array de abajo NO reusan baseFields.xxx: esos traen
+// .default("")/.default([]), que pisaría el valor existente con vacío en
+// cualquier PATCH que no los mencione (bug real encontrado en dev).
 export const updateStepSchema = z.object({
   title: baseFields.title.optional(),
-  description: baseFields.description.optional(),
-  instruction: baseFields.instruction.optional(),
-  resources: baseFields.resources.optional(),
+  description: z.string().trim().optional(),
+  instruction: z.string().trim().optional(),
+  resources: z.array(z.string().trim()).optional(),
   videoUrl: z.string().trim().url({ message: "URL de video inválida." }).nullable().optional(),
-  links: baseFields.links.optional(),
-  completionCriteria: baseFields.completionCriteria.optional(),
+  links: z.array(z.string().trim()).optional(),
+  completionCriteria: z.string().trim().optional(),
   order: baseFields.order,
 });

@@ -28,10 +28,13 @@ export const updateProcessSchema = z
     scope: baseFields.scope.optional(),
     roleIds: z.array(objectIdString).optional(),
     title: baseFields.title.optional(),
-    objective: baseFields.objective.optional(),
-    context: baseFields.context.optional(),
-    expectedResult: baseFields.expectedResult.optional(),
-    resources: baseFields.resources.optional(),
+    // Frescos, no baseFields.xxx: esos traen .default("")/.default([]), que
+    // pisaría el valor existente con vacío en cualquier PATCH que no los
+    // mencione (bug real encontrado en dev).
+    objective: z.string().trim().optional(),
+    context: z.string().trim().optional(),
+    expectedResult: z.string().trim().optional(),
+    resources: z.array(z.string().trim()).optional(),
     order: baseFields.order,
   })
   .superRefine((data, ctx) => {

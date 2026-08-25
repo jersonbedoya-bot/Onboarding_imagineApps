@@ -1,18 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Select } from "@/components/Field";
 
 type StageOption = { id: string; title: string };
 
-// Estructural, sin estilo definido.
 export function StageSelector({ stages, selectedStageId }: { stages: StageOption[]; selectedStageId: string }) {
   const router = useRouter();
 
   return (
-    <div>
-      <label htmlFor="stage-selector">Etapa</label>
-      <select
+    <div className="mb-6 max-w-xs">
+      <Select
         id="stage-selector"
+        label="Etapa"
         value={selectedStageId}
         onChange={(event) => router.push(`/admin/content?stageId=${event.target.value}`)}
       >
@@ -21,7 +21,7 @@ export function StageSelector({ stages, selectedStageId }: { stages: StageOption
             {stage.title}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

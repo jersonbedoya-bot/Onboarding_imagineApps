@@ -3,10 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MediaUploader } from "@/components/MediaUploader";
+import { Card } from "@/components/Card";
+import { Button } from "@/components/Button";
+import { Input, Textarea, Checkbox } from "@/components/Field";
 
 type RoleOption = { id: string; label: string };
 
-// Estructural, sin estilo definido.
 export function LeaderForm({ roles }: { roles: RoleOption[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -59,59 +61,72 @@ export function LeaderForm({ roles }: { roles: RoleOption[] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Nuevo líder</h2>
-      <div>
-        <label htmlFor="leader-name">Nombre</label>
-        <input id="leader-name" required value={name} onChange={(event) => setName(event.target.value)} />
-      </div>
-      <div>
-        <label htmlFor="leader-title">Cargo</label>
-        <input id="leader-title" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      </div>
-      <div>
-        <label htmlFor="leader-description">Descripción</label>
-        <textarea id="leader-description" value={description} onChange={(event) => setDescription(event.target.value)} />
-      </div>
-      <div>
-        <label>Foto</label>
-        <MediaUploader onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
-      </div>
-      <div>
-        <label htmlFor="leader-video">Video (opcional, YouTube/Vimeo/Loom)</label>
-        <input
+    <Card as="form" onSubmit={handleSubmit} className="max-w-lg">
+      <h2 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo líder</h2>
+      <div className="flex flex-col gap-4">
+        <Input id="leader-name" label="Nombre" required value={name} onChange={(event) => setName(event.target.value)} />
+        <Input id="leader-title" label="Cargo" required value={title} onChange={(event) => setTitle(event.target.value)} />
+        <Textarea
+          id="leader-description"
+          label="Descripción"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Foto</span>
+          <MediaUploader onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
+        </div>
+        <Input
           id="leader-video"
+          label="Video (opcional, YouTube/Vimeo/Loom)"
           type="url"
           value={videoUrl}
           onChange={(event) => setVideoUrl(event.target.value)}
           placeholder="https://youtube.com/watch?v=..."
         />
+
+        <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Alcance</legend>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name="leader-scope"
+              checked={scope === "COMMON"}
+              onChange={() => setScope("COMMON")}
+              className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
+            />
+            Todos los roles
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name="leader-scope"
+              checked={scope === "ROLE"}
+              onChange={() => setScope("ROLE")}
+              className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
+            />
+            Roles específicos
+          </label>
+          {scope === "ROLE" && (
+            <div className="ml-6 flex flex-col gap-1.5 border-l border-line pl-3">
+              {roles.map((role) => (
+                <Checkbox
+                  key={role.id}
+                  id={`leader-role-${role.id}`}
+                  label={role.label}
+                  checked={roleIds.includes(role.id)}
+                  onChange={() => toggleRole(role.id)}
+                />
+              ))}
+            </div>
+          )}
+        </fieldset>
+
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <Button type="submit" isLoading={isSubmitting} className="self-start">
+          Crear líder
+        </Button>
       </div>
-      <fieldset>
-        <legend>Alcance</legend>
-        <label>
-          <input type="radio" name="leader-scope" checked={scope === "COMMON"} onChange={() => setScope("COMMON")} />
-          Todos los roles
-        </label>
-        <label>
-          <input type="radio" name="leader-scope" checked={scope === "ROLE"} onChange={() => setScope("ROLE")} />
-          Roles específicos
-        </label>
-        {scope === "ROLE" && (
-          <div>
-            {roles.map((role) => (
-              <label key={role.id}>
-                <input type="checkbox" checked={roleIds.includes(role.id)} onChange={() => toggleRole(role.id)} />
-                {role.label}
-              </label>
-            ))}
-          </div>
-        )}
-      </fieldset>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creando…" : "Crear líder"}
-      </button>
-    </form>
+    </Card>
   );
 }

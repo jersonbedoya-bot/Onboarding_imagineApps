@@ -2,17 +2,31 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
+import { StepForm, type StepFormInitial } from "./StepForm";
 
-// Estructural, sin estilo definido.
-export function StepActions({ id, status }: { id: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
+export type StepActionItem = {
+  id: string;
+  processId: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  title: string;
+  description: string;
+  instruction: string;
+  videoUrl: string | null;
+  completionCriteria: string;
+};
+
+export function StepActions({ item }: { item: StepActionItem }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   async function callAction(action: "publish" | "archive") {
     setError(null);
     setIsPending(true);
-    const response = await fetch(`/api/steps/${id}/${action}`, { method: "POST" });
+    const response = await fetch(`/api/steps/${item.id}/${action}`, { method: "POST" });
     const body = await response.json();
     setIsPending(false);
 
@@ -23,19 +37,43 @@ export function StepActions({ id, status }: { id: string; status: "DRAFT" | "PUB
     router.refresh();
   }
 
+  const initial: StepFormInitial = {
+    title: item.title,
+    description: item.description,
+    instruction: item.instruction,
+    videoUrl: item.videoUrl ?? "",
+    completionCriteria: item.completionCriteria,
+  };
+
   return (
-    <span>
-      {status === "DRAFT" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("publish")}>
+    <div className="flex items-center gap-2">
+      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
+        Editar
+      </Button>
+      {item.status === "DRAFT" && (
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("publish")}>
           Publicar
-        </button>
+        </Button>
       )}
-      {status !== "ARCHIVED" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("archive")}>
+      {item.status !== "ARCHIVED" && (
+        <Button
+          variant="ghost"
+          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={() => callAction("archive")}
+        >
           Archivar
-        </button>
+        </Button>
       )}
-      {error && <span role="alert"> {error}</span>}
-    </span>
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar paso">
+        <StepForm processId={item.processId} mode="edit" stepId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
+      </Modal>
+    </div>
   );
 }

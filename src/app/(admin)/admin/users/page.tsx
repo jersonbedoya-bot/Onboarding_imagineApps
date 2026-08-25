@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
 import { listUsers } from "@/server/services/user.service";
 import * as roleRepository from "@/server/repositories/role.repository";
+import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe (ver AGENTS/PRD punto 44-45).
 export default async function AdminUsersPage() {
   let identity;
   try {
@@ -24,41 +25,42 @@ export default async function AdminUsersPage() {
   const currentUserId = identity.userId.toString();
 
   return (
-    <main>
-      <h1>Usuarios</h1>
+    <div>
+      <PageHeader title="Usuarios" description="Gestión de acceso y rol funcional de tu tenant." />
 
-      <InviteUserForm roles={roleOptions} />
+      <div className="mb-8">
+        <InviteUserForm roles={roleOptions} />
+      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Nombre</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user._id.toString()}>
-              <td>{user.email}</td>
-              <td>{user.name}</td>
-              <td>{roleOptions.find((r) => r.id === user.functionalRoleId?.toString())?.label ?? "—"}</td>
-              <td>{user.status}</td>
-              <td>
-                <UserActions
-                  userId={user._id.toString()}
-                  status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
-                  functionalRoleId={user.functionalRoleId?.toString() ?? null}
-                  roles={roleOptions}
-                  isSelf={user._id.toString() === currentUserId}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+      <DataTable
+        rows={users}
+        rowKey={(user) => user._id.toString()}
+        emptyMessage="Todavía no hay usuarios."
+        columns={[
+          { header: "Email", render: (user) => user.email },
+          { header: "Nombre", render: (user) => user.name },
+          {
+            header: "Rol",
+            render: (user) => roleOptions.find((r) => r.id === user.functionalRoleId?.toString())?.label ?? "—",
+          },
+          {
+            header: "Estado",
+            render: (user) => <Badge variant={user.status === "ACTIVE" ? "success" : "neutral"}>{user.status}</Badge>,
+          },
+          {
+            header: "Acciones",
+            render: (user) => (
+              <UserActions
+                userId={user._id.toString()}
+                status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
+                functionalRoleId={user.functionalRoleId?.toString() ?? null}
+                roles={roleOptions}
+                isSelf={user._id.toString() === currentUserId}
+              />
+            ),
+          },
+        ]}
+      />
+    </div>
   );
 }

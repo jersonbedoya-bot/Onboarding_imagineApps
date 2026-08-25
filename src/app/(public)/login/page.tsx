@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { AuthShell } from "@/components/AuthShell";
+import { Input } from "@/components/Field";
+import { Button } from "@/components/Button";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe (ver AGENTS/PRD punto 44-45).
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -37,36 +38,35 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>Iniciar sesión</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Contraseña</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={isSubmitting}>
+    <AuthShell title="Iniciar sesión" description="Ingresá con tu cuenta de Imagine Apps.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          label="Email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          label="Contraseña"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        {error && (
+          <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
           {isSubmitting ? "Ingresando…" : "Ingresar"}
-        </button>
+        </Button>
       </form>
-    </main>
+    </AuthShell>
   );
 }

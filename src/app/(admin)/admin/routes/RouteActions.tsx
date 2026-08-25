@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/Button";
 
-// Estructural, sin estilo definido.
 export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
@@ -24,18 +24,27 @@ export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCH
   }
 
   return (
-    <span>
+    <span className="inline-flex items-center gap-2">
       {status === "DRAFT" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("/api/route/publish")}>
+        <Button variant="primary" className="px-4 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("/api/route/publish")}>
           Publicar ruta
-        </button>
+        </Button>
       )}
       {status === "PUBLISHED" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("/api/route/archive")}>
+        <Button
+          variant="ghost"
+          className="px-4 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={() => callAction("/api/route/archive")}
+        >
           Archivar ruta
-        </button>
+        </Button>
       )}
-      {error && <span role="alert"> {error}</span>}
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
     </span>
   );
 }

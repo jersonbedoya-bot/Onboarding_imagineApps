@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/Field";
+import { Button } from "@/components/Button";
 
-// Estructural, sin estilo definido.
 export function AcceptInviteForm({ token }: { token: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -34,25 +35,24 @@ export function AcceptInviteForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="name">Nombre</label>
-        <input id="name" required value={name} onChange={(event) => setName(event.target.value)} />
-      </div>
-      <div>
-        <label htmlFor="password">Contraseña</label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </div>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={isSubmitting}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Input id="name" label="Nombre" required value={name} onChange={(event) => setName(event.target.value)} />
+      <Input
+        id="password"
+        type="password"
+        label="Contraseña"
+        required
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
+      {error && (
+        <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
         {isSubmitting ? "Activando…" : "Activar cuenta"}
-      </button>
+      </Button>
     </form>
   );
 }

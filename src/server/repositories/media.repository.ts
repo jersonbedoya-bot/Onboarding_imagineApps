@@ -46,3 +46,8 @@ export async function create(input: {
 export async function findById(tenantId: ObjectId, id: ObjectId): Promise<MediaDocument | null> {
   return (await collection()).findOne({ _id: id, tenantId });
 }
+
+export async function findByIds(tenantId: ObjectId, ids: ObjectId[]): Promise<MediaDocument[]> {
+  if (ids.length === 0) return [];
+  return (await collection()).find({ tenantId, _id: { $in: ids } }).toArray();
+}

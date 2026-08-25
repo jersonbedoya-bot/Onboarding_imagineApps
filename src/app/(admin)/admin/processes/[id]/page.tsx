@@ -3,13 +3,14 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { listStepsByProcess } from "@/server/services/step.service";
 import * as processRepository from "@/server/repositories/process.repository";
+import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
 import { ProcessActions } from "../ProcessActions";
 import { StepForm } from "./StepForm";
 import { StepActions } from "./StepActions";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminProcessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   let identity;
   try {
@@ -24,19 +25,39 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
   const process = await processRepository.findById(identity.tenantId, new ObjectId(id));
   if (!process) notFound();
 
-  const steps = await listStepsByProcess(identity, process._id);
+  const [steps, roles] = await Promise.all([
+    listStepsByProcess(identity, process._id),
+    roleRepository.listByTenant(identity.tenantId),
+  ]);
+  const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
   return (
-    <main>
-      <h1>{process.title}</h1>
-      <p>
-        Estado: {process.status} <ProcessActions id={process._id.toString()} status={process.status} />
-      </p>
-      <p>
-        <strong>Objetivo:</strong> {process.objective || "—"}
-      </p>
+    <div>
+      <PageHeader
+        title={process.title}
+        description={process.objective || undefined}
+        action={
+          <div className="flex items-center gap-3">
+            <Badge variant={process.status === "PUBLISHED" ? "success" : "neutral"}>{process.status}</Badge>
+            <ProcessActions
+              item={{
+                id: process._id.toString(),
+                stageId: process.stageId.toString(),
+                status: process.status,
+                title: process.title,
+                objective: process.objective,
+                context: process.context,
+                expectedResult: process.expectedResult,
+                scope: process.scope,
+                roleIds: process.roleIds.map((rid) => rid.toString()),
+              }}
+              roles={roleOptions}
+            />
+          </div>
+        }
+      />
 
-      <h2>Pasos</h2>
+      <h2 className="mb-3 font-display text-lg font-semibold text-ink">Pasos</h2>
       <DataTable
         rows={steps}
         rowKey={(step) => step._id.toString()}
@@ -45,15 +66,33 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
           { header: "Orden", render: (step) => step.order },
           { header: "Título", render: (step) => step.title },
           { header: "Video", render: (step) => (step.videoUrl ? step.videoProvider : "—") },
-          { header: "Estado", render: (step) => step.status },
+          {
+            header: "Estado",
+            render: (step) => <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{step.status}</Badge>,
+          },
           {
             header: "Acciones",
-            render: (step) => <StepActions id={step._id.toString()} status={step.status} />,
+            render: (step) => (
+              <StepActions
+                item={{
+                  id: step._id.toString(),
+                  processId: step.processId.toString(),
+                  status: step.status,
+                  title: step.title,
+                  description: step.description,
+                  instruction: step.instruction,
+                  videoUrl: step.videoUrl,
+                  completionCriteria: step.completionCriteria,
+                }}
+              />
+            ),
           },
         ]}
       />
 
-      <StepForm processId={process._id.toString()} />
-    </main>
+      <div className="mt-8">
+        <StepForm processId={process._id.toString()} />
+      </div>
+    </div>
   );
 }

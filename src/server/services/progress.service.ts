@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import * as progressRepository from "@/server/repositories/progress.repository";
+import * as mediaRepository from "@/server/repositories/media.repository";
 import type { ProgressDocument } from "@/server/repositories/progress.repository";
 import { resolveVisibleContent } from "@/server/services/content.service";
 import { resolveVisibleSteps } from "@/server/services/step.service";
@@ -215,6 +216,10 @@ export async function resolveJourney(identity: RequestIdentity) {
     return { bundle, total, completed, status };
   });
 
+  const mediaIds = computed.flatMap(({ bundle }) => bundle.items.map((item) => item.mediaId).filter((id): id is ObjectId => id !== null));
+  const mediaDocs = await mediaRepository.findByIds(identity.tenantId, mediaIds);
+  const mediaUrlById = new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
+
   const forUnlock: StageForUnlock[] = computed.map(({ bundle, status }) => ({
     stageId: bundle.stage._id.toString(),
     status,
@@ -247,6 +252,9 @@ export async function resolveJourney(identity: RequestIdentity) {
         title: item.title,
         type: item.type,
         body: item.body,
+        videoUrl: item.videoUrl,
+        videoProvider: item.videoProvider,
+        imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
         completed: item.requirement === "OBLIGATORY" ? progressByTarget.has(`CONTENT_ITEM:${item._id.toString()}`) : null,
       })),
@@ -257,6 +265,9 @@ export async function resolveJourney(identity: RequestIdentity) {
         steps: steps.map((step) => ({
           id: step._id.toString(),
           title: step.title,
+          description: step.description,
+          videoUrl: step.videoUrl,
+          videoProvider: step.videoProvider,
           completed: progressByTarget.has(`STEP:${step._id.toString()}`),
         })),
       })),

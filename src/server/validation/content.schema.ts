@@ -41,7 +41,10 @@ export const updateContentItemSchema = z
     body: baseFields.body.optional(),
     mediaId: objectIdString.nullable().optional(),
     videoUrl: z.string().trim().url({ message: "URL de video inválida." }).nullable().optional(),
-    requirement: baseFields.requirement.optional(),
+    // Fresco, no baseFields.requirement: ese trae .default(null), que
+    // pisaría el requirement existente con null en cualquier PATCH que no
+    // lo mencione (bug real encontrado en dev — ver BACKLOG/commit).
+    requirement: z.enum(CONTENT_REQUIREMENTS).nullable().optional(),
     order: baseFields.order,
   })
   .superRefine((data, ctx) => {

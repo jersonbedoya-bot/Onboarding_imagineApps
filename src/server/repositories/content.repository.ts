@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
+import { omitUndefined } from "@/lib/mongo-patch";
 import type { ContentItemType, ContentRequirement, ContentScope, ContentStatus, VideoProvider } from "@/types/enums";
 
 export type ContentItemDocument = {
@@ -84,7 +85,7 @@ export async function update(
     >
   >,
 ): Promise<ContentItemDocument | null> {
-  const normalizedPatch = { ...patch };
+  const normalizedPatch = omitUndefined({ ...patch });
   if (normalizedPatch.scope === "COMMON") {
     normalizedPatch.roleIds = [];
   }

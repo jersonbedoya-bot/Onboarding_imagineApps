@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
+import { omitUndefined } from "@/lib/mongo-patch";
 import type { ContentStatus, VideoProvider } from "@/types/enums";
 
 export type StepDocument = {
@@ -78,7 +79,7 @@ export async function update(
     Pick<StepDocument, "title" | "description" | "instruction" | "resources" | "videoUrl" | "videoProvider" | "links" | "completionCriteria" | "order">
   >,
 ): Promise<StepDocument | null> {
-  return (await collection()).findOneAndUpdate({ _id: id, tenantId }, { $set: patch }, { returnDocument: "after" });
+  return (await collection()).findOneAndUpdate({ _id: id, tenantId }, { $set: omitUndefined(patch) }, { returnDocument: "after" });
 }
 
 export async function updateStatus(

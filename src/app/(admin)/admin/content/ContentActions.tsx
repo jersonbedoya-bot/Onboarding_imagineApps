@@ -2,17 +2,37 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
+import { ContentForm, type ContentFormInitial } from "./ContentForm";
+import type { ContentItemType, ContentRequirement } from "@/types/enums";
 
-// Estructural, sin estilo definido.
-export function ContentActions({ id, status }: { id: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
+type RoleOption = { id: string; label: string };
+
+export type ContentActionItem = {
+  id: string;
+  stageId: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  title: string;
+  body: string;
+  type: ContentItemType;
+  mediaId: string | null;
+  videoUrl: string | null;
+  scope: "COMMON" | "ROLE";
+  roleIds: string[];
+  requirement: ContentRequirement | null;
+};
+
+export function ContentActions({ item, roles }: { item: ContentActionItem; roles: RoleOption[] }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   async function callAction(action: "publish" | "archive") {
     setError(null);
     setIsPending(true);
-    const response = await fetch(`/api/content/${id}/${action}`, { method: "POST" });
+    const response = await fetch(`/api/content/${item.id}/${action}`, { method: "POST" });
     const body = await response.json();
     setIsPending(false);
 
@@ -23,19 +43,54 @@ export function ContentActions({ id, status }: { id: string; status: "DRAFT" | "
     router.refresh();
   }
 
+  const initial: ContentFormInitial = {
+    title: item.title,
+    body: item.body,
+    type: item.type,
+    mediaId: item.mediaId,
+    videoUrl: item.videoUrl ?? "",
+    scope: item.scope,
+    roleIds: item.roleIds,
+    requirement: item.requirement ?? "",
+  };
+
   return (
-    <span>
-      {status === "DRAFT" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("publish")}>
+    <div className="flex items-center gap-2">
+      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
+        Editar
+      </Button>
+      {item.status === "DRAFT" && (
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("publish")}>
           Publicar
-        </button>
+        </Button>
       )}
-      {status !== "ARCHIVED" && (
-        <button type="button" disabled={isPending} onClick={() => callAction("archive")}>
+      {item.status !== "ARCHIVED" && (
+        <Button
+          variant="ghost"
+          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={() => callAction("archive")}
+        >
           Archivar
-        </button>
+        </Button>
       )}
-      {error && <span role="alert"> {error}</span>}
-    </span>
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar contenido">
+        <ContentForm
+          stageId={item.stageId}
+          roles={roles}
+          mode="edit"
+          contentItemId={item.id}
+          initial={initial}
+          variant="bare"
+          onSaved={() => setIsEditing(false)}
+        />
+      </Modal>
+    </div>
   );
 }

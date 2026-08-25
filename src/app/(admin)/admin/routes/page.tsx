@@ -3,12 +3,12 @@ import { requireAdmin } from "@/server/auth/session";
 import { ensureRoute } from "@/server/services/route.service";
 import { listStages } from "@/server/services/stage.service";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { Badge } from "@/components/Badge";
 import { RouteActions } from "./RouteActions";
 import { StageActions } from "./StageActions";
 import { StageForm } from "./StageForm";
 
-// Estructural, sin estilo definido: el lineamiento de diseño visual
-// todavía no existe.
 export default async function AdminRoutesPage() {
   let identity;
   try {
@@ -22,13 +22,19 @@ export default async function AdminRoutesPage() {
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
 
   return (
-    <main>
-      <h1>Ruta de onboarding</h1>
-      <p>
-        Estado: {route.status} <RouteActions status={route.status} />
-      </p>
+    <div>
+      <PageHeader
+        title="Ruta de onboarding"
+        description="La secuencia de etapas que recorre cada usuario."
+        action={
+          <div className="flex items-center gap-3">
+            <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{route.status}</Badge>
+            <RouteActions status={route.status} />
+          </div>
+        }
+      />
 
-      <h2>Etapas</h2>
+      <h2 className="mb-3 font-display text-lg font-semibold text-ink">Etapas</h2>
       <DataTable
         rows={stages}
         rowKey={(stage) => stage._id.toString()}
@@ -42,7 +48,10 @@ export default async function AdminRoutesPage() {
               stageOptions.find((option) => option.id === stage.dependsOnStageId?.toString())?.title ?? "—",
           },
           { header: "Bloqueante", render: (stage) => (stage.isBlocking ? "Sí" : "No") },
-          { header: "Estado", render: (stage) => stage.status },
+          {
+            header: "Estado",
+            render: (stage) => <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{stage.status}</Badge>,
+          },
           {
             header: "Acciones",
             render: (stage) => <StageActions stageId={stage._id.toString()} status={stage.status} />,
@@ -50,7 +59,9 @@ export default async function AdminRoutesPage() {
         ]}
       />
 
-      <StageForm existingStages={stageOptions} />
-    </main>
+      <div className="mt-8">
+        <StageForm existingStages={stageOptions} />
+      </div>
+    </div>
   );
 }
