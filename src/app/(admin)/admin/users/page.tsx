@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
 import { listUsers } from "@/server/services/user.service";
+import { resolveJourneyFor } from "@/server/services/progress.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
+import { ProgressBar } from "@/components/ProgressBar";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
 
@@ -23,6 +25,19 @@ export default async function AdminUsersPage() {
 
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
   const currentUserId = identity.userId.toString();
+
+  // Progreso de onboarding por usuario — solo aplica a USER con rol
+  // funcional asignado (un ADMIN nunca hace el recorrido).
+  const progressEntries = await Promise.all(
+    users
+      .filter((user) => user.functionalRoleId)
+      .map(async (user) => {
+        const journey = await resolveJourneyFor(identity.tenantId, user._id, user.functionalRoleId!);
+        const completed = journey.stages.filter((stage) => stage.status === "COMPLETE").length;
+        return [user._id.toString(), { completed, total: journey.stages.length }] as const;
+      }),
+  );
+  const progressByUserId = new Map(progressEntries);
 
   return (
     <div>
@@ -46,6 +61,26 @@ export default async function AdminUsersPage() {
           {
             header: "Estado",
             render: (user) => <Badge variant={user.status === "ACTIVE" ? "success" : "neutral"}>{user.status}</Badge>,
+          },
+          {
+            header: "Progreso onboarding",
+            render: (user) => {
+              if (!user.functionalRoleId) {
+                return <span className="text-xs text-ink-soft">No aplica</span>;
+              }
+              const progress = progressByUserId.get(user._id.toString());
+              if (!progress || progress.total === 0) {
+                return <span className="text-xs text-ink-soft">Sin ruta publicada</span>;
+              }
+              return (
+                <div className="min-w-[8rem]">
+                  <ProgressBar
+                    value={(progress.completed / progress.total) * 100}
+                    label={`${progress.completed}/${progress.total}`}
+                  />
+                </div>
+              );
+            },
           },
           {
             header: "Acciones",

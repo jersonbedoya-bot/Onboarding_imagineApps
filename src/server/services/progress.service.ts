@@ -199,13 +199,24 @@ export async function markContentAsRead(identity: RequestIdentity, contentItemId
  */
 export async function resolveJourney(identity: RequestIdentity) {
   const roleId = requireRoleId(identity);
-  const bundles = await loadStageBundles(identity.tenantId, roleId);
-  const rows = await progressRepository.findByUser(identity.tenantId, identity.userId);
+  return resolveJourneyFor(identity.tenantId, identity.userId, roleId);
+}
+
+/**
+ * Igual que resolveJourney, pero para un (tenantId, userId, roleId)
+ * explícito en vez de la identidad de quien pide — lo usa el admin para
+ * ver el progreso de OTRO usuario (ver /admin/users). El auto-repair
+ * sticky de abajo sigue operando sobre el progreso de ESE usuario, nunca
+ * el del admin que mira.
+ */
+export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, roleId: ObjectId) {
+  const bundles = await loadStageBundles(tenantId, roleId);
+  const rows = await progressRepository.findByUser(tenantId, userId);
   const progressByTarget = buildProgressByTarget(rows);
   const stickyStageIds = buildStickyStageIds(rows);
 
   for (const bundle of bundles) {
-    await maybeStickStage(identity.tenantId, identity.userId, bundle, progressByTarget, stickyStageIds);
+    await maybeStickStage(tenantId, userId, bundle, progressByTarget, stickyStageIds);
   }
 
   const computed = bundles.map((bundle) => {
@@ -217,7 +228,7 @@ export async function resolveJourney(identity: RequestIdentity) {
   });
 
   const mediaIds = computed.flatMap(({ bundle }) => bundle.items.map((item) => item.mediaId).filter((id): id is ObjectId => id !== null));
-  const mediaDocs = await mediaRepository.findByIds(identity.tenantId, mediaIds);
+  const mediaDocs = await mediaRepository.findByIds(tenantId, mediaIds);
   const mediaUrlById = new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
 
   const forUnlock: StageForUnlock[] = computed.map(({ bundle, status }) => ({
