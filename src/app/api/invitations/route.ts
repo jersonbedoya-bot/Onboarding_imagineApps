@@ -17,7 +17,8 @@ export async function POST(request: Request) {
 
     const { link, message } = await createInvitation(actingAdmin, {
       email: parsed.data.email,
-      functionalRoleId: new ObjectId(parsed.data.functionalRoleId),
+      platformRole: parsed.data.platformRole,
+      functionalRoleId: parsed.data.functionalRoleId ? new ObjectId(parsed.data.functionalRoleId) : undefined,
     });
 
     return NextResponse.json({ success: true, data: { link, message } }, { status: 201 });

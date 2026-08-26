@@ -122,6 +122,29 @@ página `/admin/audit`.
 **Cómo migrar una base existente**: correr `db:bootstrap` (solo agrega, no
 requiere dropear nada).
 
+### 6. Invitación de administradores — `invitations`: `collMod` para `platformRole` + `functionalRoleId` nullable
+
+Antes: `functionalRoleId` requerido y siempre `objectId` (toda invitación
+era, implícitamente, para un `USER` con rol funcional). Ahora: nuevo campo
+requerido `platformRole: "USER" | "ADMIN"`, y `functionalRoleId` pasa a
+`["objectId", "null"]` — `null` cuando `platformRole === "ADMIN"` (un
+admin no tiene rol funcional, mismo patrón ya usado en `users`).
+
+**Por qué**: pedido explícito de poder invitar administradores desde
+`/admin/users` (antes el único ADMIN posible era el sembrado por
+`db:seed`, sin ningún flujo para agregar un segundo).
+
+**Aplicado en Atlas de desarrollo el 2026-08-25**: `collMod` de
+`invitations` al nuevo validador, más un backfill de `{ platformRole:
+"USER" }` sobre los documentos existentes que no tenían el campo (1
+invitación afectada) — sin este backfill, el validador strict las hubiera
+dejado inválidas para cualquier escritura futura sobre ellas (ej.
+`markAccepted`).
+
+**Cómo migrar una base existente**: `collMod` de `invitations` al
+validador actual de `schema.ts`, seguido del backfill de arriba, luego
+`db:bootstrap` (agrega el índice si faltara — no cambió en este paso).
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

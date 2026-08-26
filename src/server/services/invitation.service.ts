@@ -11,6 +11,7 @@ import * as userRepository from "@/server/repositories/user.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as tenantRepository from "@/server/repositories/tenant.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
+import type { PlatformRole } from "@/types/enums";
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const BCRYPT_COST = 12;
@@ -18,13 +19,23 @@ const DUPLICATE_KEY_ERROR_CODE = 11000;
 
 export async function createInvitation(
   actingAdmin: RequestIdentity,
-  input: { email: string; functionalRoleId: ObjectId },
+  input: { email: string; platformRole?: PlatformRole; functionalRoleId?: ObjectId },
 ) {
   const email = normalizeEmail(input.email);
+  const platformRole = input.platformRole ?? "USER";
 
-  const role = await roleRepository.findById(actingAdmin.tenantId, input.functionalRoleId);
-  if (!role) {
-    throw new ValidationError("El rol funcional no es válido para este tenant.");
+  let roleLabel = "Administrador";
+  if (platformRole === "USER") {
+    if (!input.functionalRoleId) {
+      throw new ValidationError("Un usuario necesita un rol funcional.");
+    }
+    const role = await roleRepository.findById(actingAdmin.tenantId, input.functionalRoleId);
+    if (!role) {
+      throw new ValidationError("El rol funcional no es válido para este tenant.");
+    }
+    roleLabel = role.label;
+  } else if (input.functionalRoleId) {
+    throw new ValidationError("Un administrador no tiene rol funcional.");
   }
 
   const existingUser = await userRepository.findByEmail(email);
@@ -44,7 +55,8 @@ export async function createInvitation(
   const invitation = await invitationRepository.create({
     tenantId: actingAdmin.tenantId,
     email,
-    functionalRoleId: input.functionalRoleId,
+    platformRole,
+    functionalRoleId: platformRole === "USER" ? (input.functionalRoleId ?? null) : null,
     tokenHash,
     expiresAt,
     invitedBy: actingAdmin.userId,
@@ -56,11 +68,11 @@ export async function createInvitation(
     action: "INVITATION_CREATED",
     resource: "invitation",
     resourceId: invitation._id,
-    metadata: { email, functionalRoleId: input.functionalRoleId.toString() },
+    metadata: { email, platformRole, functionalRoleId: input.functionalRoleId?.toString() ?? null },
   });
 
   const link = `${env.appUrl}/accept-invite/${rawToken}`;
-  const message = `Te invitaron a Imagine Apps como ${role.label}. Activá tu cuenta acá (válido por 7 días): ${link}`;
+  const message = `Te invitaron a Imagine Apps como ${roleLabel}. Activá tu cuenta acá (válido por 7 días): ${link}`;
 
   return { invitation, link, message };
 }
@@ -73,13 +85,13 @@ export async function previewInvitation(rawToken: string) {
 
   const [tenant, role] = await Promise.all([
     tenantRepository.findById(invitation.tenantId),
-    roleRepository.findById(invitation.tenantId, invitation.functionalRoleId),
+    invitation.functionalRoleId ? roleRepository.findById(invitation.tenantId, invitation.functionalRoleId) : null,
   ]);
 
   return {
     email: invitation.email,
     tenantName: tenant?.name ?? "",
-    roleLabel: role?.label ?? "",
+    roleLabel: invitation.platformRole === "ADMIN" ? "Administrador" : (role?.label ?? ""),
     expiresAt: invitation.expiresAt,
   };
 }
@@ -103,7 +115,7 @@ export async function acceptInvitation(rawToken: string, input: { name: string; 
       email: invitation.email,
       name: input.name,
       passwordHash,
-      platformRole: "USER",
+      platformRole: invitation.platformRole,
       functionalRoleId: invitation.functionalRoleId,
       status: "ACTIVE",
     });

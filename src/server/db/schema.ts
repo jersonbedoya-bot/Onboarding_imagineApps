@@ -91,11 +91,14 @@ export const collections: CollectionDef[] = [
     validator: {
       $jsonSchema: {
         bsonType: "object",
-        required: ["tenantId", "email", "functionalRoleId", "tokenHash", "status", "expiresAt", "createdAt"],
+        required: ["tenantId", "email", "platformRole", "functionalRoleId", "tokenHash", "status", "expiresAt", "createdAt"],
         properties: {
           tenantId: objectId,
           email: { bsonType: "string", pattern: emailPattern },
-          functionalRoleId: objectId,
+          // ADMIN no tiene rol funcional (functionalRoleId: null) — ver
+          // MIGRATIONS.md, invitación de administradores.
+          platformRole: { enum: ["USER", "ADMIN"] },
+          functionalRoleId: { bsonType: ["objectId", "null"] },
           tokenHash: { bsonType: "string" },
           status: { enum: ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"] },
           expiresAt: date,

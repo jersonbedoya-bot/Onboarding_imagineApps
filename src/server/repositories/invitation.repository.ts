@@ -1,13 +1,14 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
 import { normalizeEmail } from "@/lib/email";
-import type { InvitationStatus } from "@/types/enums";
+import type { InvitationStatus, PlatformRole } from "@/types/enums";
 
 export type InvitationDocument = {
   _id: ObjectId;
   tenantId: ObjectId;
   email: string;
-  functionalRoleId: ObjectId;
+  platformRole: PlatformRole;
+  functionalRoleId: ObjectId | null; // null cuando platformRole === "ADMIN"
   tokenHash: string;
   status: InvitationStatus;
   expiresAt: Date;
@@ -24,7 +25,8 @@ async function collection() {
 export async function create(input: {
   tenantId: ObjectId;
   email: string;
-  functionalRoleId: ObjectId;
+  platformRole: PlatformRole;
+  functionalRoleId: ObjectId | null;
   tokenHash: string;
   expiresAt: Date;
   invitedBy: ObjectId;
@@ -33,6 +35,7 @@ export async function create(input: {
     _id: new ObjectId(),
     tenantId: input.tenantId,
     email: normalizeEmail(input.email),
+    platformRole: input.platformRole,
     functionalRoleId: input.functionalRoleId,
     tokenHash: input.tokenHash,
     status: "PENDING",
