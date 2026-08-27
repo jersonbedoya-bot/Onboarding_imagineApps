@@ -67,7 +67,7 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
               onChange={() => setPlatformRole("USER")}
               className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
             />
-            Usuario (hace el recorrido de onboarding)
+            Imaginer (hace el recorrido de onboarding)
           </label>
           <label className="flex items-center gap-2 text-sm text-ink">
             <input

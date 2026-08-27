@@ -4,7 +4,7 @@ import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import { updateContentItemSchema } from "@/server/validation/content.schema";
-import { updateContentItem } from "@/server/services/content.service";
+import { updateContentItem, deleteContentItem } from "@/server/services/content.service";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -34,6 +34,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       success: true,
       data: { id: updated._id.toString(), title: updated.title, status: updated.status },
     });
+  } catch (error) {
+    return toErrorResponse(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const actingAdmin = await requireAdmin();
+    const { id } = await params;
+    if (!ObjectId.isValid(id)) throw new NotFoundError();
+
+    await deleteContentItem(actingAdmin, new ObjectId(id));
+    return NextResponse.json({ success: true });
   } catch (error) {
     return toErrorResponse(error);
   }

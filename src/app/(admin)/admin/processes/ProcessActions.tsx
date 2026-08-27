@@ -40,6 +40,21 @@ export function ProcessActions({ item, roles }: { item: ProcessActionItem; roles
     router.refresh();
   }
 
+  async function deleteItem() {
+    if (!confirm(`¿Borrar "${item.title}" para siempre? Esta acción no se puede deshacer.`)) return;
+    setError(null);
+    setIsPending(true);
+    const response = await fetch(`/api/processes/${item.id}`, { method: "DELETE" });
+    const body = await response.json();
+    setIsPending(false);
+
+    if (!response.ok || !body.success) {
+      setError(body?.error?.message ?? "No se pudo borrar.");
+      return;
+    }
+    router.refresh();
+  }
+
   const initial: ProcessFormInitial = {
     title: item.title,
     objective: item.objective,
@@ -67,6 +82,16 @@ export function ProcessActions({ item, roles }: { item: ProcessActionItem; roles
           onClick={() => callAction("archive")}
         >
           Archivar
+        </Button>
+      )}
+      {item.status === "ARCHIVED" && (
+        <Button
+          variant="ghost"
+          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={deleteItem}
+        >
+          Borrar
         </Button>
       )}
       {error && (

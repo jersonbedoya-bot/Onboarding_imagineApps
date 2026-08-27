@@ -5,6 +5,7 @@ import { resolveJourney } from "@/server/services/progress.service";
 import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service";
 import { CompleteStepButton } from "./CompleteStepButton";
 import { MarkAsReadButton } from "./MarkAsReadButton";
+import { ContentViewTracker } from "./ContentViewTracker";
 import { TerminalCelebration } from "./TerminalCelebration";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StepIndicator, type StepStatus } from "@/components/StepIndicator";
@@ -13,7 +14,6 @@ import { Badge } from "@/components/Badge";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
 import { OnboardingTopbar } from "@/components/OnboardingTopbar";
-import { CONTENT_TYPE_LABELS } from "@/lib/content-labels";
 import { VideoEmbed } from "@/components/VideoEmbed";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
@@ -155,16 +155,22 @@ function FinishCard() {
 
 function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index: number; isCurrent: boolean }) {
   return (
-    <section id={stage.id} className="scroll-mt-24 border-t border-line pt-8 first:border-0 first:pt-0">
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <span className="font-display text-sm font-semibold tabular-nums text-brand">
+    <section id={stage.id} className="scroll-mt-24 border-t border-line pt-10 first:border-0 first:pt-0">
+      <div className="mb-6 flex items-start gap-4">
+        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-brand-tint font-display text-base font-semibold tabular-nums text-brand">
           {String(index + 1).padStart(2, "0")}
         </span>
-        {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
-        {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
-        {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
+        <div className="min-w-0 flex-1 pt-1">
+          {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
+              {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
+              {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
+            </div>
+          )}
+          <h2 className="font-display text-2xl font-semibold leading-tight text-ink sm:text-3xl">{stage.title}</h2>
+        </div>
       </div>
-      <h2 className="mb-2 font-display text-2xl font-semibold text-ink">{stage.title}</h2>
 
       {stage.readOnly ? (
         <p className="mb-6 text-sm text-ink-soft">Contenido de consulta — no requiere acciones.</p>
@@ -185,20 +191,23 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
                 {stage.items.map((item) => (
                   <li key={item.id} className="flex flex-col gap-2 border-b border-line pb-5 last:border-0 last:pb-0">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-ink">{item.title}</p>
-                        <p className="text-xs uppercase tracking-wide text-ink-soft">{CONTENT_TYPE_LABELS[item.type]}</p>
-                      </div>
+                      <p className="font-display text-lg font-semibold leading-snug text-ink">{item.title}</p>
                       {item.requirement === "OBLIGATORY" && (
                         <MarkAsReadButton contentItemId={item.id} completed={item.completed} />
                       )}
                     </div>
-                    {item.body && <p className="whitespace-pre-wrap text-sm text-ink-soft">{item.body}</p>}
-                    {item.imageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
-                    )}
-                    {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} />}
+                    <ContentViewTracker
+                      contentItemId={item.id}
+                      initialViewed={item.viewed ?? false}
+                      enabled={item.requirement !== "OBLIGATORY"}
+                    >
+                      {item.body && <p className="whitespace-pre-wrap text-sm text-ink-soft">{item.body}</p>}
+                      {item.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
+                      )}
+                      {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} />}
+                    </ContentViewTracker>
                   </li>
                 ))}
               </ul>
@@ -207,13 +216,13 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
 
           {stage.processes.map((process) => (
             <Card key={process.id}>
-              <h3 className="font-display text-lg font-semibold text-ink">{process.title}</h3>
+              <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
               {process.objective && <p className="mt-1 text-sm text-ink-soft">{process.objective}</p>}
               <ul className="mt-4 flex flex-col gap-4">
                 {process.steps.map((step) => (
                   <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-ink">{step.title}</span>
+                      <span className="font-display text-base font-semibold text-ink">{step.title}</span>
                       <CompleteStepButton stepId={step.id} completed={step.completed} />
                     </div>
                     {step.description && <p className="text-sm text-ink-soft">{step.description}</p>}

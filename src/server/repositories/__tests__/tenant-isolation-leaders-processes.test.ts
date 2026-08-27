@@ -87,6 +87,30 @@ describe("aislamiento de tenant — leader.repository / leader.service", () => {
       leaderService.createLeader(adminA, { name: "x", title: "y", description: "", scope: "ROLE", roleIds: [roleB._id] }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
+
+  it("deleteLeader rechaza si no está ARCHIVED, y borra permanentemente cuando sí lo está", async () => {
+    const { admin } = await makeTenantWithStage("leader-del");
+    const leader = await leaderService.createLeader(admin, { name: "Carla", title: "Lead", description: "", scope: "COMMON", roleIds: [] });
+
+    await expect(leaderService.deleteLeader(admin, leader._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await leaderService.publishLeader(admin, leader._id);
+    await leaderService.archiveLeader(admin, leader._id);
+    await leaderService.deleteLeader(admin, leader._id);
+
+    expect(await leaderRepository.findById(admin.tenantId, leader._id)).toBeNull();
+  });
+
+  it("deleteLeader de un admin de otro tenant -> NotFoundError", async () => {
+    const { admin: adminA } = await makeTenantWithStage("leader-del-cross-a");
+    const { admin: adminB } = await makeTenantWithStage("leader-del-cross-b");
+
+    const leader = await leaderService.createLeader(adminA, { name: "Dana", title: "Lead", description: "", scope: "COMMON", roleIds: [] });
+    await leaderService.publishLeader(adminA, leader._id);
+    await leaderService.archiveLeader(adminA, leader._id);
+
+    await expect(leaderService.deleteLeader(adminB, leader._id)).rejects.toBeInstanceOf(NotFoundError);
+  });
 });
 
 describe("aislamiento de tenant — process.repository / process.service", () => {
@@ -125,6 +149,55 @@ describe("aislamiento de tenant — process.repository / process.service", () =>
 
     await expect(processService.publishProcess(adminB, process._id)).rejects.toBeInstanceOf(NotFoundError);
     expect(await processRepository.findById(adminB.tenantId, process._id)).toBeNull();
+  });
+
+  it("deleteProcess rechaza si no está ARCHIVED, y borra permanentemente cuando sí lo está y no tiene pasos", async () => {
+    const { admin, stage } = await makeTenantWithStage("proc-del");
+    const process = await processService.createProcess(admin, {
+      stageId: stage._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso a borrar",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+
+    await expect(processService.deleteProcess(admin, process._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await processService.publishProcess(admin, process._id);
+    await processService.archiveProcess(admin, process._id);
+    await processService.deleteProcess(admin, process._id);
+
+    expect(await processRepository.findById(admin.tenantId, process._id)).toBeNull();
+  });
+
+  it("deleteProcess rechaza un proceso ARCHIVED que todavía tiene pasos", async () => {
+    const { admin, stage } = await makeTenantWithStage("proc-del-with-steps");
+    const process = await processService.createProcess(admin, {
+      stageId: stage._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso con pasos",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+    await stepService.createStep(admin, {
+      processId: process._id,
+      title: "Paso pendiente",
+      description: "",
+      instruction: "",
+      resources: [],
+      links: [],
+      completionCriteria: "",
+    });
+    await processService.archiveProcess(admin, process._id);
+
+    await expect(processService.deleteProcess(admin, process._id)).rejects.toBeInstanceOf(ValidationError);
+    expect(await processRepository.findById(admin.tenantId, process._id)).not.toBeNull();
   });
 });
 
@@ -226,6 +299,66 @@ describe("aislamiento de tenant — step.repository / step.service", () => {
     // El paso en sí sigue PUBLISHED — lo que cambió es el status del proceso.
     const stepDoc = await stepRepository.findById(tenant._id, step._id);
     expect(stepDoc?.status).toBe("PUBLISHED");
+  });
+
+  it("deleteStep rechaza si no está ARCHIVED, y borra permanentemente cuando sí lo está", async () => {
+    const { admin, stage } = await makeTenantWithStage("step-del");
+    const process = await processService.createProcess(admin, {
+      stageId: stage._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+    const step = await stepService.createStep(admin, {
+      processId: process._id,
+      title: "Paso a borrar",
+      description: "",
+      instruction: "",
+      resources: [],
+      links: [],
+      completionCriteria: "",
+    });
+
+    await expect(stepService.deleteStep(admin, step._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await stepService.publishStep(admin, step._id);
+    await stepService.archiveStep(admin, step._id);
+    await stepService.deleteStep(admin, step._id);
+
+    expect(await stepRepository.findById(admin.tenantId, step._id)).toBeNull();
+  });
+
+  it("deleteStep de un admin de otro tenant -> NotFoundError", async () => {
+    const { admin: adminA, stage: stageA } = await makeTenantWithStage("step-del-cross-a");
+    const { admin: adminB } = await makeTenantWithStage("step-del-cross-b");
+
+    const process = await processService.createProcess(adminA, {
+      stageId: stageA._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+    const step = await stepService.createStep(adminA, {
+      processId: process._id,
+      title: "Paso",
+      description: "",
+      instruction: "",
+      resources: [],
+      links: [],
+      completionCriteria: "",
+    });
+    await stepService.publishStep(adminA, step._id);
+    await stepService.archiveStep(adminA, step._id);
+
+    await expect(stepService.deleteStep(adminB, step._id)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 

@@ -161,6 +161,26 @@ export async function archiveLeader(actingAdmin: RequestIdentity, id: ObjectId) 
   return updated;
 }
 
+/** Borrado permanente — ver comentario equivalente en content.service.ts. Solo permitido sobre un líder ya ARCHIVED. */
+export async function deleteLeader(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
+  const current = await leaderRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  if (current.status !== "ARCHIVED") {
+    throw new ValidationError("Solo se puede borrar un líder que ya esté archivado.");
+  }
+
+  const deleted = await leaderRepository.remove(actingAdmin.tenantId, id);
+  if (!deleted) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "LEADER_DELETED",
+    resource: "leader",
+    resourceId: id,
+  });
+}
+
 /**
  * A diferencia de content_items, un líder no cuelga de una etapa —
  * "Conoce a tu equipo" es información general del tenant, no ligada a la

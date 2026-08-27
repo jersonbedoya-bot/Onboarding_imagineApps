@@ -187,6 +187,40 @@ export async function markContentAsRead(identity: RequestIdentity, contentItemId
 }
 
 /**
+ * Detección pasiva de scroll para contenido NO obligatorio (ver
+ * ContentViewTracker en el cliente) — puramente informativa. A
+ * diferencia de markContentAsRead, esto NUNCA cuenta para
+ * totalCompletable/completedCount (obligatoryItemsOf sigue filtrando
+ * solo OBLIGATORY), así que no hace falta stickIfComplete acá: no hay
+ * forma de que esto cambie si una etapa se considera completa.
+ */
+export async function markContentAsViewed(identity: RequestIdentity, contentItemId: ObjectId): Promise<void> {
+  const roleId = requireRoleId(identity);
+  const { stages } = await resolveVisibleContent(identity.tenantId, roleId);
+
+  let found: { stage: StageDocument; item: ContentItemDocument } | null = null;
+  for (const { stage, items } of stages) {
+    const item = items.find((i) => i._id.equals(contentItemId));
+    if (item) {
+      found = { stage, item };
+      break;
+    }
+  }
+  if (!found) throw new NotFoundError();
+  if (found.item.requirement === "OBLIGATORY") {
+    throw new ValidationError("Este contenido obligatorio se marca con el botón de lectura, no automáticamente.");
+  }
+
+  await progressRepository.upsertCompletion({
+    tenantId: identity.tenantId,
+    userId: identity.userId,
+    targetType: "CONTENT_ITEM",
+    targetId: contentItemId,
+    stageId: found.stage._id,
+  });
+}
+
+/**
  * Vista "dónde estoy" completa del usuario. Antes de derivar el status
  * final, corre la auto-reparación sticky sobre TODAS las etapas: si
  * stickIfComplete (llamado al completar) no llegó a persistir el hecho
@@ -268,6 +302,9 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
         imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
         completed: item.requirement === "OBLIGATORY" ? progressByTarget.has(`CONTENT_ITEM:${item._id.toString()}`) : null,
+        // Espejo de `completed` para el caso NO obligatorio: detección
+        // pasiva de scroll (ver markContentAsViewed), nunca vía botón.
+        viewed: item.requirement === "OBLIGATORY" ? null : progressByTarget.has(`CONTENT_ITEM:${item._id.toString()}`),
       })),
       processes: bundle.processGroups.map(({ process, steps }) => ({
         id: process._id.toString(),

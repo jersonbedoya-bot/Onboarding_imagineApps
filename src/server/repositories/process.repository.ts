@@ -87,6 +87,12 @@ export async function update(
   );
 }
 
+/** Borrado permanente — solo debe llamarse tras validar en el Service que el proceso está ARCHIVED y sin pasos. */
+export async function remove(tenantId: ObjectId, id: ObjectId): Promise<boolean> {
+  const result = await (await collection()).deleteOne({ _id: id, tenantId });
+  return result.deletedCount === 1;
+}
+
 export async function updateStatus(
   tenantId: ObjectId,
   id: ObjectId,

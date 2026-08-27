@@ -45,7 +45,7 @@ export default async function AdminLeadersPage() {
           },
           {
             header: "Acciones",
-            render: (leader) => <LeaderActions id={leader._id.toString()} status={leader.status} />,
+            render: (leader) => <LeaderActions id={leader._id.toString()} name={leader.name} status={leader.status} />,
           },
         ]}
       />

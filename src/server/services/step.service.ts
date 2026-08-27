@@ -154,6 +154,26 @@ export async function archiveStep(actingAdmin: RequestIdentity, id: ObjectId) {
   return updated;
 }
 
+/** Borrado permanente — ver comentario equivalente en content.service.ts. Solo permitido sobre un paso ya ARCHIVED. */
+export async function deleteStep(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
+  const current = await stepRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  if (current.status !== "ARCHIVED") {
+    throw new ValidationError("Solo se puede borrar un paso que ya esté archivado.");
+  }
+
+  const deleted = await stepRepository.remove(actingAdmin.tenantId, id);
+  if (!deleted) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "STEP_DELETED",
+    resource: "process_step",
+    resourceId: id,
+  });
+}
+
 /**
  * Cascada completa hasta el paso: si el proceso dueño no está en la lista
  * de procesos visibles (porque él, su etapa o la ruta no están PUBLISHED),

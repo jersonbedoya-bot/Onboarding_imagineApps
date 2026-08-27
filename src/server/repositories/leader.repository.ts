@@ -97,6 +97,12 @@ export async function updateStatus(
   return (await collection()).findOneAndUpdate({ _id: id, tenantId }, { $set: { status } }, { returnDocument: "after" });
 }
 
+/** Borrado permanente — solo debe llamarse tras validar en el Service que el líder está ARCHIVED. */
+export async function remove(tenantId: ObjectId, id: ObjectId): Promise<boolean> {
+  const result = await (await collection()).deleteOne({ _id: id, tenantId });
+  return result.deletedCount === 1;
+}
+
 export async function maxOrder(tenantId: ObjectId): Promise<number> {
   const last = await (await collection()).find({ tenantId }).sort({ order: -1 }).limit(1).toArray();
   return last[0]?.order ?? 0;

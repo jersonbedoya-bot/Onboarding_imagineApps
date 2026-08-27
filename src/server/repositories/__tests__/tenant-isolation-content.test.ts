@@ -174,3 +174,83 @@ describe("aislamiento de tenant — content.service", () => {
     await expect(contentService.publishContentItem(adminB, item._id)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
+
+describe("deleteContentItem — borrado permanente, solo sobre contenido ARCHIVED", () => {
+  it("rechaza borrar un content_item en DRAFT (ValidationError)", async () => {
+    const { stage } = await makeTenantWithStage("del-draft");
+    const admin = actingAdminFor(stage.tenantId);
+
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+
+    await expect(contentService.deleteContentItem(admin, item._id)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("rechaza borrar un content_item PUBLISHED (ValidationError)", async () => {
+    const { stage } = await makeTenantWithStage("del-published");
+    const admin = actingAdminFor(stage.tenantId);
+
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+    await contentService.publishContentItem(admin, item._id);
+
+    await expect(contentService.deleteContentItem(admin, item._id)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("borra permanentemente un content_item ARCHIVED", async () => {
+    const { stage } = await makeTenantWithStage("del-archived");
+    const admin = actingAdminFor(stage.tenantId);
+
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+    await contentService.publishContentItem(admin, item._id);
+    await contentService.archiveContentItem(admin, item._id);
+
+    await contentService.deleteContentItem(admin, item._id);
+
+    expect(await contentRepository.findById(admin.tenantId, item._id)).toBeNull();
+  });
+
+  it("rechaza borrar un content_item ARCHIVED de otro tenant (NotFoundError)", async () => {
+    const { tenant: tenantA, stage: stageA } = await makeTenantWithStage("del-cross-a");
+    const { tenant: tenantB } = await makeTenantWithStage("del-cross-b");
+    const adminA = actingAdminFor(tenantA._id);
+    const adminB = actingAdminFor(tenantB._id);
+
+    const item = await contentService.createContentItem(adminA, {
+      stageId: stageA._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+    await contentService.publishContentItem(adminA, item._id);
+    await contentService.archiveContentItem(adminA, item._id);
+
+    await expect(contentService.deleteContentItem(adminB, item._id)).rejects.toBeInstanceOf(NotFoundError);
+    expect(await contentRepository.findById(adminA.tenantId, item._id)).not.toBeNull();
+  });
+});

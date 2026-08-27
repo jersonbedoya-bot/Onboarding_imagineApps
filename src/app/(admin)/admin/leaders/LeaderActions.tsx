@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 
-export function LeaderActions({ id, status }: { id: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
+export function LeaderActions({ id, name, status }: { id: string; name: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +18,21 @@ export function LeaderActions({ id, status }: { id: string; status: "DRAFT" | "P
 
     if (!response.ok || !body.success) {
       setError(body?.error?.message ?? "La acción falló.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function deleteItem() {
+    if (!confirm(`¿Borrar "${name}" para siempre? Esta acción no se puede deshacer.`)) return;
+    setError(null);
+    setIsPending(true);
+    const response = await fetch(`/api/leaders/${id}`, { method: "DELETE" });
+    const body = await response.json();
+    setIsPending(false);
+
+    if (!response.ok || !body.success) {
+      setError(body?.error?.message ?? "No se pudo borrar.");
       return;
     }
     router.refresh();
@@ -38,6 +53,16 @@ export function LeaderActions({ id, status }: { id: string; status: "DRAFT" | "P
           onClick={() => callAction("archive")}
         >
           Archivar
+        </Button>
+      )}
+      {status === "ARCHIVED" && (
+        <Button
+          variant="ghost"
+          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
+          isLoading={isPending}
+          onClick={deleteItem}
+        >
+          Borrar
         </Button>
       )}
       {error && (

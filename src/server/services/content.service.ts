@@ -191,6 +191,33 @@ export async function archiveContentItem(actingAdmin: RequestIdentity, id: Objec
 }
 
 /**
+ * Borrado permanente — a diferencia de archiveContentItem, esto saca el
+ * documento de la base para siempre. Solo permitido sobre contenido ya
+ * ARCHIVED (decisión de producto: forzar el flujo de 2 pasos
+ * archivar->borrar, nunca borrar algo publicado/en borrador de un tirón).
+ * El historial de progreso de usuarios que ya leyeron/vieron este item
+ * NO se borra (mismo comportamiento que archivar, ver progress.service).
+ */
+export async function deleteContentItem(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
+  const current = await contentRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  if (current.status !== "ARCHIVED") {
+    throw new ValidationError("Solo se puede borrar contenido que ya esté archivado.");
+  }
+
+  const deleted = await contentRepository.remove(actingAdmin.tenantId, id);
+  if (!deleted) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "CONTENT_DELETED",
+    resource: "content_item",
+    resourceId: id,
+  });
+}
+
+/**
  * Resolución de visibilidad: ruta PUBLISHED -> etapas PUBLISHED -> content
  * items PUBLISHED que sean COMMON o ROLE con este roleId. Cascada completa:
  * si la ruta o la etapa no están publicadas, su contenido no aparece aunque

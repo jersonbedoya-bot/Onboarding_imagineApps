@@ -243,6 +243,101 @@ describe("progreso sticky — etapa completada no se reabre", () => {
   });
 });
 
+describe("markContentAsViewed — detección pasiva de scroll, solo NO obligatorio", () => {
+  it("rechaza un content_item OBLIGATORY con ValidationError (ese usa el botón de lectura)", async () => {
+    const { admin, stage, user } = await makeTenantWithPublishedStage("viewed-obligatory");
+    const item = await createAndPublishObligatoryContent(admin, stage._id, "No negociable");
+
+    await expect(progressService.markContentAsViewed(user, item._id)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("marca como visto un content_item INFORMATIONAL y no afecta totalCompletable/completedCount", async () => {
+    const { admin, stage, user } = await makeTenantWithPublishedStage("viewed-informational");
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "Informativo",
+      body: "x",
+      requirement: "INFORMATIONAL",
+    });
+    await contentService.publishContentItem(admin, item._id);
+
+    const before = await progressService.resolveJourney(user);
+    const itemBefore = before.stages[0].items.find((i) => i.id === item._id.toString());
+    expect(itemBefore?.viewed).toBe(false);
+
+    await progressService.markContentAsViewed(user, item._id);
+
+    const after = await progressService.resolveJourney(user);
+    const stageAfter = after.stages[0];
+    const itemAfter = stageAfter.items.find((i) => i.id === item._id.toString());
+    expect(itemAfter?.viewed).toBe(true);
+    expect(itemAfter?.completed).toBeNull();
+    expect(stageAfter.totalCompletable).toBe(0); // nunca cuenta como completable
+    expect(stageAfter.completedCount).toBe(0);
+  });
+
+  it("marca como visto un content_item sin requirement (null)", async () => {
+    const { admin, stage, user } = await makeTenantWithPublishedStage("viewed-null-requirement");
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "Sin requisito",
+      body: "x",
+      requirement: null,
+    });
+    await contentService.publishContentItem(admin, item._id);
+
+    await expect(progressService.markContentAsViewed(user, item._id)).resolves.not.toThrow();
+    const journey = await progressService.resolveJourney(user);
+    const viewedItem = journey.stages[0].items.find((i) => i.id === item._id.toString());
+    expect(viewedItem?.viewed).toBe(true);
+  });
+
+  it("rechaza un content_item de otro tenant (NotFoundError)", async () => {
+    const { user: userA } = await makeTenantWithPublishedStage("viewed-cross-a");
+    const { admin: adminB, stage: stageB } = await makeTenantWithPublishedStage("viewed-cross-b");
+    const itemB = await contentService.createContentItem(adminB, {
+      stageId: stageB._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "Informativo B",
+      body: "x",
+      requirement: "INFORMATIONAL",
+    });
+    await contentService.publishContentItem(adminB, itemB._id);
+
+    await expect(progressService.markContentAsViewed(userA, itemB._id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("marcar como visto dos veces no falla y no cambia completedAt (idempotencia)", async () => {
+    const { admin, stage, user } = await makeTenantWithPublishedStage("viewed-idempotent");
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "Informativo idempotente",
+      body: "x",
+      requirement: "INFORMATIONAL",
+    });
+    await contentService.publishContentItem(admin, item._id);
+
+    await progressService.markContentAsViewed(user, item._id);
+    const first = await progressRepository.findOne(user.tenantId, user.userId, "CONTENT_ITEM", item._id);
+
+    await expect(progressService.markContentAsViewed(user, item._id)).resolves.not.toThrow();
+    const second = await progressRepository.findOne(user.tenantId, user.userId, "CONTENT_ITEM", item._id);
+
+    expect(second?.completedAt.getTime()).toBe(first?.completedAt.getTime());
+  });
+});
+
 describe("estado terminal", () => {
   it("todas las etapas COMPLETE -> currentStageId null, sin romper", async () => {
     const { admin, stage, user } = await makeTenantWithPublishedStage("terminal");

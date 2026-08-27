@@ -4,6 +4,7 @@ import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { ContentScope } from "@/types/enums";
 import * as processRepository from "@/server/repositories/process.repository";
+import * as stepRepository from "@/server/repositories/step.repository";
 import * as stageRepository from "@/server/repositories/stage.repository";
 import * as routeRepository from "@/server/repositories/route.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
@@ -138,6 +139,37 @@ export async function archiveProcess(actingAdmin: RequestIdentity, id: ObjectId)
   });
 
   return updated;
+}
+
+/**
+ * Borrado permanente — ver comentario equivalente en content.service.ts.
+ * Solo permitido sobre un proceso ya ARCHIVED, y solo si ya no le quedan
+ * pasos (de ningún status): un proceso es "hoja" en cuanto a cascada de
+ * borrado (no se implementó borrado en cascada), así que primero hay que
+ * borrar cada paso individualmente.
+ */
+export async function deleteProcess(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
+  const current = await processRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  if (current.status !== "ARCHIVED") {
+    throw new ValidationError("Solo se puede borrar un proceso que ya esté archivado.");
+  }
+
+  const remainingSteps = await stepRepository.listByProcess(actingAdmin.tenantId, id);
+  if (remainingSteps.length > 0) {
+    throw new ValidationError("Este proceso todavía tiene pasos — borralos primero antes de borrar el proceso.");
+  }
+
+  const deleted = await processRepository.remove(actingAdmin.tenantId, id);
+  if (!deleted) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "PROCESS_DELETED",
+    resource: "process",
+    resourceId: id,
+  });
 }
 
 /**

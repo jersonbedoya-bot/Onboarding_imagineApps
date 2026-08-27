@@ -4,7 +4,7 @@ import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import { updateStepSchema } from "@/server/validation/step.schema";
-import { updateStep } from "@/server/services/step.service";
+import { updateStep, deleteStep } from "@/server/services/step.service";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,6 +20,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const updated = await updateStep(actingAdmin, new ObjectId(id), parsed.data);
     return NextResponse.json({ success: true, data: { id: updated._id.toString(), status: updated.status } });
+  } catch (error) {
+    return toErrorResponse(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const actingAdmin = await requireAdmin();
+    const { id } = await params;
+    if (!ObjectId.isValid(id)) throw new NotFoundError();
+
+    await deleteStep(actingAdmin, new ObjectId(id));
+    return NextResponse.json({ success: true });
   } catch (error) {
     return toErrorResponse(error);
   }

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import { updateProcessSchema } from "@/server/validation/process.schema";
-import { updateProcess } from "@/server/services/process.service";
+import { updateProcess, deleteProcess } from "@/server/services/process.service";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,6 +30,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json({ success: true, data: { id: updated._id.toString(), status: updated.status } });
+  } catch (error) {
+    return toErrorResponse(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const actingAdmin = await requireAdmin();
+    const { id } = await params;
+    if (!ObjectId.isValid(id)) throw new NotFoundError();
+
+    await deleteProcess(actingAdmin, new ObjectId(id));
+    return NextResponse.json({ success: true });
   } catch (error) {
     return toErrorResponse(error);
   }
