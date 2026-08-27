@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/Field";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
 
 export function AcceptInviteForm({ token }: { token: string }) {
@@ -37,9 +38,8 @@ export function AcceptInviteForm({ token }: { token: string }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <Input id="name" label="Nombre" required value={name} onChange={(event) => setName(event.target.value)} />
-      <Input
+      <PasswordInput
         id="password"
-        type="password"
         label="Contraseña"
         required
         value={password}

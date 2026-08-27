@@ -82,6 +82,7 @@ export function ProcessForm({
       setObjective("");
       setContext("");
       setExpectedResult("");
+      setScope("ROLE");
       setRoleIds([]);
     }
     router.refresh();

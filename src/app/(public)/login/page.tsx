@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { AuthShell } from "@/components/AuthShell";
 import { Input } from "@/components/Field";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
 
 export default function LoginPage() {
@@ -49,10 +50,9 @@ export default function LoginPage() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           label="Contraseña"
           required
           value={password}

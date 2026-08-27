@@ -1,15 +1,15 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-const FIELD_BASE =
+export const FIELD_BASE =
   "w-full rounded-md border bg-paper px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-brand/30";
 
-function fieldBorder(hasError?: boolean) {
+export function fieldBorder(hasError?: boolean) {
   return hasError ? "border-danger focus:border-danger" : "border-line focus:border-brand";
 }
 
-/** Shell compartido por Input/Select/Textarea: label + error, mismo layout siempre. */
-function FieldShell({ id, label, error, children }: { id?: string; label?: string; error?: string; children: ReactNode }) {
+/** Shell compartido por Input/Select/Textarea/PasswordInput: label + error, mismo layout siempre. */
+export function FieldShell({ id, label, error, children }: { id?: string; label?: string; error?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && (

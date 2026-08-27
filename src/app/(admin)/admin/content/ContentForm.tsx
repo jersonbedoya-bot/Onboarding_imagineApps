@@ -50,6 +50,10 @@ export function ContentForm({
   const [requirement, setRequirement] = useState<ContentRequirement | "">(initial?.requirement ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Cambiar esta key remonta <MediaUploader/> desde cero — es la única
+  // forma de limpiar su preview/estado interno, que vive fuera de este
+  // form (ver src/components/MediaUploader.tsx).
+  const [mediaUploaderKey, setMediaUploaderKey] = useState(0);
 
   const needsMedia = type === "IMAGE" || type === "MIXED";
   const needsVideo = type === "VIDEO" || type === "MIXED";
@@ -102,9 +106,13 @@ export function ContentForm({
     } else {
       setTitle("");
       setBody("");
+      setType("TEXT");
       setMediaId(null);
       setVideoUrl("");
+      setScope("COMMON");
       setRoleIds([]);
+      setRequirement("");
+      setMediaUploaderKey((key) => key + 1);
     }
     router.refresh();
   }
@@ -127,7 +135,7 @@ export function ContentForm({
       {needsMedia && (
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Imagen</span>
-          <MediaUploader onUploaded={(id) => setMediaId(id)} />
+          <MediaUploader key={mediaUploaderKey} onUploaded={(id) => setMediaId(id)} />
         </div>
       )}
       {needsVideo && (

@@ -20,6 +20,9 @@ export function LeaderForm({ roles }: { roles: RoleOption[] }) {
   const [roleIds, setRoleIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Cambiar esta key remonta <MediaUploader/> desde cero — es la única
+  // forma de limpiar su preview/estado interno, que vive fuera de este form.
+  const [mediaUploaderKey, setMediaUploaderKey] = useState(0);
 
   function toggleRole(roleId: string) {
     setRoleIds((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]));
@@ -56,7 +59,9 @@ export function LeaderForm({ roles }: { roles: RoleOption[] }) {
     setDescription("");
     setPhotoMediaId(null);
     setVideoUrl("");
+    setScope("COMMON");
     setRoleIds([]);
+    setMediaUploaderKey((key) => key + 1);
     router.refresh();
   }
 
@@ -74,7 +79,7 @@ export function LeaderForm({ roles }: { roles: RoleOption[] }) {
         />
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Foto</span>
-          <MediaUploader onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
+          <MediaUploader key={mediaUploaderKey} onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
         </div>
         <Input
           id="leader-video"
