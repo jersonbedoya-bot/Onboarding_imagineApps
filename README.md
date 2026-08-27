@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Imagine Apps — Plataforma Multi-Tenant de Onboarding Operativo
 
-## Getting Started
+Aplicación web **SaaS multi-tenant** para gestionar el proceso de incorporación, adaptación y aprendizaje operativo de los nuevos integrantes de una organización, con panel administrativo para gestionar el contenido y una experiencia de onboarding guiada por rol.
 
-First, run the development server:
+Construida con **Next.js 16 (App Router) + TypeScript + MongoDB + Tailwind CSS**.
+
+## Stack
+
+| Capa | Tecnología |
+|------|------------|
+| Framework | Next.js 16 / React / Turbopack |
+| Lenguaje | TypeScript 5 (strict) |
+| Base de datos | MongoDB + `mongodb-memory-server` (tests) |
+| Auth | NextAuth v5 (credentials, JWT) |
+| Validación | Zod 4 |
+| Estilos | Tailwind CSS 4 |
+| Media | Vercel Blob |
+| Testing | Vitest |
+
+## Inicio rápido
 
 ```bash
+npm install
+
+# 1. Configurá las variables de entorno (copiá .env.example a .env.local)
+# 2. Inicializá la base de datos (idempotente)
+npm run db:bootstrap
+npm run db:seed
+
+# 3. Levantá el servidor
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev              # Servidor de desarrollo
+npm run build            # Build de producción
+npm run start            # Servidor de producción
+npm run lint             # ESLint
+npm run db:bootstrap     # Crea colecciones + índices + validadores en MongoDB
+npm run db:seed          # Siembra tenant, roles y usuarios de arranque
+npm run db:verify        # Verifica la validación de una base existente
+npm run test             # Tests (Vitest)
+```
 
-## Learn More
+## Documentación
 
-To learn more about Next.js, take a look at the following resources:
+▶️ **La documentación completa del proyecto está en [`DOCUMENTATION.md`](DOCUMENTATION.md)** — cubre arquitectura, modelo de datos, autenticación, roles, seguridad, API, errores, testing, migraciones y backlog.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Otros documentos:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Documento | Descripción |
+|-----------|-------------|
+| [`DOCUMENTATION.md`](DOCUMENTATION.md) | Documentación técnica principal del proyecto. |
+| `PRD — Plataforma Multi-Tenant de Onboarding Operativo Imagine Apps.md` | Especificación funcional y técnica completa. |
+| [`MIGRATIONS.md`](MIGRATIONS.md) | Migraciones de base de datos y notas de performance. |
+| [`BACKLOG.md`](BACKLOG.md) | Features diferidas con aprobación de Product Owner. |
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
