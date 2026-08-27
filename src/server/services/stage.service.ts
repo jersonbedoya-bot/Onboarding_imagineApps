@@ -122,3 +122,23 @@ export async function archiveStage(actingAdmin: RequestIdentity, stageId: Object
 
   return updated;
 }
+
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarla de nuevo explícitamente. */
+export async function reactivateStage(actingAdmin: RequestIdentity, stageId: ObjectId) {
+  const current = await stageRepository.findById(actingAdmin.tenantId, stageId);
+  if (!current) throw new NotFoundError();
+  assertValidTransition(current.status, "DRAFT");
+
+  const updated = await stageRepository.updateStatus(actingAdmin.tenantId, stageId, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "STAGE_REACTIVATED",
+    resource: "stage",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}

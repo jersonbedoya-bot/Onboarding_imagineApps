@@ -111,6 +111,18 @@ describe("aislamiento de tenant — leader.repository / leader.service", () => {
 
     await expect(leaderService.deleteLeader(adminB, leader._id)).rejects.toBeInstanceOf(NotFoundError);
   });
+
+  it("reactivateLeader: ARCHIVED -> DRAFT, y rechaza reactivar uno PUBLISHED (nunca directo)", async () => {
+    const { admin } = await makeTenantWithStage("leader-reactivate");
+    const leader = await leaderService.createLeader(admin, { name: "Eva", title: "Lead", description: "", scope: "COMMON", roleIds: [] });
+    await leaderService.publishLeader(admin, leader._id);
+
+    await expect(leaderService.reactivateLeader(admin, leader._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await leaderService.archiveLeader(admin, leader._id);
+    const reactivated = await leaderService.reactivateLeader(admin, leader._id);
+    expect(reactivated.status).toBe("DRAFT");
+  });
 });
 
 describe("aislamiento de tenant — process.repository / process.service", () => {
@@ -198,6 +210,25 @@ describe("aislamiento de tenant — process.repository / process.service", () =>
 
     await expect(processService.deleteProcess(admin, process._id)).rejects.toBeInstanceOf(ValidationError);
     expect(await processRepository.findById(admin.tenantId, process._id)).not.toBeNull();
+  });
+
+  it("reactivateProcess: ARCHIVED -> DRAFT", async () => {
+    const { admin, stage } = await makeTenantWithStage("proc-reactivate");
+    const process = await processService.createProcess(admin, {
+      stageId: stage._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso a reactivar",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+    await processService.publishProcess(admin, process._id);
+    await processService.archiveProcess(admin, process._id);
+
+    const reactivated = await processService.reactivateProcess(admin, process._id);
+    expect(reactivated.status).toBe("DRAFT");
   });
 });
 
@@ -359,6 +390,34 @@ describe("aislamiento de tenant — step.repository / step.service", () => {
     await stepService.archiveStep(adminA, step._id);
 
     await expect(stepService.deleteStep(adminB, step._id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("reactivateStep: ARCHIVED -> DRAFT", async () => {
+    const { admin, stage } = await makeTenantWithStage("step-reactivate");
+    const process = await processService.createProcess(admin, {
+      stageId: stage._id,
+      scope: "COMMON",
+      roleIds: [],
+      title: "Proceso",
+      objective: "",
+      context: "",
+      expectedResult: "",
+      resources: [],
+    });
+    const step = await stepService.createStep(admin, {
+      processId: process._id,
+      title: "Paso a reactivar",
+      description: "",
+      instruction: "",
+      resources: [],
+      links: [],
+      completionCriteria: "",
+    });
+    await stepService.publishStep(admin, step._id);
+    await stepService.archiveStep(admin, step._id);
+
+    const reactivated = await stepService.reactivateStep(admin, step._id);
+    expect(reactivated.status).toBe("DRAFT");
   });
 });
 

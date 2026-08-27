@@ -161,6 +161,26 @@ export async function archiveLeader(actingAdmin: RequestIdentity, id: ObjectId) 
   return updated;
 }
 
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarlo de nuevo explícitamente. */
+export async function reactivateLeader(actingAdmin: RequestIdentity, id: ObjectId) {
+  const current = await leaderRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  assertValidTransition(current.status, "DRAFT");
+
+  const updated = await leaderRepository.updateStatus(actingAdmin.tenantId, id, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "LEADER_REACTIVATED",
+    resource: "leader",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}
+
 /** Borrado permanente — ver comentario equivalente en content.service.ts. Solo permitido sobre un líder ya ARCHIVED. */
 export async function deleteLeader(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
   const current = await leaderRepository.findById(actingAdmin.tenantId, id);

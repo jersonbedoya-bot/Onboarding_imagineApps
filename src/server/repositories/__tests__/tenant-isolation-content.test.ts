@@ -7,6 +7,7 @@ import * as stageRepository from "@/server/repositories/stage.repository";
 import * as contentRepository from "@/server/repositories/content.repository";
 import * as stageService from "@/server/services/stage.service";
 import * as contentService from "@/server/services/content.service";
+import * as routeService from "@/server/services/route.service";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 
@@ -87,6 +88,86 @@ describe("aislamiento de tenant — stage.service", () => {
     await expect(stageService.updateStage(adminB, stageA._id, { title: "x" })).rejects.toBeInstanceOf(NotFoundError);
     await expect(stageService.publishStage(adminB, stageA._id)).rejects.toBeInstanceOf(NotFoundError);
     await expect(stageService.archiveStage(adminB, stageA._id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("reactivar elementos archivados — vuelve a DRAFT, nunca directo a PUBLISHED", () => {
+  it("reactivateRoute: ARCHIVED -> DRAFT", async () => {
+    const { tenant } = await makeTenantWithStage("reactivate-route");
+    const admin = actingAdminFor(tenant._id);
+
+    await routeService.publishRoute(admin);
+    await routeService.archiveRoute(admin);
+
+    const reactivated = await routeService.reactivateRoute(admin);
+    expect(reactivated.status).toBe("DRAFT");
+  });
+
+  it("reactivateStage: ARCHIVED -> DRAFT, y rechaza reactivar un stage PUBLISHED (nunca directo)", async () => {
+    const { stage } = await makeTenantWithStage("reactivate-stage");
+    const admin = actingAdminFor(stage.tenantId);
+
+    await stageService.publishStage(admin, stage._id);
+    await expect(stageService.reactivateStage(admin, stage._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await stageService.archiveStage(admin, stage._id);
+    const reactivated = await stageService.reactivateStage(admin, stage._id);
+    expect(reactivated.status).toBe("DRAFT");
+  });
+
+  it("reactivateStage de un admin de otro tenant -> NotFoundError", async () => {
+    const { stage: stageA } = await makeTenantWithStage("reactivate-stage-cross-a");
+    const { tenant: tenantB } = await makeTenantWithStage("reactivate-stage-cross-b");
+    const adminA = actingAdminFor(stageA.tenantId);
+    const adminB = actingAdminFor(tenantB._id);
+
+    await stageService.publishStage(adminA, stageA._id);
+    await stageService.archiveStage(adminA, stageA._id);
+
+    await expect(stageService.reactivateStage(adminB, stageA._id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("reactivateContentItem: ARCHIVED -> DRAFT, y rechaza reactivar uno PUBLISHED (nunca directo)", async () => {
+    const { stage } = await makeTenantWithStage("reactivate-content");
+    const admin = actingAdminFor(stage.tenantId);
+
+    const item = await contentService.createContentItem(admin, {
+      stageId: stage._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+    await contentService.publishContentItem(admin, item._id);
+
+    await expect(contentService.reactivateContentItem(admin, item._id)).rejects.toBeInstanceOf(ValidationError);
+
+    await contentService.archiveContentItem(admin, item._id);
+    const reactivated = await contentService.reactivateContentItem(admin, item._id);
+    expect(reactivated.status).toBe("DRAFT");
+  });
+
+  it("reactivateContentItem de un admin de otro tenant -> NotFoundError", async () => {
+    const { stage: stageA } = await makeTenantWithStage("reactivate-content-cross-a");
+    const { tenant: tenantB } = await makeTenantWithStage("reactivate-content-cross-b");
+    const adminA = actingAdminFor(stageA.tenantId);
+    const adminB = actingAdminFor(tenantB._id);
+
+    const item = await contentService.createContentItem(adminA, {
+      stageId: stageA._id,
+      type: "TEXT",
+      scope: "COMMON",
+      roleIds: [],
+      title: "x",
+      body: "y",
+      requirement: null,
+    });
+    await contentService.publishContentItem(adminA, item._id);
+    await contentService.archiveContentItem(adminA, item._id);
+
+    await expect(contentService.reactivateContentItem(adminB, item._id)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 

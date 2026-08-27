@@ -9,7 +9,7 @@ export function StageActions({ stageId, status }: { stageId: string; status: "DR
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function callAction(action: "publish" | "archive") {
+  async function callAction(action: "publish" | "archive" | "reactivate") {
     setError(null);
     setIsPending(true);
     const response = await fetch(`/api/stages/${stageId}/${action}`, { method: "POST" });
@@ -38,6 +38,11 @@ export function StageActions({ stageId, status }: { stageId: string; status: "DR
           onClick={() => callAction("archive")}
         >
           Archivar
+        </Button>
+      )}
+      {status === "ARCHIVED" && (
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("reactivate")}>
+          Reactivar
         </Button>
       )}
       {error && (

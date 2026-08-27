@@ -9,7 +9,7 @@ export function LeaderActions({ id, name, status }: { id: string; name: string; 
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function callAction(action: "publish" | "archive") {
+  async function callAction(action: "publish" | "archive" | "reactivate") {
     setError(null);
     setIsPending(true);
     const response = await fetch(`/api/leaders/${id}/${action}`, { method: "POST" });
@@ -53,6 +53,11 @@ export function LeaderActions({ id, name, status }: { id: string; name: string; 
           onClick={() => callAction("archive")}
         >
           Archivar
+        </Button>
+      )}
+      {status === "ARCHIVED" && (
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("reactivate")}>
+          Reactivar
         </Button>
       )}
       {status === "ARCHIVED" && (

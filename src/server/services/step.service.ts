@@ -154,6 +154,26 @@ export async function archiveStep(actingAdmin: RequestIdentity, id: ObjectId) {
   return updated;
 }
 
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarlo de nuevo explícitamente. */
+export async function reactivateStep(actingAdmin: RequestIdentity, id: ObjectId) {
+  const current = await stepRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  assertValidTransition(current.status, "DRAFT");
+
+  const updated = await stepRepository.updateStatus(actingAdmin.tenantId, id, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "STEP_REACTIVATED",
+    resource: "process_step",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}
+
 /** Borrado permanente — ver comentario equivalente en content.service.ts. Solo permitido sobre un paso ya ARCHIVED. */
 export async function deleteStep(actingAdmin: RequestIdentity, id: ObjectId): Promise<void> {
   const current = await stepRepository.findById(actingAdmin.tenantId, id);

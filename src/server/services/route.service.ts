@@ -62,3 +62,22 @@ export async function archiveRoute(actingAdmin: RequestIdentity) {
 
   return updated;
 }
+
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarla de nuevo explícitamente. */
+export async function reactivateRoute(actingAdmin: RequestIdentity) {
+  const route = await ensureRoute(actingAdmin);
+  assertValidTransition(route.status, "DRAFT");
+
+  const updated = await routeRepository.updateStatus(actingAdmin.tenantId, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "ROUTE_REACTIVATED",
+    resource: "route",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}

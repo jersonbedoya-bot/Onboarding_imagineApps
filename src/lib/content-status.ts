@@ -4,7 +4,10 @@ import type { ContentStatus } from "@/types/enums";
 const ALLOWED_TRANSITIONS: Record<ContentStatus, ContentStatus[]> = {
   DRAFT: ["PUBLISHED", "ARCHIVED"],
   PUBLISHED: ["ARCHIVED"], // nunca PUBLISHED -> DRAFT
-  ARCHIVED: [], // terminal
+  // Reactivar siempre vuelve a DRAFT, nunca directo a PUBLISHED — el
+  // admin revisa y publica de nuevo explícitamente, como con cualquier
+  // contenido nuevo (decisión de producto, no cae directo a visible).
+  ARCHIVED: ["DRAFT"],
 };
 
 /**

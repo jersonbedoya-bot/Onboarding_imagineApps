@@ -141,6 +141,26 @@ export async function archiveProcess(actingAdmin: RequestIdentity, id: ObjectId)
   return updated;
 }
 
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarlo de nuevo explícitamente. */
+export async function reactivateProcess(actingAdmin: RequestIdentity, id: ObjectId) {
+  const current = await processRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  assertValidTransition(current.status, "DRAFT");
+
+  const updated = await processRepository.updateStatus(actingAdmin.tenantId, id, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "PROCESS_REACTIVATED",
+    resource: "process",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}
+
 /**
  * Borrado permanente — ver comentario equivalente en content.service.ts.
  * Solo permitido sobre un proceso ya ARCHIVED, y solo si ya no le quedan

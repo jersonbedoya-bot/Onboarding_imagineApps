@@ -190,6 +190,26 @@ export async function archiveContentItem(actingAdmin: RequestIdentity, id: Objec
   return updated;
 }
 
+/** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarlo de nuevo explícitamente. */
+export async function reactivateContentItem(actingAdmin: RequestIdentity, id: ObjectId) {
+  const current = await contentRepository.findById(actingAdmin.tenantId, id);
+  if (!current) throw new NotFoundError();
+  assertValidTransition(current.status, "DRAFT");
+
+  const updated = await contentRepository.updateStatus(actingAdmin.tenantId, id, "DRAFT");
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "CONTENT_REACTIVATED",
+    resource: "content_item",
+    resourceId: updated._id,
+  });
+
+  return updated;
+}
+
 /**
  * Borrado permanente — a diferencia de archiveContentItem, esto saca el
  * documento de la base para siempre. Solo permitido sobre contenido ya

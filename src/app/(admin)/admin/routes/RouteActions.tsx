@@ -40,6 +40,16 @@ export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCH
           Archivar ruta
         </Button>
       )}
+      {status === "ARCHIVED" && (
+        <Button
+          variant="secondary"
+          className="px-4 py-1.5 text-xs"
+          isLoading={isPending}
+          onClick={() => callAction("/api/route/reactivate")}
+        >
+          Reactivar ruta
+        </Button>
+      )}
       {error && (
         <span role="alert" className="text-xs text-danger">
           {error}

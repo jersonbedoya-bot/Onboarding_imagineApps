@@ -29,7 +29,7 @@ export function ContentActions({ item, roles }: { item: ContentActionItem; roles
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  async function callAction(action: "publish" | "archive") {
+  async function callAction(action: "publish" | "archive" | "reactivate") {
     setError(null);
     setIsPending(true);
     const response = await fetch(`/api/content/${item.id}/${action}`, { method: "POST" });
@@ -87,6 +87,11 @@ export function ContentActions({ item, roles }: { item: ContentActionItem; roles
           onClick={() => callAction("archive")}
         >
           Archivar
+        </Button>
+      )}
+      {item.status === "ARCHIVED" && (
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("reactivate")}>
+          Reactivar
         </Button>
       )}
       {item.status === "ARCHIVED" && (
