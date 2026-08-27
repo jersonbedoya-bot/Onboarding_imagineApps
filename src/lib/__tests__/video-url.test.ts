@@ -26,6 +26,22 @@ describe("normalizeVideoUrl — allowlist de proveedores de video", () => {
     });
   });
 
+  it("normaliza Google Drive (/file/d/{id}/view)", () => {
+    const result = normalizeVideoUrl("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing");
+    expect(result).toEqual({
+      provider: "GOOGLE_DRIVE",
+      embedUrl: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/preview",
+    });
+  });
+
+  it("normaliza Google Drive (/open?id=)", () => {
+    const result = normalizeVideoUrl("https://drive.google.com/open?id=1AbCdEfGhIjKlMnOpQrStUvWxYz012345");
+    expect(result).toEqual({
+      provider: "GOOGLE_DRIVE",
+      embedUrl: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/preview",
+    });
+  });
+
   it("rechaza un host fuera de la allowlist (riesgo XSS/embebido arbitrario)", () => {
     expect(() => normalizeVideoUrl("https://evil.example.com/video.mp4")).toThrow(ValidationError);
   });

@@ -93,7 +93,7 @@ export function StepForm({
       />
       <Input
         id={`step-video-${mode}`}
-        label="Video (opcional, YouTube/Vimeo/Loom)"
+        label="Video (opcional, YouTube/Vimeo/Loom/Drive)"
         type="url"
         value={videoUrl}
         onChange={(event) => setVideoUrl(event.target.value)}

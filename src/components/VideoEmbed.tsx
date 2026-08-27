@@ -1,6 +1,6 @@
 /**
  * src puede ser SOLO un embed canónico ya normalizado por normalizeVideoUrl
- * (YouTube/Vimeo/Loom) — nunca una URL cruda. Ver src/lib/video-url.ts.
+ * (YouTube/Vimeo/Loom/Google Drive) — nunca una URL cruda. Ver src/lib/video-url.ts.
  */
 export function VideoEmbed({ src, title }: { src: string; title: string }) {
   return (

@@ -7,8 +7,8 @@ import { cn } from "@/lib/cn";
 const ADMIN_NAV_ITEMS = [
   { href: "/admin/routes", label: "Rutas" },
   { href: "/admin/content", label: "Contenido" },
-  { href: "/admin/leaders", label: "Líderes" },
   { href: "/admin/processes", label: "Procesos" },
+  { href: "/admin/leaders", label: "Líderes" },
   { href: "/admin/users", label: "Usuarios" },
   { href: "/admin/audit", label: "Auditoría" },
 ];

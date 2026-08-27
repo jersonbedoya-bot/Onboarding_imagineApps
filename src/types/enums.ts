@@ -33,9 +33,10 @@ export type ContentScope = (typeof CONTENT_SCOPES)[number];
 export const CONTENT_REQUIREMENTS = ["OBLIGATORY", "INFORMATIONAL"] as const;
 export type ContentRequirement = (typeof CONTENT_REQUIREMENTS)[number];
 
-// Video = URL embebida (YouTube/Vimeo/Loom), nunca archivo subido — evita
-// el límite de tamaño de las funciones serverless. Ver src/lib/video-url.ts.
-export const VIDEO_PROVIDERS = ["YOUTUBE", "VIMEO", "LOOM"] as const;
+// Video = URL embebida (YouTube/Vimeo/Loom/Google Drive), nunca archivo
+// subido — evita el límite de tamaño de las funciones serverless. Ver
+// src/lib/video-url.ts.
+export const VIDEO_PROVIDERS = ["YOUTUBE", "VIMEO", "LOOM", "GOOGLE_DRIVE"] as const;
 export type VideoProvider = (typeof VIDEO_PROVIDERS)[number];
 
 // Media (colección `media`) es solo imágenes en el MVP — el video nunca

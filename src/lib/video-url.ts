@@ -4,10 +4,12 @@ import type { VideoProvider } from "@/types/enums";
 const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"]);
 const VIMEO_HOSTS = new Set(["vimeo.com", "www.vimeo.com", "player.vimeo.com"]);
 const LOOM_HOSTS = new Set(["loom.com", "www.loom.com"]);
+const GOOGLE_DRIVE_HOSTS = new Set(["drive.google.com"]);
 
 const YOUTUBE_ID_PATTERN = /^[a-zA-Z0-9_-]{6,20}$/;
 const VIMEO_ID_PATTERN = /^[0-9]{4,15}$/;
 const LOOM_ID_PATTERN = /^[a-zA-Z0-9]{16,40}$/;
+const GOOGLE_DRIVE_ID_PATTERN = /^[a-zA-Z0-9_-]{10,100}$/;
 
 function extractYoutubeId(url: URL): string | null {
   if (url.hostname.toLowerCase() === "youtu.be") {
@@ -38,11 +40,24 @@ function extractLoomId(url: URL): string | null {
   return anchorIndex !== -1 ? (segments[anchorIndex + 1] ?? null) : null;
 }
 
+function extractGoogleDriveId(url: URL): string | null {
+  const segments = url.pathname.split("/").filter(Boolean);
+  // /file/d/{id}/view, /file/d/{id}/preview, /file/d/{id}/edit
+  const dIndex = segments.findIndex((s) => s === "d");
+  if (dIndex !== -1 && segments[dIndex + 1]) return segments[dIndex + 1];
+
+  // /open?id={id}, /uc?id={id}&export=download
+  const fromQuery = url.searchParams.get("id");
+  if (fromQuery) return fromQuery;
+
+  return null;
+}
+
 /**
  * Único punto de validación/normalización de URLs de video (content_items,
  * leaders, process_steps). Allowlist estricta de hosts — nunca se guarda
- * ni se renderiza en un <iframe> una URL fuera de YouTube/Vimeo/Loom
- * (riesgo XSS/embebido arbitrario). Devuelve siempre la URL de embed
+ * ni se renderiza en un <iframe> una URL fuera de YouTube/Vimeo/Loom/Google
+ * Drive (riesgo XSS/embebido arbitrario). Devuelve siempre la URL de embed
  * CANÓNICA reconstruida a partir del id extraído, nunca la URL cruda que
  * pegó el admin.
  */
@@ -84,5 +99,13 @@ export function normalizeVideoUrl(rawUrl: string): { provider: VideoProvider; em
     return { provider: "LOOM", embedUrl: `https://www.loom.com/embed/${id}` };
   }
 
-  throw new ValidationError("Proveedor de video no permitido. Solo YouTube, Vimeo o Loom.");
+  if (GOOGLE_DRIVE_HOSTS.has(host)) {
+    const id = extractGoogleDriveId(url);
+    if (!id || !GOOGLE_DRIVE_ID_PATTERN.test(id)) {
+      throw new ValidationError("No se pudo extraer un id de archivo de Google Drive válido de esa URL.");
+    }
+    return { provider: "GOOGLE_DRIVE", embedUrl: `https://drive.google.com/file/d/${id}/preview` };
+  }
+
+  throw new ValidationError("Proveedor de video no permitido. Solo YouTube, Vimeo, Loom o Google Drive.");
 }

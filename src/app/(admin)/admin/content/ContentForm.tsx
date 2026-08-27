@@ -139,15 +139,21 @@ export function ContentForm({
         </div>
       )}
       {needsVideo && (
-        <Input
-          id="content-video"
-          label="Video (YouTube/Vimeo/Loom)"
-          type="url"
-          required={type === "VIDEO"}
-          value={videoUrl}
-          onChange={(event) => setVideoUrl(event.target.value)}
-          placeholder="https://youtube.com/watch?v=..."
-        />
+        <div className="flex flex-col gap-1">
+          <Input
+            id="content-video"
+            label="Video (YouTube/Vimeo/Loom/Drive)"
+            type="url"
+            required={type === "VIDEO"}
+            value={videoUrl}
+            onChange={(event) => setVideoUrl(event.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+          />
+          <p className="text-xs text-ink-soft">
+            Si usás Google Drive, compartí el archivo con &quot;Cualquier persona con el enlace&quot; para que se
+            pueda reproducir.
+          </p>
+        </div>
       )}
 
       <Select
