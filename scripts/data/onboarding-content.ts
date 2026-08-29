@@ -3,20 +3,26 @@
  *
  * Fuente de verdad del contenido: "Metologías (All).md" y
  * "onboarding-imagine-apps UX UI.md" (raíz del repo) — este archivo es la
- * versión curada/estructurada de esos documentos, no un reemplazo. Se
- * completa módulo a módulo. Cubre: Módulo 1 (Bienvenida), Módulo 2
- * (Ecosistema y bienestar), Módulo 3 (Ciclo de vida del proyecto). El
- * Módulo 4 (ruta por rol: Operaciones PDM / Experiencia UX-UI) se agrega
- * en una siguiente iteración por su volumen.
+ * versión curada/estructurada de esos documentos, no un reemplazo.
  *
- * `db:seed:content` (scripts/seed-content.ts) lee este archivo y crea todo
- * en DRAFT vía los services reales (Zod-equivalente + scope/roleIds +
- * auditoría) — nunca escribe directo a Mongo.
+ * `db:seed:content` (scripts/seed-content.ts) lee este archivo y crea/
+ * actualiza todo vía los services reales (Zod-equivalente + scope/roleIds +
+ * auditoría) — nunca escribe directo a Mongo. El contenido nuevo se crea en
+ * DRAFT; el ya PUBLISHED se actualiza in-place (título/cuerpo) sin tocar su
+ * estado de publicación.
+ *
+ * `matchTitle`/`matchName`: título o nombre bajo el cual el registro pudo
+ * haber quedado sembrado en una corrida anterior (antes de renombrarlo acá,
+ * ej. al agregar un emoji). El script busca por `title`/`name` actual O por
+ * este valor, así puede encontrar y actualizar el registro existente en vez
+ * de crear uno duplicado. Una vez migrado, ya no hace falta —queda como
+ * historial de qué cambió.
  */
 import type { ContentItemType, ContentRequirement, ContentScope, FunctionalRoleKey } from "@/types/enums";
 
 export type SeedContentItem = {
   title: string;
+  matchTitle?: string;
   type: ContentItemType;
   requirement: ContentRequirement | null;
   body: string;
@@ -31,6 +37,7 @@ export type SeedProcessStep = {
 
 export type SeedProcess = {
   title: string;
+  matchTitle?: string;
   objective: string;
   context: string;
   expectedResult: string;
@@ -42,8 +49,9 @@ export type SeedProcess = {
 
 export type SeedStage = {
   title: string;
+  matchTitle?: string;
   isBlocking: boolean;
-  dependsOnTitle?: string; // título de la etapa previa; se resuelve a ObjectId en el script
+  dependsOnTitle?: string; // título ACTUAL (con emoji) de la etapa previa; se resuelve a ObjectId en el script
   contentItems?: SeedContentItem[];
   processes?: SeedProcess[];
 };
@@ -58,7 +66,8 @@ export type SeedLeader = {
 
 // Los líderes son una colección independiente del tenant (no cuelgan de una
 // etapa) — ver leader.service.ts: "Conoce a tu equipo" es información
-// general, no ligada a la cascada ruta -> etapa.
+// general, no ligada a la cascada ruta -> etapa. Sin emoji deliberadamente:
+// son nombres y cargos de personas reales, no encabezados de sección.
 export const LEADERS: SeedLeader[] = [
   {
     name: "Carlos Haas",
@@ -142,11 +151,13 @@ export const LEADERS: SeedLeader[] = [
 
 export const STAGES: SeedStage[] = [
   {
-    title: "Módulo 1: Onboarding y Bienvenida",
+    title: "🚀 Módulo 1: Onboarding y Bienvenida",
+    matchTitle: "Módulo 1: Onboarding y Bienvenida",
     isBlocking: false,
     contentItems: [
       {
-        title: "Quiénes Somos y Nuestra Visión",
+        title: "👁️ Quiénes Somos y Nuestra Visión",
+        matchTitle: "Quiénes Somos y Nuestra Visión",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -163,7 +174,8 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
 5. **Inteligencia híbrida:** lo mejor de las personas y de la tecnología, human + AI.`,
       },
       {
-        title: "Principios No Negociables",
+        title: "⚖️ Principios No Negociables",
+        matchTitle: "Principios No Negociables",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -179,12 +191,14 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
     ],
   },
   {
-    title: "Módulo 2: Ecosistema de Herramientas y Bienestar",
+    title: "🧰 Módulo 2: Ecosistema de Herramientas y Bienestar",
+    matchTitle: "Módulo 2: Ecosistema de Herramientas y Bienestar",
     isBlocking: true,
-    dependsOnTitle: "Módulo 1: Onboarding y Bienvenida",
+    dependsOnTitle: "🚀 Módulo 1: Onboarding y Bienvenida",
     contentItems: [
       {
-        title: "Ecosistema Digital de Trabajo",
+        title: "💻 Ecosistema Digital de Trabajo",
+        matchTitle: "Ecosistema Digital de Trabajo",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -201,7 +215,8 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
 Guardá en tu celular el número de Kelly Yohana Ospina (People): 314 860 0139. Ante una emergencia operativa, People intentará contactarte por teléfono — si no tenés el número guardado, los filtros de spam pueden bloquear la llamada.`,
       },
       {
-        title: "Uso del Calendario (Timeboxing)",
+        title: "⏱️ Uso del Calendario (Timeboxing)",
+        matchTitle: "Uso del Calendario (Timeboxing)",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -221,7 +236,8 @@ Tu calendario es la bitácora real de tu trabajo diario — mantenelo actualizad
 Video con consejos para llevar tu calendario: http://youtube.com/watch?v=nwgHM0f07P0`,
       },
       {
-        title: "Política de Vacaciones",
+        title: "🌴 Política de Vacaciones",
+        matchTitle: "Política de Vacaciones",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -243,7 +259,8 @@ Video con consejos para llevar tu calendario: http://youtube.com/watch?v=nwgHM0f
 * People lleva el registro y control de los días tomados por cada colaborador.`,
       },
       {
-        title: "Política de Citas Médicas",
+        title: "🩺 Política de Citas Médicas",
+        matchTitle: "Política de Citas Médicas",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -258,7 +275,8 @@ Video con consejos para llevar tu calendario: http://youtube.com/watch?v=nwgHM0f
 El tiempo de asistencia a la cita médica no se compensa.`,
       },
       {
-        title: "Política de Cumpleaños",
+        title: "🎂 Política de Cumpleaños",
+        matchTitle: "Política de Cumpleaños",
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
@@ -278,12 +296,14 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
     ],
   },
   {
-    title: "Módulo 3: Ciclo de Vida del Proyecto",
+    title: "🔄 Módulo 3: Ciclo de Vida del Proyecto",
+    matchTitle: "Módulo 3: Ciclo de Vida del Proyecto",
     isBlocking: true,
-    dependsOnTitle: "Módulo 2: Ecosistema de Herramientas y Bienestar",
+    dependsOnTitle: "🧰 Módulo 2: Ecosistema de Herramientas y Bienestar",
     processes: [
       {
-        title: "Kickoff Interno (Prekickoff)",
+        title: "🤝 Kickoff Interno (Prekickoff)",
+        matchTitle: "Kickoff Interno (Prekickoff)",
         objective: "Alinear al equipo interno sobre las condiciones, alcance y expectativas del proyecto antes del kickoff con el cliente.",
         context:
           "Inicia cuando se recibe la confirmación de cierre comercial (contrato firmado y anticipo recibido) y termina con la ejecución del kickoff interno y la alineación completa del equipo. Owner: PDM, en colaboración con el equipo comercial y el equipo asignado.",
@@ -305,7 +325,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Kickoff del Proyecto con Cliente",
+        title: "🎬 Kickoff del Proyecto con Cliente",
+        matchTitle: "Kickoff del Proyecto con Cliente",
         objective: "Formalizar el inicio del proyecto alineando expectativas, tiempos y entregables con el cliente.",
         context:
           "Inicia una vez formalizado el contrato y finaliza con la aprobación del cronograma por parte del cliente y la habilitación de los canales de comunicación. Owner: PDM, junto al equipo de Imagine y los stakeholders del cliente.",
@@ -325,7 +346,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Generación de Historias de Usuario (HUs)",
+        title: "📝 Generación de Historias de Usuario (HUs)",
+        matchTitle: "Generación de Historias de Usuario (HUs)",
         objective: "Crear historias de usuario claras y accionables para los requerimientos de producto.",
         context:
           "Inicia cuando el cliente o el equipo define una nueva funcionalidad y termina cuando la HU está registrada en Basecamp como parte del plan de trabajo. Owner: PDM en colaboración con el Tech Lead.",
@@ -342,7 +364,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Definición de Hitos",
+        title: "🎯 Definición de Hitos",
+        matchTitle: "Definición de Hitos",
         objective: "Establecer los momentos clave de entrega para medir el progreso real del proyecto.",
         context:
           "Inicia como borrador durante el Kickoff y se define formalmente durante la planeación, con el alcance inicial y el contrato como insumos. Owner: PDM, con el equipo de desarrollo y el cliente como colaboradores.",
@@ -357,7 +380,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Construcción de Plan de Trabajo",
+        title: "📐 Construcción de Plan de Trabajo",
+        matchTitle: "Construcción de Plan de Trabajo",
         objective: "Organizar, guiar y controlar hitos, tiempos y alcances durante todo el ciclo de vida del proyecto.",
         context:
           "Comienza en la reunión de Kickoff y nunca se cierra de forma definitiva — es un documento vivo, en constante revisión. Owner: PDM, con la colaboración de todo el equipo del proyecto.",
@@ -384,7 +408,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Levantamiento de Alertas (Triage / UCI)",
+        title: "🚨 Levantamiento de Alertas (Triage / UCI)",
+        matchTitle: "Levantamiento de Alertas (Triage / UCI)",
         objective: "Escalar riesgos de forma temprana antes de que se conviertan en problemas críticos.",
         context:
           "Inicia cuando se detecta un riesgo inminente (ej. el cliente no entrega información o el equipo se salta procesos) y termina con la confirmación de cierre de la alerta. Owner: PDM.",
@@ -402,7 +427,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Daily",
+        title: "☀️ Daily",
+        matchTitle: "Daily",
         objective: "Sincronizar al equipo diariamente sobre el progreso del Sprint y adaptar el plan de trabajo de forma colectiva.",
         context:
           "Inicia a las 8:00 AM y dura máximo 15 minutos si es síncrona. Termina con un plan de acción adaptado para las próximas 24 horas. Facilitador: PDM.",
@@ -422,7 +448,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Weekly",
+        title: "📅 Weekly",
+        matchTitle: "Weekly",
         objective: "Sincronizar de forma táctica el estado semanal de cada proyecto y permitir la reasignación oportuna de prioridades.",
         context:
           "Inicia los lunes con la creación del hilo semanal y tiene una actualización los jueves. Termina con la confirmación de recepción del líder de operaciones. Owner: PDM.",
@@ -444,13 +471,15 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
     ],
   },
   {
-    title: "Módulo 4: Tu Rol en Imagine Apps",
+    title: "🧭 Módulo 4: Tu Rol en Imagine Apps",
+    matchTitle: "Módulo 4: Tu Rol en Imagine Apps",
     isBlocking: true,
-    dependsOnTitle: "Módulo 3: Ciclo de Vida del Proyecto",
+    dependsOnTitle: "🔄 Módulo 3: Ciclo de Vida del Proyecto",
     processes: [
       // --- Operaciones (rol PDM) ---
       {
-        title: "Actas de Reunión",
+        title: "🗒️ Actas de Reunión",
+        matchTitle: "Actas de Reunión",
         objective: "Documentar decisiones y compromisos de cada reunión para que queden registrados y sean accionables.",
         context: "Inicia al terminar una reunión y debe compartirse dentro de las 24 horas siguientes. Owner: PDM.",
         expectedResult: "Documento de acta formateado y enviado por correo a los participantes.",
@@ -465,7 +494,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Matriz de Riesgo",
+        title: "⚠️ Matriz de Riesgo",
+        matchTitle: "Matriz de Riesgo",
         objective: "Identificar, priorizar y gestionar los riesgos del proyecto, asegurando su seguimiento y escalamiento oportuno.",
         context: "Los riesgos se documentan en una matriz con probabilidad e impacto para priorizarlos. Owner: PDM, apoyado en el líder técnico si aplica.",
         expectedResult: "Matriz de riesgos actualizada, con riesgos críticos escalados y acciones de mitigación en curso.",
@@ -490,7 +520,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "360º (Operación 360)",
+        title: "🔍 360º (Operación 360)",
+        matchTitle: "360º (Operación 360)",
         objective: "Evaluar de forma integral la salud operativa de los proyectos para detectar problemas y potenciar los aciertos.",
         context: "Sesión semanal que requiere que ya se haya hecho el reporte de Project Status. Owner: PDM.",
         expectedResult: "Alertas y estrategias de mitigación registradas para cada riesgo identificado en la sesión.",
@@ -507,7 +538,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Project Status",
+        title: "📊 Project Status",
+        matchTitle: "Project Status",
         objective: "Garantizar la transparencia y el seguimiento preciso de la salud de cada proyecto.",
         context:
           "Inicia todos los lunes a primera hora y termina con el envío del reporte antes del mediodía, con los avances de la semana anterior de cada líder de área. Owner: PDM.",
@@ -526,7 +558,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "NPS (Net Promoter Score)",
+        title: "⭐ NPS (Net Promoter Score)",
+        matchTitle: "NPS (Net Promoter Score)",
         objective: "Medir y potenciar la satisfacción del cliente mediante feedback directo y accionable.",
         context:
           "Inicia semestralmente al cierre de un sprint y termina con la implementación de acciones de mejora basadas en el feedback. Owner: PDM y Dirección de Operaciones.",
@@ -544,7 +577,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Pulso de Operaciones",
+        title: "💓 Pulso de Operaciones",
+        matchTitle: "Pulso de Operaciones",
         objective: "Alinear la cultura operativa mediante la resolución de cuellos de botella y el escalamiento de innovaciones probadas.",
         context: "Sesión semanal de una hora, a partir del backlog de puntos de dolor o innovaciones detectadas la semana previa. Owner: PDMs.",
         expectedResult: "Actualización oficial de los procedimientos en la documentación y comunicación del cambio a toda la operación.",
@@ -561,7 +595,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Planes de Mejora",
+        title: "📈 Planes de Mejora",
+        matchTitle: "Planes de Mejora",
         objective: "Transformar las oportunidades detectadas en fortalezas mediante un plan de acción claro y con seguimiento.",
         context:
           "Inicia cuando se identifican brechas de desempeño persistentes (~2 meses) y termina con una evaluación integral tras 4 semanas de seguimiento. Owner: líder directo, con participación activa de la persona colaboradora.",
@@ -583,7 +618,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "1:1 (One on One)",
+        title: "🗣️ 1:1 (One on One)",
+        matchTitle: "1:1 (One on One)",
         objective: "Crear un espacio seguro de alineación humana y operativa con compromisos bidireccionales.",
         context:
           "Una vez al mes, de forma obligatoria para cada reporte directo. Termina con la publicación del resumen en el canal '1:1// [Nombre]'. Owner: líder directo (CXO, líder de área, PDM).",
@@ -600,7 +636,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Onboarding de Proyecto",
+        title: "🎒 Onboarding de Proyecto",
+        matchTitle: "Onboarding de Proyecto",
         objective: "Integrar a los nuevos miembros del equipo de un proyecto de forma efectiva.",
         context:
           "Inicia cuando People confirma la contratación y termina cuando la persona tiene autonomía total y objetivos claros para su primer mes. Owner: PDM.",
@@ -623,7 +660,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Offboarding",
+        title: "👋 Offboarding",
+        matchTitle: "Offboarding",
         objective: "Asegurar un cierre operativo impecable y extraer insights honestos de la experiencia del talento que se va.",
         context:
           "Inicia tras la confirmación formal de la salida y termina días después, cuando People documenta los hallazgos de la entrevista de diagnóstico. Owner: líder directo (fase operativa) y equipo de People (fase diagnóstica).",
@@ -642,7 +680,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Entrega Parcial",
+        title: "📦 Entrega Parcial",
+        matchTitle: "Entrega Parcial",
         objective: "Formalizar y aprobar las tareas completadas en un periodo específico.",
         context:
           "Inicia al finalizar un ciclo de entregas (ej. fin de mes) y termina con la confirmación de recepción del cliente por correo. Owner: PDM y el tomador de decisiones del cliente.",
@@ -660,7 +699,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Entrega Final",
+        title: "🏁 Entrega Final",
+        matchTitle: "Entrega Final",
         objective: "Garantizar la recopilación y entrega organizada de toda la información esencial al cliente al finalizar el contrato.",
         context:
           "Inicia cuando todos los entregables están completos y termina con el recibido/aprobado formal del cliente. Requiere el paquete completo: código, diseños, QA y documentación técnica. Owner: PDM.",
@@ -678,7 +718,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Manejo de Garantía",
+        title: "🛡️ Manejo de Garantía",
+        matchTitle: "Manejo de Garantía",
         objective: "Gestionar correcciones y mantenimientos post-entrega según los términos contractuales.",
         context:
           "Inicia tras la entrega final y termina cuando vence el periodo de garantía del contrato, a partir del reporte del cliente por el canal oficial. Owner: PDM / Equipo de Soporte.",
@@ -695,7 +736,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
       },
       // --- Compartido: PDM + Experiencia ---
       {
-        title: "Empalme de Duplas",
+        title: "🔗 Empalme de Duplas",
+        matchTitle: "Empalme de Duplas",
         objective: "Asegurar la continuidad operativa y la trazabilidad de los proyectos mediante el trabajo en dupla.",
         context:
           "Inicia cuando se define una dupla para un proyecto y termina cuando ambos integrantes tienen visibilidad total y autonomía operativa. Owner: Dirección de Operaciones; colaboradores: PDM y equipo de Experiencia.",
@@ -715,7 +757,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
       },
       // --- Experiencia (rol UX/UI) ---
       {
-        title: "Design Interview (Kick Off)",
+        title: "🎤 Design Interview (Kick Off)",
+        matchTitle: "Design Interview (Kick Off)",
         objective: "Obtener insights clave del cliente para alinear objetivos, necesidades y expectativas del producto.",
         context: "Inicia después de recibir el brief inicial, normalmente durante el Kick-off. Owner: Diseñador UX/UI, colaboradores: cliente y PM.",
         expectedResult: "Tablero de FigJam con los insights documentados.",
@@ -731,7 +774,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Plan de Trabajo (Experiencia)",
+        title: "🗂️ Plan de Trabajo (Experiencia)",
+        matchTitle: "Plan de Trabajo (Experiencia)",
         objective: "Definir la hoja de ruta del proyecto con tareas, responsables y tiempos.",
         context: "Inicia cuando se recibe el alcance del proyecto y termina cuando el plan está aprobado y compartido con el PM. Owner: Project Manager, colaboradores: Diseño y Cliente.",
         expectedResult: "Documento de plan de trabajo aprobado.",
@@ -753,7 +797,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Sitemaps",
+        title: "🗺️ Sitemaps",
+        matchTitle: "Sitemaps",
         objective: "Diagramar la navegación lógica de la persona usuaria dentro del sistema.",
         context: "Inicia al finalizar la definición de requerimientos. Owner: Diseñador UX/UI.",
         expectedResult: "Diagrama de flujos de navegación validado con el equipo interno y el cliente.",
@@ -769,7 +814,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Lineamientos de Diseño",
+        title: "🎨 Lineamientos de Diseño",
+        matchTitle: "Lineamientos de Diseño",
         objective:
           "Definir la UI del proyecto mediante dos propuestas sobre una pantalla crítica, minimizando reprocesos en el diseño masivo.",
         context:
@@ -789,7 +835,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Creación de UI Kit / Design System",
+        title: "🧩 Creación de UI Kit / Design System",
+        matchTitle: "Creación de UI Kit / Design System",
         objective: "Estandarizar los componentes visuales del producto para garantizar consistencia.",
         context: "Inicia tras la aprobación de los lineamientos de diseño. Owner: Diseñador UX/UI.",
         expectedResult: "Design System completo en Figma, validado con el equipo de desarrollo.",
@@ -807,7 +854,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Handoff al Equipo de Desarrollo",
+        title: "🤲 Handoff al Equipo de Desarrollo",
+        matchTitle: "Handoff al Equipo de Desarrollo",
         objective: "Entregar todas las especificaciones de diseño al equipo de desarrollo.",
         context: "Inicia al aprobarse los diseños finales de alta fidelidad. Owner: Diseñador UX/UI.",
         expectedResult: "Archivo de Figma listo para inspección, con assets exportados (o rama de código lista, si es vibecoding).",
@@ -829,7 +877,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Entrega a Cliente (Diseño)",
+        title: "📬 Entrega a Cliente (Diseño)",
+        matchTitle: "Entrega a Cliente (Diseño)",
         objective: "Formalizar la entrega final de los archivos de diseño al cliente.",
         context: "Inicia al finalizar la fase de diseño del proyecto. Owner: Project Manager; colaboradores: Diseñador, Desarrollador(es), Cliente.",
         expectedResult: "Entrega aprobada, con accesos compartidos al cliente.",
@@ -847,7 +896,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Revisiones con el Cliente",
+        title: "👀 Revisiones con el Cliente",
+        matchTitle: "Revisiones con el Cliente",
         objective: "Alinear los avances del proyecto con el cliente y validar entregables para evitar desviaciones.",
         context:
           "Inicia en cada hito de revisión (prototipo, sitemap, UI). Termina cuando se recoge el feedback y se definen compromisos para la siguiente iteración. Owner: Project Manager; colaboradores: Diseñador, Desarrollador, Cliente.",
@@ -864,7 +914,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "Revisiones con el Equipo Interno y de Experiencia",
+        title: "🔬 Revisiones con el Equipo Interno y de Experiencia",
+        matchTitle: "Revisiones con el Equipo Interno y de Experiencia",
         objective: "Validar la calidad de los entregables antes de presentarlos al cliente, para reducir errores y retrabajo.",
         context:
           "Inicia mínimo un día antes de una revisión con cliente y termina al aplicar los ajustes del feedback interno. Owner: Diseñador UX/UI; colaboradores: equipo de Experiencia, PM, otros diseñadores.",
@@ -885,7 +936,8 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         ],
       },
       {
-        title: "QA de Prototipo",
+        title: "🧪 QA de Prototipo",
+        matchTitle: "QA de Prototipo",
         objective: "Detectar y corregir errores en el prototipo antes de las validaciones internas o con cliente.",
         context:
           "Inicia antes de compartir el prototipo a revisión interna o cliente y termina cuando cumple los criterios de calidad definidos. Owner: Diseñador UX/UI; colaboradores: equipo de Experiencia, PM.",

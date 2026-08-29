@@ -1,15 +1,17 @@
 /**
- * Seed idempotente de contenido de onboarding (etapas, content items,
+ * Seed de contenido de onboarding (etapas, content items, procesos, pasos,
  * líderes) a partir de scripts/data/onboarding-content.ts.
  *
- * Reutiliza los services reales (route/stage/content/leader), no los
- * repositorios directos: así el contenido sembrado pasa por las mismas
- * validaciones (scope/roleIds, transición de estado) y queda auditado
- * igual que si un ADMIN lo hubiera creado desde el panel.
+ * Reutiliza los services reales (route/stage/content/process/step/leader),
+ * no los repositorios directos: así el contenido sembrado pasa por las
+ * mismas validaciones (scope/roleIds, transición de estado) y queda
+ * auditado igual que si un ADMIN lo hubiera hecho desde el panel.
  *
- * Idempotente: busca por título antes de crear — si ya existe, hace skip
- * (no lo actualiza; para editar contenido ya sembrado, usar el panel
- * admin). Todo se crea en DRAFT: nunca publica automáticamente.
+ * Upsert por título/nombre (o `matchTitle`/`matchName` si el título ya
+ * cambió respecto a una corrida anterior, ver comentario en el archivo de
+ * datos): si no existe, lo crea en DRAFT; si ya existe, actualiza sus
+ * campos de contenido (título, cuerpo, etc.) sin tocar su `status` — editar
+ * contenido PUBLISHED está soportado explícitamente por los services.
  *
  * Uso: npm run db:seed:content
  */
@@ -66,11 +68,25 @@ async function resolveRoleIds(tenantId: ObjectId, roleKeys: FunctionalRoleKey[] 
   return roles.map((role) => role!._id);
 }
 
+/** Encuentra un registro existente por su título/nombre actual, o por el que tenía antes de un rename (matchTitle/matchName). */
+function findExisting<T extends { title: string }>(existing: T[], seed: { title: string; matchTitle?: string }): T | undefined {
+  return existing.find((item) => item.title === seed.title || (seed.matchTitle !== undefined && item.title === seed.matchTitle));
+}
+
+function findExistingLeader<T extends { name: string }>(existing: T[], seed: { name: string }): T | undefined {
+  return existing.find((item) => item.name === seed.name);
+}
+
 async function ensureStage(actingAdmin: RequestIdentity, seed: SeedStage, dependsOnStageId: ObjectId | null) {
   const existingStages = await stageService.listStages(actingAdmin);
-  const existing = existingStages.find((stage) => stage.title === seed.title);
+  const existing = findExisting(existingStages, seed);
   if (existing) {
-    logger.info("seed_content_stage_skipped", { title: seed.title, reason: "already_exists" });
+    if (existing.title !== seed.title) {
+      const updated = await stageService.updateStage(actingAdmin, existing._id, { title: seed.title });
+      logger.info("seed_content_stage_updated", { from: existing.title, to: seed.title });
+      return updated;
+    }
+    logger.info("seed_content_stage_skipped", { title: seed.title, reason: "up_to_date" });
     return existing;
   }
 
@@ -88,8 +104,14 @@ async function ensureContentItems(actingAdmin: RequestIdentity, stageId: ObjectI
   const existingItems = await contentService.listContentByStage(actingAdmin, stageId);
 
   for (const item of seed.contentItems) {
-    if (existingItems.some((existing) => existing.title === item.title)) {
-      logger.info("seed_content_item_skipped", { title: item.title, reason: "already_exists" });
+    const existing = findExisting(existingItems, item);
+    if (existing) {
+      if (existing.title !== item.title || existing.body !== item.body) {
+        await contentService.updateContentItem(actingAdmin, existing._id, { title: item.title, body: item.body });
+        logger.info("seed_content_item_updated", { title: item.title, stage: seed.title });
+      } else {
+        logger.info("seed_content_item_skipped", { title: item.title, reason: "up_to_date" });
+      }
       continue;
     }
 
@@ -111,8 +133,14 @@ async function ensureProcessSteps(actingAdmin: RequestIdentity, processId: Objec
   const existingSteps = await stepService.listStepsByProcess(actingAdmin, processId);
 
   for (const step of seed.steps) {
-    if (existingSteps.some((existing) => existing.title === step.title)) {
-      logger.info("seed_content_step_skipped", { title: step.title, reason: "already_exists" });
+    const existing = existingSteps.find((item) => item.title === step.title);
+    if (existing) {
+      if (existing.instruction !== step.instruction) {
+        await stepService.updateStep(actingAdmin, existing._id, { instruction: step.instruction });
+        logger.info("seed_content_step_updated", { title: step.title, process: seed.title });
+      } else {
+        logger.info("seed_content_step_skipped", { title: step.title, reason: "up_to_date" });
+      }
       continue;
     }
 
@@ -134,9 +162,25 @@ async function ensureProcesses(actingAdmin: RequestIdentity, stageId: ObjectId, 
   const existingProcesses = await processService.listProcessesByStage(actingAdmin, stageId);
 
   for (const process of seed.processes) {
-    let current = existingProcesses.find((existing) => existing.title === process.title);
+    let current = findExisting(existingProcesses, process);
     if (current) {
-      logger.info("seed_content_process_skipped", { title: process.title, reason: "already_exists" });
+      const changed =
+        current.title !== process.title ||
+        current.objective !== process.objective ||
+        current.context !== process.context ||
+        current.expectedResult !== process.expectedResult;
+      if (changed) {
+        current = await processService.updateProcess(actingAdmin, current._id, {
+          title: process.title,
+          objective: process.objective,
+          context: process.context,
+          expectedResult: process.expectedResult,
+          resources: process.resources,
+        });
+        logger.info("seed_content_process_updated", { title: process.title, stage: seed.title });
+      } else {
+        logger.info("seed_content_process_skipped", { title: process.title, reason: "up_to_date" });
+      }
     } else {
       const roleIds = await resolveRoleIds(actingAdmin.tenantId, process.roleKeys);
       current = await processService.createProcess(actingAdmin, {
@@ -157,8 +201,14 @@ async function ensureProcesses(actingAdmin: RequestIdentity, stageId: ObjectId, 
 
 async function ensureLeader(actingAdmin: RequestIdentity, seed: SeedLeader) {
   const existingLeaders = await leaderService.listLeaders(actingAdmin);
-  if (existingLeaders.some((existing) => existing.name === seed.name)) {
-    logger.info("seed_content_leader_skipped", { name: seed.name, reason: "already_exists" });
+  const existing = findExistingLeader(existingLeaders, seed);
+  if (existing) {
+    if (existing.title !== seed.title || existing.description !== seed.description) {
+      await leaderService.updateLeader(actingAdmin, existing._id, { title: seed.title, description: seed.description });
+      logger.info("seed_content_leader_updated", { name: seed.name });
+    } else {
+      logger.info("seed_content_leader_skipped", { name: seed.name, reason: "up_to_date" });
+    }
     return;
   }
 
