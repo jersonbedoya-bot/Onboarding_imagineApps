@@ -10,6 +10,7 @@
     "db:bootstrap": "node --env-file=.env.local --import tsx ./scripts/bootstrap-db.ts",
     "db:verify": "node --env-file=.env.local --import tsx ./scripts/verify-validation.ts",
     "db:seed": "node --env-file=.env.local --import tsx ./scripts/seed-bootstrap.ts",
+    "db:seed:content": "node --env-file=.env.local --import tsx ./scripts/seed-content.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -20,6 +21,8 @@
     "next-auth": "^5.0.0-beta.32",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

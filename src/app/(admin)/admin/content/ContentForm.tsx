@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { CONTENT_ITEM_TYPES, CONTENT_REQUIREMENTS, type ContentItemType, type ContentRequirement } from "@/types/enums";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Input, Select, Textarea, Checkbox } from "@/components/Field";
+import { Input, Select, Checkbox } from "@/components/Field";
+import { MarkdownTextarea } from "@/components/MarkdownTextarea";
 import { MediaUploader } from "@/components/MediaUploader";
 import { CONTENT_TYPE_LABELS, CONTENT_REQUIREMENT_LABELS } from "@/lib/content-labels";
 
@@ -120,7 +121,7 @@ export function ContentForm({
   const fields = (
     <div className="flex flex-col gap-4">
       <Input id="content-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      <Textarea id="content-body" label="Cuerpo" required value={body} onChange={(event) => setBody(event.target.value)} />
+      <MarkdownTextarea id="content-body" label="Cuerpo (admite Markdown)" required value={body} onChange={(event) => setBody(event.target.value)} />
       <Select id="content-type" label="Tipo" value={type} onChange={(event) => setType(event.target.value as ContentItemType)}>
         {CONTENT_ITEM_TYPES.map((option) => (
           <option key={option} value={option}>

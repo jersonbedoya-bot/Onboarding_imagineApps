@@ -314,6 +314,7 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
           id: step._id.toString(),
           title: step.title,
           description: step.description,
+          instruction: step.instruction,
           videoUrl: step.videoUrl,
           videoProvider: step.videoProvider,
           completed: progressByTarget.has(`STEP:${step._id.toString()}`),

@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Input, Textarea, Checkbox } from "@/components/Field";
+import { Input, Checkbox } from "@/components/Field";
+import { MarkdownTextarea } from "@/components/MarkdownTextarea";
 
 type RoleOption = { id: string; label: string };
 
@@ -91,16 +92,21 @@ export function ProcessForm({
   const fields = (
     <div className="flex flex-col gap-4">
       <Input id={`process-title-${mode}`} label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      <Textarea
+      <MarkdownTextarea
         id={`process-objective-${mode}`}
-        label="Objetivo"
+        label="Objetivo (admite Markdown)"
         value={objective}
         onChange={(event) => setObjective(event.target.value)}
       />
-      <Textarea id={`process-context-${mode}`} label="Contexto" value={context} onChange={(event) => setContext(event.target.value)} />
-      <Textarea
+      <MarkdownTextarea
+        id={`process-context-${mode}`}
+        label="Contexto (admite Markdown)"
+        value={context}
+        onChange={(event) => setContext(event.target.value)}
+      />
+      <MarkdownTextarea
         id={`process-result-${mode}`}
-        label="Resultado esperado"
+        label="Resultado esperado (admite Markdown)"
         value={expectedResult}
         onChange={(event) => setExpectedResult(event.target.value)}
       />

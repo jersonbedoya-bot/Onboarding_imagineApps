@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Input, Textarea } from "@/components/Field";
+import { Input } from "@/components/Field";
+import { MarkdownTextarea } from "@/components/MarkdownTextarea";
 
 export type StepFormInitial = {
   title: string;
@@ -79,15 +80,15 @@ export function StepForm({
   const fields = (
     <div className="flex flex-col gap-4">
       <Input id={`step-title-${mode}`} label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      <Textarea
+      <MarkdownTextarea
         id={`step-description-${mode}`}
-        label="Descripción"
+        label="Descripción (admite Markdown)"
         value={description}
         onChange={(event) => setDescription(event.target.value)}
       />
-      <Textarea
+      <MarkdownTextarea
         id={`step-instruction-${mode}`}
-        label="Instrucción"
+        label="Instrucción (admite Markdown)"
         value={instruction}
         onChange={(event) => setInstruction(event.target.value)}
       />

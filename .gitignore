@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# insumos de contenido (fuente para scripts/data/onboarding-content.ts, no versionados)
+/Metologías (All).md
+/onboarding-imagine-apps UX UI.md
+/onboarding-seed-data.json

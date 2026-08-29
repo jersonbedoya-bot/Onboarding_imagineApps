@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
 import { OnboardingTopbar } from "@/components/OnboardingTopbar";
 import { VideoEmbed } from "@/components/VideoEmbed";
+import { MarkdownContent } from "@/components/MarkdownContent";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
@@ -201,7 +202,7 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
                       initialViewed={item.viewed ?? false}
                       enabled={item.requirement !== "OBLIGATORY"}
                     >
-                      {item.body && <p className="whitespace-pre-wrap text-sm text-ink-soft">{item.body}</p>}
+                      {item.body && <MarkdownContent>{item.body}</MarkdownContent>}
                       {item.imageUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
@@ -217,7 +218,7 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
           {stage.processes.map((process) => (
             <Card key={process.id}>
               <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
-              {process.objective && <p className="mt-1 text-sm text-ink-soft">{process.objective}</p>}
+              {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
               <ul className="mt-4 flex flex-col gap-4">
                 {process.steps.map((step) => (
                   <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
@@ -225,7 +226,8 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
                       <span className="font-display text-base font-semibold text-ink">{step.title}</span>
                       <CompleteStepButton stepId={step.id} completed={step.completed} />
                     </div>
-                    {step.description && <p className="text-sm text-ink-soft">{step.description}</p>}
+                    {step.description && <MarkdownContent>{step.description}</MarkdownContent>}
+                    {step.instruction && <MarkdownContent>{step.instruction}</MarkdownContent>}
                     {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} />}
                   </li>
                 ))}
