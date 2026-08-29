@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Checkbox } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
+import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
 
@@ -26,6 +27,8 @@ export function ProcessForm({
   initial,
   onSaved,
   variant = "card",
+  triggerLabel = "+ Agregar proceso",
+  modalTitle = "Nuevo proceso",
 }: {
   stageId: string;
   roles: RoleOption[];
@@ -33,9 +36,12 @@ export function ProcessForm({
   processId?: string;
   initial?: ProcessFormInitial;
   onSaved?: () => void;
-  variant?: "card" | "bare";
+  variant?: "card" | "bare" | "modal";
+  triggerLabel?: string;
+  modalTitle?: string;
 }) {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [objective, setObjective] = useState(initial?.objective ?? "");
   const [context, setContext] = useState(initial?.context ?? "");
@@ -85,6 +91,7 @@ export function ProcessForm({
       setExpectedResult("");
       setScope("ROLE");
       setRoleIds([]);
+      setIsModalOpen(false);
     }
     router.refresh();
   }
@@ -157,6 +164,14 @@ export function ProcessForm({
 
   if (variant === "bare") {
     return <form onSubmit={handleSubmit}>{fields}</form>;
+  }
+
+  if (variant === "modal") {
+    return (
+      <FormModalTrigger triggerLabel={triggerLabel} modalTitle={modalTitle} isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+        <form onSubmit={handleSubmit}>{fields}</form>
+      </FormModalTrigger>
+    );
   }
 
   return (

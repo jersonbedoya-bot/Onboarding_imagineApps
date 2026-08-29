@@ -9,6 +9,7 @@ import { Input, Select, Checkbox } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
 import { MediaUploader } from "@/components/MediaUploader";
 import { CONTENT_TYPE_LABELS, CONTENT_REQUIREMENT_LABELS } from "@/lib/content-labels";
+import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
 
@@ -31,6 +32,8 @@ export function ContentForm({
   initial,
   onSaved,
   variant = "card",
+  triggerLabel = "+ Agregar contenido",
+  modalTitle = "Nuevo contenido",
 }: {
   stageId: string;
   roles: RoleOption[];
@@ -38,9 +41,12 @@ export function ContentForm({
   contentItemId?: string;
   initial?: ContentFormInitial;
   onSaved?: () => void;
-  variant?: "card" | "bare";
+  variant?: "card" | "bare" | "modal";
+  triggerLabel?: string;
+  modalTitle?: string;
 }) {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [type, setType] = useState<ContentItemType>(initial?.type ?? "TEXT");
@@ -114,6 +120,7 @@ export function ContentForm({
       setRoleIds([]);
       setRequirement("");
       setMediaUploaderKey((key) => key + 1);
+      setIsModalOpen(false);
     }
     router.refresh();
   }
@@ -222,6 +229,14 @@ export function ContentForm({
 
   if (variant === "bare") {
     return <form onSubmit={handleSubmit}>{fields}</form>;
+  }
+
+  if (variant === "modal") {
+    return (
+      <FormModalTrigger triggerLabel={triggerLabel} modalTitle={modalTitle} isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+        <form onSubmit={handleSubmit}>{fields}</form>
+      </FormModalTrigger>
+    );
   }
 
   return (

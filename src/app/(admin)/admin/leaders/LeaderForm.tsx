@@ -6,11 +6,23 @@ import { MediaUploader } from "@/components/MediaUploader";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea, Checkbox } from "@/components/Field";
+import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
 
-export function LeaderForm({ roles }: { roles: RoleOption[] }) {
+export function LeaderForm({
+  roles,
+  variant = "card",
+  triggerLabel = "+ Agregar líder",
+  modalTitle = "Nuevo líder",
+}: {
+  roles: RoleOption[];
+  variant?: "card" | "modal";
+  triggerLabel?: string;
+  modalTitle?: string;
+}) {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -62,13 +74,12 @@ export function LeaderForm({ roles }: { roles: RoleOption[] }) {
     setScope("COMMON");
     setRoleIds([]);
     setMediaUploaderKey((key) => key + 1);
+    setIsModalOpen(false);
     router.refresh();
   }
 
-  return (
-    <Card as="form" onSubmit={handleSubmit} className="max-w-lg">
-      <h2 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo líder</h2>
-      <div className="flex flex-col gap-4">
+  const fields = (
+    <div className="flex flex-col gap-4">
         <Input id="leader-name" label="Nombre" required value={name} onChange={(event) => setName(event.target.value)} />
         <Input id="leader-title" label="Cargo" required value={title} onChange={(event) => setTitle(event.target.value)} />
         <Textarea

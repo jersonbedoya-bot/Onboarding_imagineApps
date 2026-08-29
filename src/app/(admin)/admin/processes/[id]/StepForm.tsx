@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
+import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 export type StepFormInitial = {
   title: string;
@@ -22,15 +23,20 @@ export function StepForm({
   initial,
   onSaved,
   variant = "card",
+  triggerLabel = "+ Agregar paso",
+  modalTitle = "Nuevo paso",
 }: {
   processId: string;
   mode?: "create" | "edit";
   stepId?: string;
   initial?: StepFormInitial;
   onSaved?: () => void;
-  variant?: "card" | "bare";
+  variant?: "card" | "bare" | "modal";
+  triggerLabel?: string;
+  modalTitle?: string;
 }) {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [instruction, setInstruction] = useState(initial?.instruction ?? "");
@@ -73,6 +79,7 @@ export function StepForm({
       setInstruction("");
       setVideoUrl("");
       setCompletionCriteria("");
+      setIsModalOpen(false);
     }
     router.refresh();
   }
@@ -114,6 +121,14 @@ export function StepForm({
 
   if (variant === "bare") {
     return <form onSubmit={handleSubmit}>{fields}</form>;
+  }
+
+  if (variant === "modal") {
+    return (
+      <FormModalTrigger triggerLabel={triggerLabel} modalTitle={modalTitle} isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+        <form onSubmit={handleSubmit}>{fields}</form>
+      </FormModalTrigger>
+    );
   }
 
   return (
