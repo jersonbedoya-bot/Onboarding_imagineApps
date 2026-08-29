@@ -133,10 +133,10 @@ async function ensureProcessSteps(actingAdmin: RequestIdentity, processId: Objec
   const existingSteps = await stepService.listStepsByProcess(actingAdmin, processId);
 
   for (const step of seed.steps) {
-    const existing = existingSteps.find((item) => item.title === step.title);
+    const existing = findExisting(existingSteps, step);
     if (existing) {
-      if (existing.instruction !== step.instruction) {
-        await stepService.updateStep(actingAdmin, existing._id, { instruction: step.instruction });
+      if (existing.title !== step.title || existing.instruction !== step.instruction) {
+        await stepService.updateStep(actingAdmin, existing._id, { title: step.title, instruction: step.instruction });
         logger.info("seed_content_step_updated", { title: step.title, process: seed.title });
       } else {
         logger.info("seed_content_step_skipped", { title: step.title, reason: "up_to_date" });
@@ -168,7 +168,8 @@ async function ensureProcesses(actingAdmin: RequestIdentity, stageId: ObjectId, 
         current.title !== process.title ||
         current.objective !== process.objective ||
         current.context !== process.context ||
-        current.expectedResult !== process.expectedResult;
+        current.expectedResult !== process.expectedResult ||
+        JSON.stringify(current.resources) !== JSON.stringify(process.resources);
       if (changed) {
         current = await processService.updateProcess(actingAdmin, current._id, {
           title: process.title,

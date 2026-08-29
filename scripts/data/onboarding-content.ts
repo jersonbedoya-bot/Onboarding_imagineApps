@@ -32,6 +32,7 @@ export type SeedContentItem = {
 
 export type SeedProcessStep = {
   title: string;
+  matchTitle?: string;
   instruction: string;
 };
 
@@ -309,7 +310,7 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
           "Inicia cuando se recibe la confirmación de cierre comercial (contrato firmado y anticipo recibido) y termina con la ejecución del kickoff interno y la alineación completa del equipo. Owner: PDM, en colaboración con el equipo comercial y el equipo asignado.",
         expectedResult:
           "Equipo alineado y asignado en Basecamp, presentación de kickoff lista para el cliente, listado de preguntas clave y definición preliminar de la arquitectura.",
-        resources: ["Google Drive (carpeta de proyectos)", "OPS Hub", "Google Chat / Google Suite", "Basecamp", "Formato de Pre Kickoff"],
+        resources: ["Google Drive (carpeta de proyectos)", "Google Chat / Google Suite", "Basecamp", "Formato de Pre Kickoff"],
         scope: "COMMON",
         steps: [
           { title: "Recibir el proyecto", instruction: "Monitorear el canal de cierre comercial y tomar el caso cuando se comparta el contexto inicial." },
@@ -318,7 +319,7 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
           { title: "Habilitar el ecosistema de trabajo", instruction: "Crear el canal del proyecto en Google Suite y el espacio de trabajo en Basecamp." },
           {
             title: "Activar al equipo",
-            instruction: "Enviar el mensaje de apertura con el documento de pre kickoff, la carpeta del proyecto y los accesos, agregando a todos los participantes definidos en OPS Hub.",
+            instruction: "Enviar el mensaje de apertura con el documento de pre kickoff, la carpeta del proyecto y los accesos, agregando a todos los participantes del proyecto.",
           },
           { title: "Agendar el kickoff interno", instruction: "Programar la sesión asegurando que ocurra antes del kickoff con el cliente." },
           { title: "Ejecutar la alineación interna", instruction: "Realizar la sesión de kickoff interno resolviendo dudas técnicas y de alcance con los insumos previos." },
@@ -525,7 +526,7 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         objective: "Evaluar de forma integral la salud operativa de los proyectos para detectar problemas y potenciar los aciertos.",
         context: "Sesión semanal que requiere que ya se haya hecho el reporte de Project Status. Owner: PDM.",
         expectedResult: "Alertas y estrategias de mitigación registradas para cada riesgo identificado en la sesión.",
-        resources: ["Ops Hub", "Agente Gabriela"],
+        resources: ["Agente Gabriela"],
         scope: "ROLE",
         roleKeys: ["PDM"],
         steps: [
@@ -533,7 +534,6 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
           { title: "Consolidar el estado", instruction: "Antes de la reunión, revisar finanzas, tiempos de entrega y el clima del equipo de cada proyecto." },
           { title: "Enviar el reporte", instruction: "Enviar el status consolidado a todos los asistentes antes de las 11:00 AM." },
           { title: "Levantar alertas en la sesión", instruction: "Durante la reunión, enfocarse en identificar y exponer los problemas detectados." },
-          { title: "Registrar en Ops Hub", instruction: "Guardar cada alerta en Ops Hub." },
           { title: "Definir estrategias de mitigación", instruction: "Para cada alerta, acordar una acción inmediata: ajustar una fecha, sumar recursos, etc." },
         ],
       },
@@ -582,7 +582,7 @@ Si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día h
         objective: "Alinear la cultura operativa mediante la resolución de cuellos de botella y el escalamiento de innovaciones probadas.",
         context: "Sesión semanal de una hora, a partir del backlog de puntos de dolor o innovaciones detectadas la semana previa. Owner: PDMs.",
         expectedResult: "Actualización oficial de los procedimientos en la documentación y comunicación del cambio a toda la operación.",
-        resources: ["Ops Hub", "Miro"],
+        resources: ["Miro"],
         scope: "ROLE",
         roleKeys: ["PDM"],
         steps: [
