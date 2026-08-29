@@ -45,7 +45,22 @@ export default async function AdminLeadersPage() {
           },
           {
             header: "Acciones",
-            render: (leader) => <LeaderActions id={leader._id.toString()} name={leader.name} status={leader.status} />,
+            render: (leader) => (
+              <LeaderActions
+                item={{
+                  id: leader._id.toString(),
+                  status: leader.status,
+                  name: leader.name,
+                  title: leader.title,
+                  description: leader.description,
+                  photoMediaId: leader.photoMediaId ? leader.photoMediaId.toString() : null,
+                  videoUrl: leader.videoUrl,
+                  scope: leader.scope,
+                  roleIds: leader.roleIds.map((id) => id.toString()),
+                }}
+                roles={roleOptions}
+              />
+            ),
           },
         ]}
       />
