@@ -39,7 +39,7 @@ export default async function OnboardingPage() {
   // redirigirlo — se le explica la situación en vez de crashear.
   if (!identity.functionalRoleId) {
     if (identity.platformRole === "ADMIN") {
-      redirect("/admin/routes");
+      redirect("/admin/modules");
     }
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">

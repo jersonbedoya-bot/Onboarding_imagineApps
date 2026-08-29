@@ -183,10 +183,10 @@ src/
 │   ├── (admin)/                  # Panel administrativo (protegido)
 │   │   ├── layout.tsx
 │   │   └── admin/
-│   │       ├── routes/           # Ruta de onboarding + etapas
-│   │       ├── content/          # Content items
+│   │       ├── modules/           # Ruta + etapas + su contenido y procesos, todo por módulo
+│   │       │   └── [stageId]/     # Detalle: contenido + procesos de esa etapa
+│   │       ├── processes/[id]/    # Pasos de un proceso (se llega desde su módulo)
 │   │       ├── leaders/          # Líderes
-│   │       ├── processes/        # Procesos + pasos
 │   │       ├── users/            # Usuarios + invitaciones
 │   │       └── audit/            # Log de auditoría
 │   ├── (public)/                 # Rutas públicas
@@ -199,8 +199,10 @@ src/
 │   ├── api/                      # Route Handlers (REST)
 │   └── layout.tsx / globals.css / page.tsx
 ├── components/                   # Componentes reutilizables
-│   ├── admin/                    # Navegación/headers del admin
-│   └── ... UI (Button, Card, Badge, Modal, Toast, DataTable, ...)
+│   ├── admin/                    # Nav/headers + formularios y acciones reutilizados por
+│   │                              # las páginas de /admin/modules (StageForm/Actions,
+│   │                              # ContentForm/Actions, ProcessForm/Actions, ArchivedSection)
+│   └── ... UI (Button, Card, Badge, Modal, ConfirmModal, Toast, DataTable, ModuleSummaryBadge, ...)
 ├── lib/                          # Helpers (cn, slug, email, token, video-url, logger, ...)
 ├── server/                       # Backend
 │   ├── auth/                     # NextAuth + guards de sesión

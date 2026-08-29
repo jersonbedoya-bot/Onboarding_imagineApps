@@ -1,47 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { useResourceActions } from "@/lib/admin/useResourceActions";
 
 export function LeaderActions({ id, name, status }: { id: string; name: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
-  const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function callAction(action: "publish" | "archive" | "reactivate") {
-    setError(null);
-    setIsPending(true);
-    const response = await fetch(`/api/leaders/${id}/${action}`, { method: "POST" });
-    const body = await response.json();
-    setIsPending(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "La acción falló.");
-      return;
-    }
-    router.refresh();
-  }
+  const { isPending, error, run } = useResourceActions("/api/leaders");
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   async function deleteItem() {
-    if (!confirm(`¿Borrar "${name}" para siempre? Esta acción no se puede deshacer.`)) return;
-    setError(null);
-    setIsPending(true);
-    const response = await fetch(`/api/leaders/${id}`, { method: "DELETE" });
-    const body = await response.json();
-    setIsPending(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo borrar.");
-      return;
-    }
-    router.refresh();
+    if (await run("delete", id)) setIsConfirmingDelete(false);
   }
 
   return (
     <div className="flex items-center gap-2">
       {status === "DRAFT" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("publish")}>
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("publish", id)}>
           Publicar
         </Button>
       )}
@@ -50,13 +25,13 @@ export function LeaderActions({ id, name, status }: { id: string; name: string; 
           variant="ghost"
           className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
           isLoading={isPending}
-          onClick={() => callAction("archive")}
+          onClick={() => run("archive", id)}
         >
           Archivar
         </Button>
       )}
       {status === "ARCHIVED" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("reactivate")}>
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("reactivate", id)}>
           Reactivar
         </Button>
       )}
@@ -65,7 +40,7 @@ export function LeaderActions({ id, name, status }: { id: string; name: string; 
           variant="ghost"
           className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
           isLoading={isPending}
-          onClick={deleteItem}
+          onClick={() => setIsConfirmingDelete(true)}
         >
           Borrar
         </Button>
@@ -75,6 +50,15 @@ export function LeaderActions({ id, name, status }: { id: string; name: string; 
           {error}
         </span>
       )}
+
+      <ConfirmModal
+        open={isConfirmingDelete}
+        title="Borrar líder para siempre"
+        description={`"${name}" se va a borrar para siempre. Esta acción no se puede deshacer.`}
+        isLoading={isPending}
+        onConfirm={deleteItem}
+        onClose={() => setIsConfirmingDelete(false)}
+      />
     </div>
   );
 }

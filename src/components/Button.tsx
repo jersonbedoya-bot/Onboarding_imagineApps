@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -9,6 +10,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ghost: "bg-transparent text-brand-strong hover:bg-brand-tint",
 };
 
+const BASE_CLASSES = "inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-all duration-150";
+
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   isLoading?: boolean;
@@ -17,12 +20,7 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function Button({ variant = "primary", isLoading = false, disabled, className, children, ...rest }: ButtonProps) {
   return (
     <button
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-all duration-150",
-        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none",
-        VARIANT_CLASSES[variant],
-        className,
-      )}
+      className={cn(BASE_CLASSES, "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none", VARIANT_CLASSES[variant], className)}
       disabled={disabled || isLoading}
       {...rest}
     >
@@ -34,5 +32,19 @@ export function Button({ variant = "primary", isLoading = false, disabled, class
       )}
       {children}
     </button>
+  );
+}
+
+export type LinkButtonProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  href: string;
+  variant?: ButtonVariant;
+};
+
+/** Mismo estilo visual que Button, para acciones de navegación (no de submit) — misma fila de acciones, misma jerarquía visual. */
+export function LinkButton({ href, variant = "secondary", className, children, ...rest }: LinkButtonProps) {
+  return (
+    <Link href={href} className={cn(BASE_CLASSES, VARIANT_CLASSES[variant], className)} {...rest}>
+      {children}
+    </Link>
   );
 }

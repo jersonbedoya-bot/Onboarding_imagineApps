@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { useResourceActions } from "@/lib/admin/useResourceActions";
 import { StepForm, type StepFormInitial } from "./StepForm";
 
 export type StepActionItem = {
@@ -18,38 +19,12 @@ export type StepActionItem = {
 };
 
 export function StepActions({ item }: { item: StepActionItem }) {
-  const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isPending, error, run } = useResourceActions("/api/steps");
   const [isEditing, setIsEditing] = useState(false);
-
-  async function callAction(action: "publish" | "archive" | "reactivate") {
-    setError(null);
-    setIsPending(true);
-    const response = await fetch(`/api/steps/${item.id}/${action}`, { method: "POST" });
-    const body = await response.json();
-    setIsPending(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "La acción falló.");
-      return;
-    }
-    router.refresh();
-  }
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   async function deleteItem() {
-    if (!confirm(`¿Borrar "${item.title}" para siempre? Esta acción no se puede deshacer.`)) return;
-    setError(null);
-    setIsPending(true);
-    const response = await fetch(`/api/steps/${item.id}`, { method: "DELETE" });
-    const body = await response.json();
-    setIsPending(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo borrar.");
-      return;
-    }
-    router.refresh();
+    if (await run("delete", item.id)) setIsConfirmingDelete(false);
   }
 
   const initial: StepFormInitial = {
@@ -66,7 +41,7 @@ export function StepActions({ item }: { item: StepActionItem }) {
         Editar
       </Button>
       {item.status === "DRAFT" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("publish")}>
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("publish", item.id)}>
           Publicar
         </Button>
       )}
@@ -75,13 +50,13 @@ export function StepActions({ item }: { item: StepActionItem }) {
           variant="ghost"
           className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
           isLoading={isPending}
-          onClick={() => callAction("archive")}
+          onClick={() => run("archive", item.id)}
         >
           Archivar
         </Button>
       )}
       {item.status === "ARCHIVED" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("reactivate")}>
+        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("reactivate", item.id)}>
           Reactivar
         </Button>
       )}
@@ -90,7 +65,7 @@ export function StepActions({ item }: { item: StepActionItem }) {
           variant="ghost"
           className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
           isLoading={isPending}
-          onClick={deleteItem}
+          onClick={() => setIsConfirmingDelete(true)}
         >
           Borrar
         </Button>
@@ -104,6 +79,15 @@ export function StepActions({ item }: { item: StepActionItem }) {
       <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar paso">
         <StepForm processId={item.processId} mode="edit" stepId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
       </Modal>
+
+      <ConfirmModal
+        open={isConfirmingDelete}
+        title="Borrar paso para siempre"
+        description={`"${item.title}" se va a borrar para siempre. Esta acción no se puede deshacer.`}
+        isLoading={isPending}
+        onConfirm={deleteItem}
+        onClose={() => setIsConfirmingDelete(false)}
+      />
     </div>
   );
 }

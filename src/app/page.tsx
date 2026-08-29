@@ -11,5 +11,5 @@ export default async function Home() {
     redirect("/login");
   }
 
-  redirect(identity.platformRole === "ADMIN" ? "/admin/routes" : "/onboarding");
+  redirect(identity.platformRole === "ADMIN" ? "/admin/modules" : "/onboarding");
 }

@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 
 const ADMIN_NAV_ITEMS = [
-  { href: "/admin/routes", label: "Rutas" },
-  { href: "/admin/content", label: "Contenido" },
-  { href: "/admin/processes", label: "Procesos" },
+  { href: "/admin/modules", label: "Módulos" },
   { href: "/admin/leaders", label: "Líderes" },
   { href: "/admin/users", label: "Usuarios" },
   { href: "/admin/audit", label: "Auditoría" },
@@ -19,7 +17,13 @@ export function AdminNav() {
   return (
     <nav aria-label="Secciones de administración" className="flex gap-1 overflow-x-auto">
       {ADMIN_NAV_ITEMS.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        // Los pasos de un proceso viven en /admin/processes/[id], una página
+        // aparte que se llega desde un módulo — sigue siendo parte de
+        // "Módulos" para no dejar la nav sin ninguna pestaña resaltada.
+        const active =
+          pathname === item.href ||
+          pathname.startsWith(`${item.href}/`) ||
+          (item.href === "/admin/modules" && pathname.startsWith("/admin/processes/"));
         return (
           <Link
             key={item.href}

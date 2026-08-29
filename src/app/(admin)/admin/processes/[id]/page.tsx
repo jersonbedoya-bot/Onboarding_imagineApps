@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
@@ -7,7 +8,8 @@ import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
-import { ProcessActions } from "../ProcessActions";
+import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { ProcessActions } from "@/components/admin/ProcessActions";
 import { StepForm } from "./StepForm";
 import { StepActions } from "./StepActions";
 
@@ -31,8 +33,41 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
   ]);
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
+  const activeSteps = steps.filter((step) => step.status !== "ARCHIVED");
+  const archivedSteps = steps.filter((step) => step.status === "ARCHIVED");
+
+  const stepColumns = [
+    { header: "Orden", render: (step: (typeof steps)[number]) => step.order },
+    { header: "Título", render: (step: (typeof steps)[number]) => step.title },
+    { header: "Video", render: (step: (typeof steps)[number]) => (step.videoUrl ? step.videoProvider : "—") },
+    {
+      header: "Estado",
+      render: (step: (typeof steps)[number]) => <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{step.status}</Badge>,
+    },
+    {
+      header: "Acciones",
+      render: (step: (typeof steps)[number]) => (
+        <StepActions
+          item={{
+            id: step._id.toString(),
+            processId: step.processId.toString(),
+            status: step.status,
+            title: step.title,
+            description: step.description,
+            instruction: step.instruction,
+            videoUrl: step.videoUrl,
+            completionCriteria: step.completionCriteria,
+          }}
+        />
+      ),
+    },
+  ];
+
   return (
     <div>
+      <Link href={`/admin/modules/${process.stageId.toString()}`} className="mb-3 inline-block text-sm font-medium text-brand-strong hover:underline">
+        ← Volver al módulo
+      </Link>
       <PageHeader
         title={process.title}
         description={process.objective || undefined}
@@ -58,37 +93,10 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
       />
 
       <h2 className="mb-3 font-display text-lg font-semibold text-ink">Pasos</h2>
-      <DataTable
-        rows={steps}
-        rowKey={(step) => step._id.toString()}
-        emptyMessage="Este proceso todavía no tiene pasos."
-        columns={[
-          { header: "Orden", render: (step) => step.order },
-          { header: "Título", render: (step) => step.title },
-          { header: "Video", render: (step) => (step.videoUrl ? step.videoProvider : "—") },
-          {
-            header: "Estado",
-            render: (step) => <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{step.status}</Badge>,
-          },
-          {
-            header: "Acciones",
-            render: (step) => (
-              <StepActions
-                item={{
-                  id: step._id.toString(),
-                  processId: step.processId.toString(),
-                  status: step.status,
-                  title: step.title,
-                  description: step.description,
-                  instruction: step.instruction,
-                  videoUrl: step.videoUrl,
-                  completionCriteria: step.completionCriteria,
-                }}
-              />
-            ),
-          },
-        ]}
-      />
+      <DataTable rows={activeSteps} rowKey={(step) => step._id.toString()} emptyMessage="Este proceso todavía no tiene pasos." columns={stepColumns} />
+      <ArchivedSection count={archivedSteps.length}>
+        <DataTable rows={archivedSteps} rowKey={(step) => step._id.toString()} emptyMessage="Sin pasos archivados." columns={stepColumns} />
+      </ArchivedSection>
 
       <div className="mt-8">
         <StepForm processId={process._id.toString()} />
