@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
@@ -8,7 +7,9 @@ import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
+import { LinkButton } from "@/components/Button";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { ProcessActions } from "@/components/admin/ProcessActions";
 import { StepForm } from "./StepForm";
 import { StepActions } from "./StepActions";
@@ -42,7 +43,9 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
     { header: "Video", render: (step: (typeof steps)[number]) => (step.videoUrl ? step.videoProvider : "—") },
     {
       header: "Estado",
-      render: (step: (typeof steps)[number]) => <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{step.status}</Badge>,
+      render: (step: (typeof steps)[number]) => (
+        <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[step.status]}</Badge>
+      ),
     },
     {
       header: "Acciones",
@@ -65,15 +68,15 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
 
   return (
     <div>
-      <Link href={`/admin/modules/${process.stageId.toString()}`} className="mb-3 inline-block text-sm font-medium text-brand-strong hover:underline">
+      <LinkButton href={`/admin/modules/${process.stageId.toString()}`} variant="ghost" className="mb-3 px-3 py-1.5 text-xs">
         ← Volver al módulo
-      </Link>
+      </LinkButton>
       <PageHeader
         title={process.title}
         description={process.objective || undefined}
         action={
           <div className="flex items-center gap-3">
-            <Badge variant={process.status === "PUBLISHED" ? "success" : "neutral"}>{process.status}</Badge>
+            <Badge variant={process.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[process.status]}</Badge>
             <ProcessActions
               item={{
                 id: process._id.toString(),
@@ -87,6 +90,7 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
                 roleIds: process.roleIds.map((rid) => rid.toString()),
               }}
               roles={roleOptions}
+              showViewSteps={false}
             />
           </div>
         }
@@ -99,7 +103,7 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
       </ArchivedSection>
 
       <div className="mt-8">
-        <StepForm processId={process._id.toString()} />
+        <StepForm processId={process._id.toString()} variant="modal" modalTitle={`Nuevo paso en "${process.title}"`} />
       </div>
     </div>
   );

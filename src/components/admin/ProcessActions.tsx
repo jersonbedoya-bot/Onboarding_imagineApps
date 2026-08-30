@@ -21,7 +21,17 @@ export type ProcessActionItem = {
   roleIds: string[];
 };
 
-export function ProcessActions({ item, roles }: { item: ProcessActionItem; roles: RoleOption[] }) {
+// `showViewSteps` en false desde la propia página de pasos del proceso —
+// mostrar "Ver pasos →" ahí sería un link a la página en la que ya estás.
+export function ProcessActions({
+  item,
+  roles,
+  showViewSteps = true,
+}: {
+  item: ProcessActionItem;
+  roles: RoleOption[];
+  showViewSteps?: boolean;
+}) {
   const { isPending, error, run } = useResourceActions("/api/processes");
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -40,10 +50,12 @@ export function ProcessActions({ item, roles }: { item: ProcessActionItem; roles
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <LinkButton href={`/admin/processes/${item.id}`} variant="secondary" className="px-3 py-1.5 text-xs">
-        Ver pasos →
-      </LinkButton>
+    <div className="flex flex-wrap items-center gap-2">
+      {showViewSteps && (
+        <LinkButton href={`/admin/processes/${item.id}`} variant="secondary" className="px-3 py-1.5 text-xs">
+          Ver pasos →
+        </LinkButton>
+      )}
       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
         Editar
       </Button>

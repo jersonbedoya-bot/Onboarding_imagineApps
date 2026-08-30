@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { LeaderForm } from "./LeaderForm";
 import { LeaderActions } from "./LeaderActions";
 
@@ -37,11 +38,28 @@ export default async function AdminLeadersPage() {
     { header: "Video", render: (leader) => (leader.videoUrl ? leader.videoProvider : "—") },
     {
       header: "Estado",
-      render: (leader) => <Badge variant={leader.status === "PUBLISHED" ? "success" : "neutral"}>{leader.status}</Badge>,
+      render: (leader) => (
+        <Badge variant={leader.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[leader.status]}</Badge>
+      ),
     },
     {
       header: "Acciones",
-      render: (leader) => <LeaderActions id={leader._id.toString()} name={leader.name} status={leader.status} />,
+      render: (leader) => (
+        <LeaderActions
+          item={{
+            id: leader._id.toString(),
+            status: leader.status,
+            name: leader.name,
+            title: leader.title,
+            description: leader.description,
+            photoMediaId: leader.photoMediaId ? leader.photoMediaId.toString() : null,
+            videoUrl: leader.videoUrl,
+            scope: leader.scope,
+            roleIds: leader.roleIds.map((id) => id.toString()),
+          }}
+          roles={roleOptions}
+        />
+      ),
     },
   ];
 
@@ -55,7 +73,7 @@ export default async function AdminLeadersPage() {
       </ArchivedSection>
 
       <div className="mt-8">
-        <LeaderForm roles={roleOptions} />
+        <LeaderForm roles={roleOptions} variant="modal" />
       </div>
     </div>
   );

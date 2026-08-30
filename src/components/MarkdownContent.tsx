@@ -40,6 +40,11 @@ export function MarkdownContent({ children, className }: MarkdownContentProps) {
           blockquote: ({ children }) => <blockquote className="mb-3 border-l-2 border-brand-soft pl-3 italic text-ink-soft last:mb-0">{children}</blockquote>,
           code: ({ children }) => <code className="rounded bg-brand-tint px-1 py-0.5 font-mono text-xs text-ink">{children}</code>,
           hr: () => <hr className="my-4 border-line" />,
+          img: ({ src, alt }) =>
+            typeof src === "string" ? (
+              // eslint-disable-next-line @next/next/no-img-element -- fuente arbitraria (Vercel Blob), no un asset propio optimizable con next/image
+              <img src={src} alt={alt ?? ""} className="my-3 max-h-[28rem] w-full rounded-md border border-line object-contain" />
+            ) : null,
           table: ({ children }) => (
             <div className="mb-3 overflow-x-auto last:mb-0">
               <table className="w-full border-collapse text-left">{children}</table>

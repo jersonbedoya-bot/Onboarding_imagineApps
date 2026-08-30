@@ -310,6 +310,8 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
         id: process._id.toString(),
         title: process.title,
         objective: process.objective,
+        context: process.context,
+        expectedResult: process.expectedResult,
         steps: steps.map((step) => ({
           id: step._id.toString(),
           title: step.title,

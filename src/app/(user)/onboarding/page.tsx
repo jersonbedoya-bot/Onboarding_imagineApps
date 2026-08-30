@@ -16,6 +16,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { OnboardingTopbar } from "@/components/OnboardingTopbar";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { LinkButton } from "@/components/Button";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
@@ -91,21 +92,39 @@ export default async function OnboardingPage() {
           </header>
         )}
 
-        <nav aria-label="Etapas del recorrido" className="mb-10 rounded-lg border border-line bg-card p-2 shadow-sm">
-          {journey.stages.map((stage, index) => (
-            <StepIndicator
-              key={stage.id}
-              status={stageStatus(stage, journey.currentStageId)}
-              label={stage.title}
-              index={index + 1}
-              trailing={!stage.unlocked ? <Badge variant="neutral">Bloqueada</Badge> : undefined}
-            />
-          ))}
+        <nav id="stages-nav" aria-label="Etapas del recorrido" className="mb-10 scroll-mt-24 rounded-lg border border-line bg-card p-2 shadow-sm">
+          {journey.stages.map((stage, index) => {
+            const indicator = (
+              <StepIndicator
+                status={stageStatus(stage, journey.currentStageId)}
+                label={stage.title}
+                index={index + 1}
+                trailing={!stage.unlocked ? <Badge variant="neutral">Bloqueada</Badge> : undefined}
+              />
+            );
+            // Solo las etapas desbloqueadas tienen contenido más abajo — para
+            // las bloqueadas, el salto quedaría en un header vacío, así que
+            // no se ofrece como link.
+            return stage.unlocked ? (
+              <a key={stage.id} href={`#${stage.id}`}>
+                {indicator}
+              </a>
+            ) : (
+              <div key={stage.id}>{indicator}</div>
+            );
+          })}
         </nav>
 
         <div className="flex flex-col gap-10">
           {journey.stages.map((stage, index) => (
-            <StageSection key={stage.id} stage={stage} index={index} isCurrent={stage.id === journey.currentStageId} />
+            <StageSection
+              key={stage.id}
+              stage={stage}
+              index={index}
+              isCurrent={stage.id === journey.currentStageId}
+              prevStage={journey.stages[index - 1] ?? null}
+              nextStage={journey.stages[index + 1] ?? null}
+            />
           ))}
         </div>
       </main>
@@ -154,7 +173,19 @@ function FinishCard() {
   );
 }
 
-function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index: number; isCurrent: boolean }) {
+function StageSection({
+  stage,
+  index,
+  isCurrent,
+  prevStage,
+  nextStage,
+}: {
+  stage: JourneyStage;
+  index: number;
+  isCurrent: boolean;
+  prevStage: JourneyStage | null;
+  nextStage: JourneyStage | null;
+}) {
   return (
     <section id={stage.id} className="scroll-mt-24 border-t border-line pt-10 first:border-0 first:pt-0">
       <div className="mb-6 flex items-start gap-4">
@@ -219,6 +250,8 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
             <Card key={process.id}>
               <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
               {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
+              {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
+              {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
               <ul className="mt-4 flex flex-col gap-4">
                 {process.steps.map((step) => (
                   <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
@@ -234,6 +267,28 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
               </ul>
             </Card>
           ))}
+        </div>
+      )}
+
+      {stage.unlocked && (
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
+          {prevStage ? (
+            <LinkButton href={`#${prevStage.id}`} variant="secondary" className="px-4 py-2 text-sm">
+              ← {prevStage.title}
+            </LinkButton>
+          ) : (
+            <span />
+          )}
+          <LinkButton href="#stages-nav" variant="ghost" className="px-4 py-2 text-sm">
+            ↑ Ver todas las etapas
+          </LinkButton>
+          {nextStage ? (
+            <LinkButton href={`#${nextStage.id}`} variant="secondary" className="px-4 py-2 text-sm">
+              {nextStage.title} →
+            </LinkButton>
+          ) : (
+            <span />
+          )}
         </div>
       )}
     </section>

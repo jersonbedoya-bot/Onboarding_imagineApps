@@ -9,9 +9,11 @@ import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
+import { LinkButton } from "@/components/Button";
 import { ModuleSummaryBadge, countByStatus } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
 import { CONTENT_TYPE_LABELS } from "@/lib/content-labels";
+import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { StageActions } from "@/components/admin/StageActions";
 import { ContentForm } from "@/components/admin/ContentForm";
 import { ContentActions } from "@/components/admin/ContentActions";
@@ -45,6 +47,13 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   const stageOptions = allStages.map((s) => ({ id: s._id.toString(), title: s.title }));
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
+  // allStages ya viene ordenado por `order` (stageRepository.listByRoute) —
+  // se reutiliza tal cual para saber cuál es el módulo anterior/siguiente,
+  // sin una query aparte.
+  const currentIndex = allStages.findIndex((s) => s._id.equals(stage._id));
+  const prevStage = currentIndex > 0 ? allStages[currentIndex - 1] : null;
+  const nextStage = currentIndex >= 0 && currentIndex < allStages.length - 1 ? allStages[currentIndex + 1] : null;
+
   const activeContent = content.filter((item) => item.status !== "ARCHIVED");
   const archivedContent = content.filter((item) => item.status === "ARCHIVED");
   const activeProcesses = processes.filter((item) => item.status !== "ARCHIVED");
@@ -61,7 +70,9 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
     },
     {
       header: "Estado",
-      render: (item: (typeof content)[number]) => <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{item.status}</Badge>,
+      render: (item: (typeof content)[number]) => (
+        <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
+      ),
     },
     {
       header: "Acciones",
@@ -96,7 +107,9 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
     },
     {
       header: "Estado",
-      render: (item: (typeof processes)[number]) => <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{item.status}</Badge>,
+      render: (item: (typeof processes)[number]) => (
+        <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
+      ),
     },
     {
       header: "Acciones",
@@ -121,12 +134,29 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <LinkButton href="/admin/modules" variant="ghost" className="px-3 py-1.5 text-xs">
+          ← Volver a Módulos
+        </LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          {prevStage && (
+            <LinkButton href={`/admin/modules/${prevStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
+              ← {prevStage.title}
+            </LinkButton>
+          )}
+          {nextStage && (
+            <LinkButton href={`/admin/modules/${nextStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
+              {nextStage.title} →
+            </LinkButton>
+          )}
+        </div>
+      </div>
       <PageHeader
         title={stage.title}
         description="Contenido y procesos de este módulo, todo en un solo lugar."
         action={
           <div className="flex items-center gap-3">
-            <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{stage.status}</Badge>
+            <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[stage.status]}</Badge>
             <StageActions
               item={{
                 id: stage._id.toString(),
@@ -152,7 +182,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <DataTable rows={archivedContent} rowKey={(item) => item._id.toString()} emptyMessage="Sin contenido archivado." columns={contentColumns} />
         </ArchivedSection>
         <div className="mt-6">
-          <ContentForm stageId={stage._id.toString()} roles={roleOptions} />
+          <ContentForm stageId={stage._id.toString()} roles={roleOptions} variant="modal" modalTitle={`Nuevo contenido en "${stage.title}"`} />
         </div>
       </section>
 
@@ -166,7 +196,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <DataTable rows={archivedProcesses} rowKey={(item) => item._id.toString()} emptyMessage="Sin procesos archivados." columns={processColumns} />
         </ArchivedSection>
         <div className="mt-6">
-          <ProcessForm stageId={stage._id.toString()} roles={roleOptions} />
+          <ProcessForm stageId={stage._id.toString()} roles={roleOptions} variant="modal" modalTitle={`Nuevo proceso en "${stage.title}"`} />
         </div>
       </section>
     </div>

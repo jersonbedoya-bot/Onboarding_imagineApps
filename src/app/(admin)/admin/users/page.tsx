@@ -7,6 +7,7 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
 import { ProgressBar } from "@/components/ProgressBar";
+import { USER_STATUS_LABELS } from "@/lib/status-labels";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
 
@@ -60,7 +61,7 @@ export default async function AdminUsersPage() {
           },
           {
             header: "Estado",
-            render: (user) => <Badge variant={user.status === "ACTIVE" ? "success" : "neutral"}>{user.status}</Badge>,
+            render: (user) => <Badge variant={user.status === "ACTIVE" ? "success" : "neutral"}>{USER_STATUS_LABELS[user.status]}</Badge>,
           },
           {
             header: "Progreso onboarding",

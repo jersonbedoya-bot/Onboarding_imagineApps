@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/Button";
+import { Button, LinkButton } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { useResourceActions } from "@/lib/admin/useResourceActions";
 import { StageForm, type StageFormInitial } from "@/components/admin/StageForm";
@@ -19,7 +19,10 @@ type StageOption = { id: string; title: string };
 
 // Sin "Borrar": las etapas/la ruta no tienen borrado permanente por diseño
 // (ver CLAUDE.md y BACKLOG.md — archivar la ruta no tiene vuelta atrás).
-export function StageActions({ item, allStages }: { item: StageActionItem; allStages: StageOption[] }) {
+// `viewHref` es opcional: solo se pasa desde la lista de módulos (ahí hace
+// falta un botón para entrar al detalle); en el propio detalle del módulo
+// no aplica, ya estás ahí.
+export function StageActions({ item, allStages, viewHref }: { item: StageActionItem; allStages: StageOption[]; viewHref?: string }) {
   const { isPending, error, run } = useResourceActions("/api/stages");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -31,7 +34,12 @@ export function StageActions({ item, allStages }: { item: StageActionItem; allSt
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {viewHref && (
+        <LinkButton href={viewHref} variant="secondary" className="px-3 py-1.5 text-xs">
+          Ver módulo →
+        </LinkButton>
+      )}
       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
         Editar
       </Button>

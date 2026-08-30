@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
@@ -11,6 +10,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
 import { ModuleSummaryBadge, countByStatus, type ModuleSummaryCounts } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { RouteActions } from "@/components/admin/RouteActions";
 import { StageActions } from "@/components/admin/StageActions";
 import { StageForm } from "@/components/admin/StageForm";
@@ -59,14 +59,7 @@ export default async function AdminModulesPage() {
 
   const columns: DataTableColumn<StageRow>[] = [
     { header: "Orden", render: (stage) => stage.order },
-    {
-      header: "Módulo",
-      render: (stage) => (
-        <Link href={`/admin/modules/${stage._id.toString()}`} className="font-medium text-brand-strong hover:underline">
-          {stage.title}
-        </Link>
-      ),
-    },
+    { header: "Módulo", render: (stage) => <span className="font-medium text-ink">{stage.title}</span> },
     {
       header: "Depende de",
       render: (stage) => stageOptions.find((option) => option.id === stage.dependsOnStageId?.toString())?.title ?? "—",
@@ -86,7 +79,9 @@ export default async function AdminModulesPage() {
     },
     {
       header: "Estado",
-      render: (stage) => <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{stage.status}</Badge>,
+      render: (stage) => (
+        <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[stage.status]}</Badge>
+      ),
     },
     {
       header: "Acciones",
@@ -101,6 +96,7 @@ export default async function AdminModulesPage() {
             status: stage.status,
           }}
           allStages={stageOptions}
+          viewHref={`/admin/modules/${stage._id.toString()}`}
         />
       ),
     },
@@ -113,7 +109,7 @@ export default async function AdminModulesPage() {
         description="Cada módulo agrupa su contenido y sus procesos en un solo lugar."
         action={
           <div className="flex items-center gap-3">
-            <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{route.status}</Badge>
+            <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[route.status]}</Badge>
             <RouteActions status={route.status} />
           </div>
         }
@@ -126,7 +122,7 @@ export default async function AdminModulesPage() {
       </ArchivedSection>
 
       <div className="mt-8">
-        <StageForm existingStages={stageOptions} />
+        <StageForm existingStages={stageOptions} variant="modal" />
       </div>
     </div>
   );

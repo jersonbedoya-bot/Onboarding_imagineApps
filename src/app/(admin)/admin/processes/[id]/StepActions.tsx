@@ -36,7 +36,7 @@ export function StepActions({ item }: { item: StepActionItem }) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
         Editar
       </Button>

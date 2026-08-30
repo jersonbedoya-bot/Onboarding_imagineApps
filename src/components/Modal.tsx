@@ -29,13 +29,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       role="presentation"
     >
       <div
-        className="w-full max-w-md rounded-lg border border-line bg-card p-6 shadow-lg"
+        className="flex w-full max-w-md flex-col rounded-lg border border-line bg-card p-6 shadow-lg"
+        style={{ maxHeight: "min(85vh, 100%)" }}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 flex flex-shrink-0 items-center justify-between gap-4">
           {title && <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>}
           <button
             type="button"
@@ -48,7 +49,12 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             </svg>
           </button>
         </div>
-        {children}
+        {/* Solo esta parte scrollea — el header (título + cerrar) queda fijo arriba.
+            Antes el panel entero no tenía límite de alto: con contenido largo (ej.
+            "Vista previa" de un campo con imágenes embebidas) la mitad quedaba
+            arriba del viewport, sin scroll posible, y el botón de guardar era
+            inalcanzable. */}
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
