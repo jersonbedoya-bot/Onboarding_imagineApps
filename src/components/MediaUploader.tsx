@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { uploadMedia } from "@/lib/admin/upload-media";
 
 // Solo imágenes — el video del sistema es URL embebida (YouTube/Vimeo/Loom), nunca pasa por acá.
 export function MediaUploader({ onUploaded }: { onUploaded: (mediaId: string, url: string) => void }) {
@@ -14,21 +15,15 @@ export function MediaUploader({ onUploaded }: { onUploaded: (mediaId: string, ur
 
     setError(null);
     setIsUploading(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch("/api/media", { method: "POST", body: formData });
-    const body = await response.json();
-    setIsUploading(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo subir la imagen.");
-      return;
+    try {
+      const { id, url } = await uploadMedia(file);
+      setUploadedUrl(url);
+      onUploaded(id, url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+    } finally {
+      setIsUploading(false);
     }
-
-    setUploadedUrl(body.data.url);
-    onUploaded(body.data.id, body.data.url);
   }
 
   return (
