@@ -7,6 +7,8 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea, Checkbox } from "@/components/Field";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
+import { getVideoThumbnailUrl } from "@/lib/video-url";
+import type { VideoProvider } from "@/types/enums";
 
 type RoleOption = { id: string; label: string };
 
@@ -15,7 +17,9 @@ export type LeaderFormInitial = {
   title: string;
   description: string;
   photoMediaId: string | null;
+  photoUrl: string | null;
   videoUrl: string;
+  videoProvider: VideoProvider | null;
   scope: "COMMON" | "ROLE";
   roleIds: string[];
 };
@@ -53,6 +57,11 @@ export function LeaderForm({
   // Cambiar esta key remonta <MediaUploader/> desde cero — es la única
   // forma de limpiar su preview/estado interno, que vive fuera de este form.
   const [mediaUploaderKey, setMediaUploaderKey] = useState(0);
+  // Miniatura del video ya guardado (no del texto que se esté tipeando ahora
+  // en el input — getVideoThumbnailUrl espera la URL canónica que devuelve
+  // normalizeVideoUrl, no una URL cruda a medio pegar).
+  const initialVideoThumbnail =
+    initial?.videoUrl && initial?.videoProvider ? getVideoThumbnailUrl(initial.videoUrl, initial.videoProvider) : null;
 
   function toggleRole(roleId: string) {
     setRoleIds((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]));
@@ -113,16 +122,29 @@ export function LeaderForm({
       />
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Foto</span>
-        <MediaUploader key={mediaUploaderKey} onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
+        <MediaUploader key={mediaUploaderKey} initialUrl={initial?.photoUrl ?? null} onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
       </div>
-      <Input
-        id={`leader-video-${mode}`}
-        label="Video (opcional, YouTube/Vimeo/Loom/Drive)"
-        type="url"
-        value={videoUrl}
-        onChange={(event) => setVideoUrl(event.target.value)}
-        placeholder="https://youtube.com/watch?v=..."
-      />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Input
+              id={`leader-video-${mode}`}
+              label="Video (opcional, YouTube/Vimeo/Loom/Drive)"
+              type="url"
+              value={videoUrl}
+              onChange={(event) => setVideoUrl(event.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+            />
+          </div>
+          {/* Referencia de "ya tiene video" al abrir el form — deja de mostrarse
+              en cuanto se toca el campo, porque a partir de ahí ya no refleja
+              lo que se va a guardar (ver comentario de initialVideoThumbnail). */}
+          {initialVideoThumbnail && videoUrl === initial?.videoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={initialVideoThumbnail} alt="" className="h-14 w-14 flex-shrink-0 rounded-md border border-line object-cover" />
+          )}
+        </div>
+      </div>
 
       <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Alcance</legend>

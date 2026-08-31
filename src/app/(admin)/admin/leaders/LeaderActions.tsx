@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useResourceActions } from "@/lib/admin/useResourceActions";
+import type { VideoProvider } from "@/types/enums";
 import { LeaderForm, type LeaderFormInitial } from "./LeaderForm";
 
 type RoleOption = { id: string; label: string };
@@ -16,7 +17,9 @@ export type LeaderActionItem = {
   title: string;
   description: string;
   photoMediaId: string | null;
+  photoUrl: string | null;
   videoUrl: string | null;
+  videoProvider: VideoProvider | null;
   scope: "COMMON" | "ROLE";
   roleIds: string[];
 };
@@ -35,7 +38,9 @@ export function LeaderActions({ item, roles }: { item: LeaderActionItem; roles: 
     title: item.title,
     description: item.description,
     photoMediaId: item.photoMediaId,
+    photoUrl: item.photoUrl,
     videoUrl: item.videoUrl ?? "",
+    videoProvider: item.videoProvider,
     scope: item.scope,
     roleIds: item.roleIds,
   };

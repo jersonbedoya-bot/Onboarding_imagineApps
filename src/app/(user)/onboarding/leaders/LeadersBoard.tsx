@@ -33,7 +33,7 @@ export function LeadersBoard({
       <Modal open={playing !== null} onClose={() => setPlaying(null)} title={playing?.name} maxWidthClassName="max-w-2xl">
         {playing && (
           <>
-            <p className="mb-3 -mt-2 text-sm text-ink-soft">{playing.title}</p>
+            <p className="mb-3 text-sm text-ink-soft">{playing.title}</p>
             <VideoEmbed src={playing.videoUrl!} title={playing.name} provider={playing.videoProvider} />
             {playing.description && <p className="mt-3 text-sm text-ink-soft">{playing.description}</p>}
           </>

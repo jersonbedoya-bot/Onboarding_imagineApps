@@ -4,10 +4,18 @@ import { useState } from "react";
 import { uploadMedia } from "@/lib/admin/upload-media";
 
 // Solo imágenes — el video del sistema es URL embebida (YouTube/Vimeo/Loom), nunca pasa por acá.
-export function MediaUploader({ onUploaded }: { onUploaded: (mediaId: string, url: string) => void }) {
+export function MediaUploader({
+  onUploaded,
+  initialUrl = null,
+}: {
+  onUploaded: (mediaId: string, url: string) => void;
+  /** Imagen ya asignada al abrir el form (ej. editando un líder que ya tiene foto) —
+   * sin esto, el campo se veía igual para "sin foto" y "ya tiene foto, no cambió". */
+  initialUrl?: string | null;
+}) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(initialUrl);
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -41,9 +49,15 @@ export function MediaUploader({ onUploaded }: { onUploaded: (mediaId: string, ur
           {error}
         </p>
       )}
-      {uploadedUrl && (
+      {uploadedUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={uploadedUrl} alt="" width={44} height={44} className="rounded-md border border-line object-cover" />
+        <img src={uploadedUrl} alt="" width={56} height={56} className="h-14 w-14 flex-shrink-0 rounded-md border border-line object-cover" />
+      ) : (
+        // Placeholder explícito (no solo "nada acá") — de un vistazo se ve
+        // quién todavía no tiene foto sin tener que fijarse si el campo está vacío.
+        <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md border border-dashed border-line text-xs text-ink-soft/60">
+          Sin foto
+        </span>
       )}
     </div>
   );

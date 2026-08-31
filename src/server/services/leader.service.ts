@@ -19,6 +19,28 @@ export async function listLeaders(actingAdmin: RequestIdentity) {
   return leaderRepository.listByTenant(actingAdmin.tenantId);
 }
 
+async function buildPhotoUrlMap(tenantId: ObjectId, leaders: { photoMediaId: ObjectId | null }[]): Promise<Map<string, string>> {
+  const mediaIds = leaders.map((leader) => leader.photoMediaId).filter((id): id is ObjectId => id !== null);
+  const mediaDocs = await mediaRepository.findByIds(tenantId, mediaIds);
+  return new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
+}
+
+/**
+ * Igual que listLeaders, pero con photoUrl ya resuelta — lo usa el panel
+ * admin para mostrar la foto/preview de video ya asignada al editar (antes
+ * el form de edición no tenía forma de reflejar "este líder ya tiene foto",
+ * solo se veía después de subir una nueva en esa misma sesión).
+ */
+export async function listLeadersWithMedia(actingAdmin: RequestIdentity) {
+  const leaders = await leaderRepository.listByTenant(actingAdmin.tenantId);
+  const photoUrlById = await buildPhotoUrlMap(actingAdmin.tenantId, leaders);
+
+  return leaders.map((leader) => ({
+    ...leader,
+    photoUrl: leader.photoMediaId ? (photoUrlById.get(leader.photoMediaId.toString()) ?? null) : null,
+  }));
+}
+
 export async function createLeader(
   actingAdmin: RequestIdentity,
   input: {
@@ -213,9 +235,7 @@ export async function resolveVisibleLeaders(tenantId: ObjectId, roleId: ObjectId
 /** Igual que resolveVisibleLeaders, pero ya con la foto resuelta a URL — lo que consume /onboarding. */
 export async function resolveVisibleLeadersWithMedia(tenantId: ObjectId, roleId: ObjectId) {
   const leaders = await leaderRepository.findVisibleForRole(tenantId, roleId);
-  const mediaIds = leaders.map((leader) => leader.photoMediaId).filter((id): id is ObjectId => id !== null);
-  const mediaDocs = await mediaRepository.findByIds(tenantId, mediaIds);
-  const photoUrlById = new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
+  const photoUrlById = await buildPhotoUrlMap(tenantId, leaders);
 
   return leaders.map((leader) => ({
     id: leader._id.toString(),

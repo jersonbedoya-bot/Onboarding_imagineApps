@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
-import { listLeaders } from "@/server/services/leader.service";
+import { listLeadersWithMedia } from "@/server/services/leader.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -10,7 +10,7 @@ import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { LeaderForm } from "./LeaderForm";
 import { LeaderActions } from "./LeaderActions";
 
-type Leader = Awaited<ReturnType<typeof listLeaders>>[number];
+type Leader = Awaited<ReturnType<typeof listLeadersWithMedia>>[number];
 
 export default async function AdminLeadersPage() {
   let identity;
@@ -20,7 +20,7 @@ export default async function AdminLeadersPage() {
     redirect("/login");
   }
 
-  const [leaders, roles] = await Promise.all([listLeaders(identity), roleRepository.listByTenant(identity.tenantId)]);
+  const [leaders, roles] = await Promise.all([listLeadersWithMedia(identity), roleRepository.listByTenant(identity.tenantId)]);
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
   const activeLeaders = leaders.filter((leader) => leader.status !== "ARCHIVED");
@@ -53,7 +53,9 @@ export default async function AdminLeadersPage() {
             title: leader.title,
             description: leader.description,
             photoMediaId: leader.photoMediaId ? leader.photoMediaId.toString() : null,
+            photoUrl: leader.photoUrl,
             videoUrl: leader.videoUrl,
+            videoProvider: leader.videoProvider,
             scope: leader.scope,
             roleIds: leader.roleIds.map((id) => id.toString()),
           }}
