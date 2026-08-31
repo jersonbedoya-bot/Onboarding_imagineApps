@@ -225,5 +225,6 @@ export async function resolveVisibleLeadersWithMedia(tenantId: ObjectId, roleId:
     photoUrl: leader.photoMediaId ? (photoUrlById.get(leader.photoMediaId.toString()) ?? null) : null,
     videoUrl: leader.videoUrl,
     videoProvider: leader.videoProvider,
+    scope: leader.scope,
   }));
 }

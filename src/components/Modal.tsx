@@ -2,15 +2,19 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 export type ModalProps = {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Ancho máximo del diálogo (clase de Tailwind) — "max-w-md" por defecto para
+   * los formularios admin; contenido más ancho (ej. video) puede pedir "max-w-2xl". */
+  maxWidthClassName?: string;
 };
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, children, maxWidthClassName = "max-w-md" }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(event: KeyboardEvent) {
@@ -29,7 +33,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       role="presentation"
     >
       <div
-        className="flex w-full max-w-md flex-col rounded-lg border border-line bg-card p-6 shadow-lg"
+        className={cn("flex w-full flex-col rounded-lg border border-line bg-card p-6 shadow-lg", maxWidthClassName)}
         style={{ maxHeight: "min(85vh, 100%)" }}
         role="dialog"
         aria-modal="true"
