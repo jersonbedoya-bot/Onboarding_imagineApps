@@ -72,7 +72,7 @@ export default async function OnboardingLeadersPage() {
                 </div>
                 {leader.videoUrl && (
                   <div className="mt-4">
-                    <VideoEmbed src={leader.videoUrl} title={leader.name} />
+                    <VideoEmbed src={leader.videoUrl} title={leader.name} provider={leader.videoProvider} />
                   </div>
                 )}
               </Card>

@@ -3,12 +3,13 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { listStepsByProcess } from "@/server/services/step.service";
 import * as processRepository from "@/server/repositories/process.repository";
+import * as stageRepository from "@/server/repositories/stage.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
-import { LinkButton } from "@/components/Button";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { ProcessActions } from "@/components/admin/ProcessActions";
 import { StepForm } from "./StepForm";
@@ -28,9 +29,13 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
   const process = await processRepository.findById(identity.tenantId, new ObjectId(id));
   if (!process) notFound();
 
-  const [steps, roles] = await Promise.all([
+  // Tenant-scoped, igual que la propia etapa del proceso — solo hace falta
+  // el título para la miga de pan, ya se resuelve el resto del módulo desde
+  // /admin/modules/[stageId] al navegar ahí.
+  const [steps, roles, stage] = await Promise.all([
     listStepsByProcess(identity, process._id),
     roleRepository.listByTenant(identity.tenantId),
+    stageRepository.findById(identity.tenantId, process.stageId),
   ]);
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
 
@@ -68,9 +73,16 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
 
   return (
     <div>
-      <LinkButton href={`/admin/modules/${process.stageId.toString()}`} variant="ghost" className="mb-3 px-3 py-1.5 text-xs">
-        ← Volver al módulo
-      </LinkButton>
+      <Breadcrumb
+        className="mb-3"
+        items={[
+          { label: "Módulos", href: "/admin/modules" },
+          stage
+            ? { label: stage.title, href: `/admin/modules/${stage._id.toString()}` }
+            : { label: "Módulo", href: `/admin/modules/${process.stageId.toString()}` },
+          { label: process.title },
+        ]}
+      />
       <PageHeader
         title={process.title}
         description={process.objective || undefined}

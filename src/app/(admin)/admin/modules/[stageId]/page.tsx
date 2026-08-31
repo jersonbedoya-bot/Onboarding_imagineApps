@@ -10,6 +10,7 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
 import { LinkButton } from "@/components/Button";
+import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ModuleSummaryBadge, countByStatus } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
 import { CONTENT_TYPE_LABELS } from "@/lib/content-labels";
@@ -135,9 +136,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <LinkButton href="/admin/modules" variant="ghost" className="px-3 py-1.5 text-xs">
-          ← Volver a Módulos
-        </LinkButton>
+        <Breadcrumb items={[{ label: "Módulos", href: "/admin/modules" }, { label: stage.title }]} />
         <div className="flex flex-wrap items-center gap-2">
           {prevStage && (
             <LinkButton href={`/admin/modules/${prevStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">

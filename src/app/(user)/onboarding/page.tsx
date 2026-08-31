@@ -238,7 +238,7 @@ function StageSection({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
                       )}
-                      {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} />}
+                      {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
                     </ContentViewTracker>
                   </li>
                 ))}
@@ -261,7 +261,7 @@ function StageSection({
                     </div>
                     {step.description && <MarkdownContent>{step.description}</MarkdownContent>}
                     {step.instruction && <MarkdownContent>{step.instruction}</MarkdownContent>}
-                    {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} />}
+                    {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} provider={step.videoProvider} />}
                   </li>
                 ))}
               </ul>
