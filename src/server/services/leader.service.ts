@@ -1,6 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
-import { normalizeVideoUrl } from "@/lib/video-url";
+import { normalizeVideoUrl, getVideoThumbnailUrl } from "@/lib/video-url";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { ContentScope, VideoProvider } from "@/types/enums";
@@ -225,6 +225,8 @@ export async function resolveVisibleLeadersWithMedia(tenantId: ObjectId, roleId:
     photoUrl: leader.photoMediaId ? (photoUrlById.get(leader.photoMediaId.toString()) ?? null) : null,
     videoUrl: leader.videoUrl,
     videoProvider: leader.videoProvider,
+    videoThumbnailUrl:
+      leader.videoUrl && leader.videoProvider ? getVideoThumbnailUrl(leader.videoUrl, leader.videoProvider) : null,
     scope: leader.scope,
   }));
 }

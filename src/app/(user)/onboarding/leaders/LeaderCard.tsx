@@ -4,10 +4,13 @@ export type LeaderCardData = Awaited<ReturnType<typeof resolveVisibleLeadersWith
 
 /**
  * Tile compacta para la grilla de líderes (reemplaza la card full-width
- * anterior, una por fila). La foto ocupa el bloque superior; si hay video,
- * un botón de play la cubre entera y abre el modal (LeadersBoard es quien
- * decide qué se abre) — el iframe del video nunca vive acá, así una grilla
- * de 13 líderes no carga 13 iframes de una.
+ * anterior, una por fila). Si hay video se prioriza su miniatura real (frame
+ * del video, vía getVideoThumbnailUrl) sobre la foto — así la card muestra
+ * una vista previa real en vez de un cuadro plano con solo el ícono de play;
+ * si no hay miniatura derivable (Vimeo/Loom) cae a la foto, y si tampoco hay
+ * foto, a las iniciales. El botón de play cubre la miniatura y abre el modal
+ * (LeadersBoard decide qué se abre) — el iframe del video nunca vive acá,
+ * así una grilla de 13 líderes no carga 13 iframes de una.
  */
 export function LeaderCard({ leader, onPlay }: { leader: LeaderCardData; onPlay: (leader: LeaderCardData) => void }) {
   const initials = leader.name
@@ -17,15 +20,21 @@ export function LeaderCard({ leader, onPlay }: { leader: LeaderCardData; onPlay:
     .map((part) => part[0]?.toUpperCase())
     .join("");
 
+  const thumbnailSrc = leader.videoThumbnailUrl ?? leader.photoUrl;
+
   return (
     <div className="flex flex-col overflow-hidden rounded-lg border border-line bg-card shadow-md">
-      <div className="relative aspect-[4/3] w-full bg-brand-tint">
-        {leader.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- fuente arbitraria (Vercel Blob), no un asset propio optimizable con next/image
-          <img src={leader.photoUrl} alt={leader.name} className="absolute inset-0 h-full w-full object-cover" />
+      {/* Las fotos que sube el equipo son cuadradas (300x300) — una caja
+          cuadrada evita recortar innecesariamente arriba/abajo (lo que
+          antes empujaba la cara fuera de foco con una caja 4:3). */}
+      <div className="relative aspect-square w-full bg-brand-tint">
+        {thumbnailSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element -- fuente arbitraria (Vercel Blob / Drive / YouTube), no un asset propio optimizable con next/image
+          <img src={thumbnailSrc} alt={leader.name} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          // Sin foto: iniciales de fondo — pero si además hay video, el botón de
-          // play ya ocupa el centro, así que se omiten para no encimarse con él.
+          // Sin foto ni miniatura: iniciales de fondo — pero si además hay
+          // video, el botón de play ya ocupa el centro, así que se omiten
+          // para no encimarse con él.
           !leader.videoUrl && (
             <span className="absolute inset-0 flex items-center justify-center font-display text-3xl font-semibold text-brand">
               {initials}

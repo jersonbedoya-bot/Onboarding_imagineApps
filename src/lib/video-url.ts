@@ -109,3 +109,27 @@ export function normalizeVideoUrl(rawUrl: string): { provider: VideoProvider; em
 
   throw new ValidationError("Proveedor de video no permitido. Solo YouTube, Vimeo, Loom o Google Drive.");
 }
+
+/**
+ * Miniatura estática (frame real del video) para mostrar en una card sin
+ * cargar el iframe — solo a partir del embedUrl CANÓNICO que devuelve
+ * normalizeVideoUrl (nunca de la URL cruda que pegó el admin).
+ *
+ * YouTube y Google Drive exponen un endpoint de thumbnail público y sin
+ * auth; Vimeo/Loom no lo tienen sin una llamada a su API (oEmbed) — para
+ * esos dos se devuelve null y el que llama cae a su propio fallback
+ * (ej. la foto del líder, o un color plano).
+ */
+export function getVideoThumbnailUrl(embedUrl: string, provider: VideoProvider): string | null {
+  if (provider === "YOUTUBE") {
+    const id = embedUrl.split("/embed/")[1];
+    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+  }
+
+  if (provider === "GOOGLE_DRIVE") {
+    const match = embedUrl.match(/\/file\/d\/([^/]+)\/preview$/);
+    return match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w640` : null;
+  }
+
+  return null;
+}
