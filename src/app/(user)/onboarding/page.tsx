@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireActiveUser } from "@/server/auth/session";
 import { resolveJourney } from "@/server/services/progress.service";
@@ -6,47 +5,27 @@ import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service
 import { TerminalCelebration } from "./TerminalCelebration";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
-import { OnboardingTopbar } from "@/components/OnboardingTopbar";
 import { OnboardingJourney } from "./OnboardingJourney";
 
-export default async function OnboardingPage() {
-  let identity;
-  try {
-    identity = await requireActiveUser();
-  } catch {
-    redirect("/login");
-  }
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ stage?: string }> }) {
+  // El layout de /onboarding ya garantiza sesión activa + rol funcional
+  // antes de renderizar esta página (ver layout.tsx) — acá solo se vuelve
+  // a pedir la identidad (cache() la dedupea, no hay segunda lectura) para
+  // las consultas propias de esta pantalla.
+  const identity = await requireActiveUser();
 
-  // resolveJourney (progress.service) exige functionalRoleId y lo valida
-  // con un ValidationError — correcto para el service, pero acá arriba
-  // necesitamos manejarlo antes de llamarlo, no dejarlo reventar sin
-  // capturar. Un ADMIN nunca tiene rol funcional por diseño (ver
-  // RequestIdentity): lo mandamos a su landing real en vez de mostrarle
-  // un mensaje sobre algo que no le aplica. Un USER sin rol no debería
-  // poder existir dado el flujo de invitación actual (el rol se copia
-  // siempre de la invitación), pero si pasara, no hay a dónde
-  // redirigirlo — se le explica la situación en vez de crashear.
-  if (!identity.functionalRoleId) {
-    if (identity.platformRole === "ADMIN") {
-      redirect("/admin/modules");
-    }
-    return (
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
-        <EmptyState
-          title="No tenés un rol funcional asignado"
-          description="Pedile a un administrador que te asigne un rol para poder ver tu recorrido de onboarding."
-        />
-        <UserMenu />
-      </main>
-    );
-  }
-
-  const [journey, leaders] = await Promise.all([
+  const [journey, leaders, { stage: requestedStageId }] = await Promise.all([
     resolveJourney(identity),
-    resolveVisibleLeadersWithMedia(identity.tenantId, identity.functionalRoleId),
+    resolveVisibleLeadersWithMedia(identity.tenantId, identity.functionalRoleId!),
+    searchParams,
   ]);
 
-  if (journey.stages.length === 0) {
+  // Recursos no es parte del recorrido secuencial (ver Bloque 1) — el
+  // sidebar ya lo excluye del stepper; acá también, para que "Módulo
+  // anterior/siguiente" de OnboardingJourney nunca aterrice ahí.
+  const stages = journey.stages.filter((stage) => stage.key !== "recursos");
+
+  if (stages.length === 0) {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
         <EmptyState
@@ -58,31 +37,30 @@ export default async function OnboardingPage() {
     );
   }
 
-  const completedStages = journey.stages.filter((stage) => stage.status === "COMPLETE").length;
-  const totalStages = journey.stages.length;
+  // ?stage=<id> viene del sidebar (mapa del recorrido) — permite abrir
+  // cualquier fase ya alcanzada sin depender de un state compartido entre
+  // el layout (donde vive el sidebar) y esta página.
+  const selectedStageId = requestedStageId ?? journey.currentStageId;
 
   return (
-    <>
-      <OnboardingTopbar progress={{ completed: completedStages, total: totalStages }} />
-      <main className="mx-auto max-w-3xl px-6 pb-24 pt-10">
-        {leaders.length > 0 && <TeamTeaser count={leaders.length} />}
-        {journey.currentStageId === null ? (
-          <FinishCard />
-        ) : (
-          <header className="mb-10 text-center">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
-              Tu recorrido
-            </span>
-            <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">Vamos paso a paso</h1>
-            <p className="mx-auto mt-3 max-w-md text-ink-soft">
-              Recorré cada etapa, marcá lo obligatorio como leído y completá los pasos de tu rol.
-            </p>
-          </header>
-        )}
+    <main className="mx-auto max-w-3xl px-6 pb-24 pt-10 lg:px-12">
+      {leaders.length > 0 && <TeamTeaser count={leaders.length} />}
+      {journey.currentStageId === null ? (
+        <FinishCard />
+      ) : (
+        <header className="mb-10 text-center">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
+            Tu recorrido
+          </span>
+          <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">Vamos paso a paso</h1>
+          <p className="mx-auto mt-3 max-w-md text-ink-soft">
+            Recorré cada etapa, marcá lo obligatorio como leído y completá los pasos de tu rol.
+          </p>
+        </header>
+      )}
 
-        <OnboardingJourney stages={journey.stages} currentStageId={journey.currentStageId} />
-      </main>
-    </>
+      <OnboardingJourney stages={stages} currentStageId={selectedStageId} role={journey.role} />
+    </main>
   );
 }
 

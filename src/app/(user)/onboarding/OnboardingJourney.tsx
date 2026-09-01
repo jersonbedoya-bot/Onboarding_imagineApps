@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { resolveJourney } from "@/server/services/progress.service";
-import { StageStepper } from "@/components/StageStepper";
 import { CompleteStepButton } from "./CompleteStepButton";
 import { MarkAsReadButton } from "./MarkAsReadButton";
 import { ContentViewTracker } from "./ContentViewTracker";
@@ -12,19 +11,34 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { PendingBadge } from "@/components/PendingBadge";
+import { groupProcesses, FASE_02_STAGE_KEY, FASE_04_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
+import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
+import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
+type JourneyProcess = JourneyStage["processes"][number];
+type JourneyRole = Journey["role"];
 
 /**
  * Antes se mostraban TODAS las etapas apiladas en una sola página larga
- * (scroll infinito) con una lista de navegación arriba que se perdía de
- * vista al bajar. Acá se muestra una etapa a la vez — el stepper de arriba
- * ubica en qué etapa estás y permite saltar a cualquier otra desbloqueada,
- * y "Siguiente módulo" avanza recién cuando la etapa siguiente ya está
- * desbloqueada (o sea, cuando terminaste lo necesario de la actual).
+ * (scroll infinito). Acá se muestra una etapa a la vez — "Siguiente
+ * módulo" avanza recién cuando la etapa siguiente ya está desbloqueada (o
+ * sea, cuando terminaste lo necesario de la actual). Saltar directo a
+ * cualquier etapa ya alcanzada es trabajo del sidebar (OnboardingSidebar,
+ * vía ?stage=<id> — ver layout.tsx y page.tsx), no de este componente:
+ * `currentStageId` ya llega resuelto con esa selección aplicada.
  */
-export function OnboardingJourney({ stages, currentStageId }: { stages: JourneyStage[]; currentStageId: string | null }) {
+export function OnboardingJourney({
+  stages,
+  currentStageId,
+  role,
+}: {
+  stages: JourneyStage[];
+  currentStageId: string | null;
+  role: JourneyRole;
+}) {
   const initialIndex = Math.max(
     0,
     stages.findIndex((s) => s.id === currentStageId),
@@ -34,20 +48,9 @@ export function OnboardingJourney({ stages, currentStageId }: { stages: JourneyS
   const prevStage = stages[index - 1] ?? null;
   const nextStage = stages[index + 1] ?? null;
 
-  function selectById(id: string) {
-    const found = stages.findIndex((s) => s.id === id);
-    if (found !== -1) setIndex(found);
-  }
-
   return (
     <div>
-      <StageStepper
-        stages={stages.map((s) => ({ id: s.id, unlocked: s.unlocked, complete: s.status === "COMPLETE" }))}
-        activeId={stage.id}
-        onSelect={selectById}
-      />
-
-      <StageSection stage={stage} index={index} isCurrent={stage.id === currentStageId} />
+      <StageSection stage={stage} index={index} isCurrent={stage.id === currentStageId} role={role} />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
         {prevStage ? (
@@ -70,7 +73,44 @@ export function OnboardingJourney({ stages, currentStageId }: { stages: JourneyS
   );
 }
 
-function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index: number; isCurrent: boolean }) {
+/**
+ * Orientación breve (Bloque 3): "dónde estoy" ya lo dan el número + título;
+ * esta línea contesta "cómo está organizado" en un solo renglón, sin
+ * inventar contenido de rol — solo cuenta lo que ya existe en los datos.
+ */
+function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<JourneyProcess>[] | null): string | null {
+  if (!groups) return null;
+  const totalProcesses = stage.processes.length;
+  const unit = stage.key === FASE_02_STAGE_KEY ? "momentos de un mismo ciclo" : "grupos por tema";
+  return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} ${unit}.`;
+}
+
+function StageSection({
+  stage,
+  index,
+  isCurrent,
+  role,
+}: {
+  stage: JourneyStage;
+  index: number;
+  isCurrent: boolean;
+  role: JourneyRole;
+}) {
+  const groups = groupProcesses(stage.key, stage.processes);
+  // Por defecto abre el primer grupo con trabajo pendiente (si ya
+  // terminaste todo, cae en el primero). Se recalcula si `stage` cambia
+  // (prev/next o el sidebar remontan esta sección — ver nota de arriba).
+  const defaultGroupIndex = groups
+    ? Math.max(
+        0,
+        groups.findIndex((g) => g.processes.some((p) => p.steps.some((s) => !s.completed))),
+      )
+    : 0;
+  const [groupIndex, setGroupIndex] = useState(defaultGroupIndex);
+  const activeGroup = groups ? (groups[Math.min(groupIndex, groups.length - 1)] ?? null) : null;
+  const isRoleStage = stage.key === FASE_04_STAGE_KEY;
+  const summary = organizationSummary(stage, groups);
+
   return (
     <section>
       <div className="mb-6 flex items-start gap-4">
@@ -92,12 +132,18 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
       {stage.readOnly ? (
         <p className="mb-6 text-sm text-ink-soft">Contenido de consulta — no requiere acciones.</p>
       ) : (
-        <div className="mb-6 max-w-xs">
+        <div className="mb-2 max-w-xs">
           <ProgressBar
             value={stage.totalCompletable > 0 ? (stage.completedCount / stage.totalCompletable) * 100 : 100}
             label={`${stage.completedCount}/${stage.totalCompletable}`}
           />
         </div>
+      )}
+      {summary && <p className="mb-6 text-sm text-ink-soft">{summary}</p>}
+      {isRoleStage && role && !summary && (
+        <p className="mb-6 text-sm text-ink-soft">
+          Tu rol: <span className="font-semibold text-ink">{role.label}</span>
+        </p>
       )}
 
       {!stage.unlocked ? null : (
@@ -105,55 +151,151 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
           {stage.items.length > 0 && (
             <Card>
               <ul className="flex flex-col gap-5">
-                {stage.items.map((item) => (
-                  <li key={item.id} className="flex flex-col gap-2 border-b border-line pb-5 last:border-0 last:pb-0">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <p className="font-display text-lg font-semibold leading-snug text-ink">{item.title}</p>
-                      {item.requirement === "OBLIGATORY" && (
-                        <MarkAsReadButton contentItemId={item.id} completed={item.completed} />
+                {stage.items.map((item) => {
+                  const pending = isPendingContentItem(item.title);
+                  return (
+                    <li key={item.id} className="flex flex-col gap-2 border-b border-line pb-5 last:border-0 last:pb-0">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <p className="font-display text-lg font-semibold leading-snug text-ink">{item.title}</p>
+                          {pending && <PendingBadge />}
+                        </span>
+                        {item.requirement === "OBLIGATORY" && (
+                          <MarkAsReadButton contentItemId={item.id} completed={item.completed} />
+                        )}
+                      </div>
+                      <ContentViewTracker
+                        contentItemId={item.id}
+                        initialViewed={item.viewed ?? false}
+                        enabled={item.requirement !== "OBLIGATORY"}
+                      >
+                        {item.body && <MarkdownContent>{item.body}</MarkdownContent>}
+                        {item.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="max-h-80 w-full rounded-md border border-line object-cover"
+                          />
+                        )}
+                        {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
+                      </ContentViewTracker>
+                      {pending && (
+                        <p className="text-xs text-ink-soft">
+                          Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.
+                        </p>
                       )}
-                    </div>
-                    <ContentViewTracker
-                      contentItemId={item.id}
-                      initialViewed={item.viewed ?? false}
-                      enabled={item.requirement !== "OBLIGATORY"}
-                    >
-                      {item.body && <MarkdownContent>{item.body}</MarkdownContent>}
-                      {item.imageUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
-                      )}
-                      {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
-                    </ContentViewTracker>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}
 
-          {stage.processes.map((process) => (
-            <Card key={process.id}>
-              <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
-              {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
-              {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
-              {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
-              <ul className="mt-4 flex flex-col gap-4">
-                {process.steps.map((step) => (
-                  <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="font-display text-base font-semibold text-ink">{step.title}</span>
-                      <CompleteStepButton stepId={step.id} completed={step.completed} />
-                    </div>
-                    {step.description && <MarkdownContent>{step.description}</MarkdownContent>}
-                    {step.instruction && <MarkdownContent>{step.instruction}</MarkdownContent>}
-                    {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} provider={step.videoProvider} />}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          ))}
+          {isRoleStage && role && summary && (
+            <p className="-mt-2 text-sm text-ink-soft">
+              Tu rol: <span className="font-semibold text-ink">{role.label}</span>
+            </p>
+          )}
+
+          {groups ? (
+            <>
+              <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={setGroupIndex} />
+              <div className="flex flex-col gap-4">
+                {activeGroup?.processes.map((process) => <ProcessCard key={process.id} process={process} />)}
+              </div>
+            </>
+          ) : (
+            stage.processes.map((process) => <ProcessCard key={process.id} process={process} />)
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Navegación secundaria por grupo (Bloque 3): pastillas en vez de tabs
+ * tradicionales con contenido fijo — con 3-4 grupos por fase, envuelven
+ * bien en mobile (flex-wrap) sin necesitar scroll horizontal ni acordeón.
+ * Solo el grupo activo renderiza sus procesos, así nunca se ven todos a
+ * la vez.
+ */
+function ProcessGroupNav({
+  groups,
+  active,
+  onSelect,
+}: {
+  groups: GroupedProcesses<JourneyProcess>[];
+  active: number;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-2">
+      {groups.map((group, i) => {
+        const totalSteps = group.processes.reduce((sum, p) => sum + p.steps.length, 0);
+        const completedSteps = group.processes.reduce((sum, p) => sum + p.steps.filter((s) => s.completed).length, 0);
+        const isActive = i === active;
+        return (
+          <button
+            key={group.name}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onSelect(i)}
+            className={cn(
+              "flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+              isActive
+                ? "border-brand bg-brand-tint text-brand-strong"
+                : "border-line text-ink-soft hover:border-brand-soft hover:text-ink",
+            )}
+          >
+            {group.name}
+            {totalSteps > 0 && (
+              <span className={cn("font-mono text-xs tabular-nums", isActive ? "text-brand" : "text-ink-soft/60")}>
+                {completedSteps}/{totalSteps}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProcessCard({ process }: { process: JourneyProcess }) {
+  const pending = isPendingProcess(process.title);
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
+        {pending && <PendingBadge />}
+      </div>
+      {pending && (
+        <p className="mt-1 text-xs text-ink-soft">Este proceso depende de una herramienta en revisión — el paso a paso puede cambiar.</p>
+      )}
+      {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
+      {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
+      {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
+      <ul className="mt-4 flex flex-col gap-4">
+        {process.steps.map((step) => {
+          const stepPending = !pending && isPendingStep(step.title);
+          return (
+            <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-ink">
+                  {step.title}
+                  {stepPending && <PendingBadge />}
+                </span>
+                <CompleteStepButton stepId={step.id} completed={step.completed} />
+              </div>
+              {step.description && <MarkdownContent>{step.description}</MarkdownContent>}
+              {step.instruction && <MarkdownContent>{step.instruction}</MarkdownContent>}
+              {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} provider={step.videoProvider} />}
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }

@@ -1,8 +1,10 @@
+import { cache } from "react";
 import type { ObjectId } from "mongodb";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import * as progressRepository from "@/server/repositories/progress.repository";
 import * as mediaRepository from "@/server/repositories/media.repository";
+import * as roleRepository from "@/server/repositories/role.repository";
 import type { ProgressDocument } from "@/server/repositories/progress.repository";
 import { resolveVisibleContent } from "@/server/services/content.service";
 import { resolveVisibleSteps } from "@/server/services/step.service";
@@ -231,10 +233,18 @@ export async function markContentAsViewed(identity: RequestIdentity, contentItem
  * algo) antes de que un admin agregue contenido nuevo a esa etapa, el
  * sticky ya va a estar persistido.
  */
-export async function resolveJourney(identity: RequestIdentity) {
+/**
+ * cache() por request: el Bloque 2 introdujo un layout (sidebar) y la
+ * página de /onboarding pidiendo el mismo journey en el mismo render —
+ * sin esto sería 2 lecturas completas (+ el auto-repair sticky) por
+ * request. React dedupea por identidad de argumentos; `identity` ya sale
+ * cacheada de requireActiveUser(), así que la referencia es estable
+ * dentro del mismo request.
+ */
+export const resolveJourney = cache(async (identity: RequestIdentity) => {
   const roleId = requireRoleId(identity);
   return resolveJourneyFor(identity.tenantId, identity.userId, roleId);
-}
+});
 
 /**
  * Igual que resolveJourney, pero para un (tenantId, userId, roleId)
@@ -248,6 +258,7 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
   const rows = await progressRepository.findByUser(tenantId, userId);
   const progressByTarget = buildProgressByTarget(rows);
   const stickyStageIds = buildStickyStageIds(rows);
+  const role = await roleRepository.findById(tenantId, roleId);
 
   for (const bundle of bundles) {
     await maybeStickStage(tenantId, userId, bundle, progressByTarget, stickyStageIds);
@@ -278,8 +289,14 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
   return {
     routeStatus,
     currentStageId, // null = onboarding terminado (todas las etapas COMPLETE), no un error
+    // Dato real (no inventado) para orientación de Fase 04 — ver
+    // OnboardingJourney.tsx. Nunca debería ser null en la práctica (todo
+    // usuario con journey resuelto ya pasó requireRoleId), pero se maneja
+    // por las dudas en vez de asumirlo.
+    role: role ? { id: role._id.toString(), key: role.key, label: role.label } : null,
     stages: computed.map(({ bundle, total, completed, status }) => ({
       id: bundle.stage._id.toString(),
+      key: bundle.stage.key,
       title: bundle.stage.title,
       order: bundle.stage.order,
       isBlocking: bundle.stage.isBlocking,

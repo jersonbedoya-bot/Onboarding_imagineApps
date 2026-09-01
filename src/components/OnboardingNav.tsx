@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 const ONBOARDING_NAV_ITEMS = [
   { href: "/onboarding", label: "Mi recorrido" },
   { href: "/onboarding/leaders", label: "Nuestro equipo" },
+  { href: "/onboarding/resources", label: "Recursos" },
 ];
 
 export function OnboardingNav() {
