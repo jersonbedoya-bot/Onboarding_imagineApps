@@ -12,14 +12,13 @@ import { Button } from "@/components/Button";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { PendingBadge } from "@/components/PendingBadge";
-import { groupProcesses, FASE_02_STAGE_KEY, FASE_04_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
+import { groupProcesses, FASE_02_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
 type JourneyProcess = JourneyStage["processes"][number];
-type JourneyRole = Journey["role"];
 
 /**
  * Antes se mostraban TODAS las etapas apiladas en una sola página larga
@@ -33,11 +32,9 @@ type JourneyRole = Journey["role"];
 export function OnboardingJourney({
   stages,
   currentStageId,
-  role,
 }: {
   stages: JourneyStage[];
   currentStageId: string | null;
-  role: JourneyRole;
 }) {
   const initialIndex = Math.max(
     0,
@@ -50,7 +47,7 @@ export function OnboardingJourney({
 
   return (
     <div>
-      <StageSection stage={stage} index={index} isCurrent={stage.id === currentStageId} role={role} />
+      <StageSection stage={stage} index={index} isCurrent={stage.id === currentStageId} />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
         {prevStage ? (
@@ -85,17 +82,7 @@ function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<Journ
   return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} ${unit}.`;
 }
 
-function StageSection({
-  stage,
-  index,
-  isCurrent,
-  role,
-}: {
-  stage: JourneyStage;
-  index: number;
-  isCurrent: boolean;
-  role: JourneyRole;
-}) {
+function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index: number; isCurrent: boolean }) {
   const groups = groupProcesses(stage.key, stage.processes);
   // Por defecto abre el primer grupo con trabajo pendiente (si ya
   // terminaste todo, cae en el primero). Se recalcula si `stage` cambia
@@ -108,7 +95,6 @@ function StageSection({
     : 0;
   const [groupIndex, setGroupIndex] = useState(defaultGroupIndex);
   const activeGroup = groups ? (groups[Math.min(groupIndex, groups.length - 1)] ?? null) : null;
-  const isRoleStage = stage.key === FASE_04_STAGE_KEY;
   const summary = organizationSummary(stage, groups);
 
   return (
@@ -140,14 +126,14 @@ function StageSection({
         </div>
       )}
       {summary && <p className="mb-6 text-sm text-ink-soft">{summary}</p>}
-      {isRoleStage && role && !summary && (
-        <p className="mb-6 text-sm text-ink-soft">
-          Tu rol: <span className="font-semibold text-ink">{role.label}</span>
-        </p>
-      )}
 
       {!stage.unlocked ? null : (
         <div className="flex flex-col gap-4">
+          {/* En Fase 04 este mismo Card es, hoy, la introducción de rol
+              (Bloque 4) — un content_item real (scope ROLE, ver
+              content.service) titulado "Tu rol como <rol>", cargado por
+              findVisibleForRole igual que cualquier otro contenido: cada
+              usuario ve solo el suyo, sin lógica especial acá. */}
           {stage.items.length > 0 && (
             <Card>
               <ul className="flex flex-col gap-5">
@@ -190,12 +176,6 @@ function StageSection({
                 })}
               </ul>
             </Card>
-          )}
-
-          {isRoleStage && role && summary && (
-            <p className="-mt-2 text-sm text-ink-soft">
-              Tu rol: <span className="font-semibold text-ink">{role.label}</span>
-            </p>
           )}
 
           {groups ? (

@@ -59,7 +59,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         </header>
       )}
 
-      <OnboardingJourney stages={stages} currentStageId={selectedStageId} role={journey.role} />
+      <OnboardingJourney stages={stages} currentStageId={selectedStageId} />
     </main>
   );
 }

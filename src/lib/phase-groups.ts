@@ -42,7 +42,13 @@ const FASE_02_GROUPS: ProcessGroupDef[] = [
  */
 const FASE_04_GROUPS: ProcessGroupDef[] = [
   // PDM
-  { name: "Reporting y seguimiento", matches: ["Project Status", "360º", "NPS (Net Promoter Score)", "Pulso de Operaciones"] },
+  // "Actas de Reunión" vive acá y no en "Cierre de proyecto": su propio
+  // contexto ("Inicia al terminar una reunión... dentro de las 24 horas
+  // siguientes") lo describe como documentación recurrente ligada a CADA
+  // reunión durante todo el proyecto, no una acción de cierre — y de paso
+  // el contenido ⚠️ que tiene adentro queda más visible (primer grupo, no
+  // el último). Validado contra Metologías (All).md antes de mover.
+  { name: "Reporting y seguimiento", matches: ["Project Status", "360º", "NPS (Net Promoter Score)", "Pulso de Operaciones", "Actas de Reunión"] },
   { name: "Riesgo y mejora", matches: ["Matriz de Riesgo", "Planes de Mejora"] },
   // UX/UI Designer
   { name: "Discovery y planificación", matches: ["Design Interview", "Plan de Trabajo (Experiencia)", "Sitemaps"] },
@@ -59,7 +65,7 @@ const FASE_04_GROUPS: ProcessGroupDef[] = [
   },
   // Compartido — cierra el recorrido temático de ambos roles
   { name: "Gestión de equipo", matches: ["1:1 (One on One)", "Onboarding de Proyecto", "Offboarding", "Empalme de Duplas"] },
-  { name: "Cierre de proyecto", matches: ["Actas de Reunión", "Entrega Parcial", "Entrega Final", "Manejo de Garantía"] },
+  { name: "Cierre de proyecto", matches: ["Entrega Parcial", "Entrega Final", "Manejo de Garantía"] },
 ];
 
 // Keys inmutables (ver stage.repository.ts) — exportadas para que
