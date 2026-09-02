@@ -1,3 +1,4 @@
+import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
 import { NotFoundError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
@@ -5,6 +6,8 @@ import * as routeRepository from "@/server/repositories/route.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
 
 const DEFAULT_ROUTE_NAME = "Ruta de onboarding";
+const DEFAULT_HEADLINE = "Vamos paso a paso";
+const DEFAULT_SUBTITLE = "Recorré cada etapa y completá los pasos de tu rol.";
 
 /**
  * Creación perezosa: no hay un paso admin explícito "crear ruta" — se
@@ -25,6 +28,40 @@ export async function ensureRoute(actingAdmin: RequestIdentity) {
   }
 
   return route;
+}
+
+/**
+ * Lectura pública (cualquier usuario activo del tenant, no solo ADMIN) del
+ * título/subtítulo de su recorrido. El default solo aplica si el campo
+ * nunca se configuró (`??`, no `||`): un admin que lo vacía a propósito
+ * desde /admin/modules quiere que quede vacío, no que reaparezca el texto
+ * de fábrica.
+ */
+export async function getRouteHeader(tenantId: ObjectId): Promise<{ headline: string; subtitle: string }> {
+  const route = await routeRepository.findByTenant(tenantId);
+  return {
+    headline: route?.headline ?? DEFAULT_HEADLINE,
+    subtitle: route?.subtitle ?? DEFAULT_SUBTITLE,
+  };
+}
+
+export async function updateRouteContent(
+  actingAdmin: RequestIdentity,
+  patch: { headline?: string | null; subtitle?: string | null },
+) {
+  await ensureRoute(actingAdmin);
+  const updated = await routeRepository.updateContent(actingAdmin.tenantId, patch);
+  if (!updated) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "ROUTE_UPDATED",
+    resource: "route",
+    resourceId: updated._id,
+  });
+
+  return updated;
 }
 
 export async function publishRoute(actingAdmin: RequestIdentity) {

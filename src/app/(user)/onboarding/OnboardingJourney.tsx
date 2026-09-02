@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { resolveJourney } from "@/server/services/progress.service";
 import { CompleteStepButton } from "./CompleteStepButton";
 import { MarkAsReadButton } from "./MarkAsReadButton";
@@ -12,8 +12,14 @@ import { Button } from "@/components/Button";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { PendingBadge } from "@/components/PendingBadge";
-import { groupProcesses, FASE_02_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
+import { TeamTeaser } from "@/components/TeamTeaser";
+import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
+import { LeadersBoard } from "./leaders/LeadersBoard";
+import type { LeaderCardData } from "./leaders/LeaderCard";
+import { groupProcesses, FASE_02_STAGE_KEY, FASE_04_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
+import { isHistoryTimelineContent, isImpactProjectsContent, parseTimelineItems, parseImpactProjects } from "@/lib/institutional-content";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
@@ -24,17 +30,24 @@ type JourneyProcess = JourneyStage["processes"][number];
  * Antes se mostraban TODAS las etapas apiladas en una sola página larga
  * (scroll infinito). Acá se muestra una etapa a la vez — "Siguiente
  * módulo" avanza recién cuando la etapa siguiente ya está desbloqueada (o
- * sea, cuando terminaste lo necesario de la actual). Saltar directo a
- * cualquier etapa ya alcanzada es trabajo del sidebar (OnboardingSidebar,
- * vía ?stage=<id> — ver layout.tsx y page.tsx), no de este componente:
- * `currentStageId` ya llega resuelto con esa selección aplicada.
+ * sea, cuando terminaste lo necesario de la actual). `page.tsx` sigue
+ * aceptando `?stage=<id>` para abrir una etapa puntual (sin UI propia hoy
+ * — el topbar, OnboardingTopbar, ya no ofrece salto directo, ver su
+ * comentario), así que `currentStageId` puede llegar ya resuelto a una
+ * etapa distinta de la actual del usuario.
  */
 export function OnboardingJourney({
   stages,
   currentStageId,
+  equipoCount,
+  roleLabel,
+  gerencia,
 }: {
   stages: JourneyStage[];
   currentStageId: string | null;
+  equipoCount: number;
+  roleLabel: string | null;
+  gerencia: LeaderCardData[];
 }) {
   const initialIndex = Math.max(
     0,
@@ -47,7 +60,14 @@ export function OnboardingJourney({
 
   return (
     <div>
-      <StageSection stage={stage} index={index} isCurrent={stage.id === currentStageId} />
+      <StageSection
+        stage={stage}
+        index={index}
+        isCurrent={stage.id === currentStageId}
+        equipoCount={equipoCount}
+        roleLabel={roleLabel}
+        gerencia={gerencia}
+      />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
         {prevStage ? (
@@ -82,7 +102,21 @@ function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<Journ
   return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} ${unit}.`;
 }
 
-function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index: number; isCurrent: boolean }) {
+function StageSection({
+  stage,
+  index,
+  isCurrent,
+  equipoCount,
+  roleLabel,
+  gerencia,
+}: {
+  stage: JourneyStage;
+  index: number;
+  isCurrent: boolean;
+  equipoCount: number;
+  roleLabel: string | null;
+  gerencia: LeaderCardData[];
+}) {
   const groups = groupProcesses(stage.key, stage.processes);
   // Por defecto abre el primer grupo con trabajo pendiente (si ya
   // terminaste todo, cae en el primero). Se recalcula si `stage` cambia
@@ -99,11 +133,11 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
 
   return (
     <section>
-      <div className="mb-6 flex items-start gap-4">
-        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-brand-tint font-display text-base font-semibold tabular-nums text-brand">
+      <div className="mb-8 flex items-start gap-4">
+        <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong font-display text-xl font-bold tabular-nums text-white shadow-md">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <div className="min-w-0 flex-1 pt-1">
+        <div className="min-w-0 flex-1 pt-1.5">
           {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
             <div className="mb-1.5 flex flex-wrap items-center gap-2">
               {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
@@ -111,7 +145,7 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
               {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
             </div>
           )}
-          <h2 className="font-display text-2xl font-semibold leading-tight text-ink sm:text-3xl">{stage.title}</h2>
+          <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">{stage.title}</h2>
         </div>
       </div>
 
@@ -135,15 +169,26 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
               findVisibleForRole igual que cualquier otro contenido: cada
               usuario ve solo el suyo, sin lógica especial acá. */}
           {stage.items.length > 0 && (
-            <Card>
-              <ul className="flex flex-col gap-5">
-                {stage.items.map((item) => {
-                  const pending = isPendingContentItem(item.title);
-                  return (
-                    <li key={item.id} className="flex flex-col gap-2 border-b border-line pb-5 last:border-0 last:pb-0">
+            <div className="flex flex-col gap-5">
+              {stage.items.map((item) => {
+                const pending = isPendingContentItem(item.title);
+                // Fase 01 (Bloque de historia): "Hitos que nos Definieron" y
+                // "Proyectos de Alto Impacto" son 2 content items fijos con
+                // layout propio (timeline / grilla) en vez de texto plano —
+                // ver institutional-content.ts. La gerencia (scope COMMON)
+                // se embebe justo después de los hitos, como pidió el
+                // usuario ("origen y trayectoria... ahí las cards de la
+                // gerencia"), reusando el mismo LeadersBoard de /leaders.
+                const isTimeline = isHistoryTimelineContent(item.title);
+                const timelineItems = isTimeline && item.body ? parseTimelineItems(item.body) : null;
+                const isProjects = isImpactProjectsContent(item.title);
+                const projectItems = isProjects && item.body ? parseImpactProjects(item.body) : null;
+                return (
+                  <Fragment key={item.id}>
+                    <Card className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <span className="flex flex-wrap items-center gap-2">
-                          <p className="font-display text-lg font-semibold leading-snug text-ink">{item.title}</p>
+                          <p className="font-display text-xl font-semibold leading-snug text-ink">{item.title}</p>
                           {pending && <PendingBadge />}
                         </span>
                         {item.requirement === "OBLIGATORY" && (
@@ -155,7 +200,13 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
                         initialViewed={item.viewed ?? false}
                         enabled={item.requirement !== "OBLIGATORY"}
                       >
-                        {item.body && <MarkdownContent>{item.body}</MarkdownContent>}
+                        {timelineItems ? (
+                          <HistoryTimeline items={timelineItems} />
+                        ) : projectItems ? (
+                          <ImpactProjectsGrid projects={projectItems} />
+                        ) : (
+                          item.body && <MarkdownContent>{item.body}</MarkdownContent>
+                        )}
                         {item.imageUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -171,11 +222,24 @@ function StageSection({ stage, index, isCurrent }: { stage: JourneyStage; index:
                           Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.
                         </p>
                       )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
+                    </Card>
+                    {timelineItems && gerencia.length > 0 && (
+                      <Card>
+                        <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} />
+                      </Card>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+          )}
+
+          {stage.key === FASE_04_STAGE_KEY && equipoCount > 0 && (
+            <TeamTeaser
+              href="/onboarding/leaders#equipo"
+              title={`Conocé a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
+              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu área — podés volver cuando quieras.`}
+            />
           )}
 
           {groups ? (

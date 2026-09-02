@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { requireActiveUser } from "@/server/auth/session";
 import { resolveJourney } from "@/server/services/progress.service";
 import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service";
+import { getRouteHeader } from "@/server/services/route.service";
 import { TerminalCelebration } from "./TerminalCelebration";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
@@ -14,11 +14,19 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   // las consultas propias de esta pantalla.
   const identity = await requireActiveUser();
 
-  const [journey, leaders, { stage: requestedStageId }] = await Promise.all([
+  const [journey, leaders, routeHeader, { stage: requestedStageId }] = await Promise.all([
     resolveJourney(identity),
     resolveVisibleLeadersWithMedia(identity.tenantId, identity.functionalRoleId!),
+    getRouteHeader(identity.tenantId),
     searchParams,
   ]);
+
+  // La gerencia (scope COMMON) ya no se avisa con un teaser-link arriba:
+  // se muestra completa dentro de Fase 01 (ver OnboardingJourney), pegada
+  // a "Hitos que nos Definieron" — el equipo de rol se avisa aparte dentro
+  // de Fase 04, justo donde el usuario ya está leyendo sobre su propio rol.
+  const gerencia = leaders.filter((leader) => leader.scope === "COMMON");
+  const equipo = leaders.filter((leader) => leader.scope === "ROLE");
 
   // Recursos no es parte del recorrido secuencial (ver Bloque 1) — el
   // sidebar ya lo excluye del stepper; acá también, para que "Módulo
@@ -37,53 +45,39 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     );
   }
 
-  // ?stage=<id> viene del sidebar (mapa del recorrido) — permite abrir
-  // cualquier fase ya alcanzada sin depender de un state compartido entre
-  // el layout (donde vive el sidebar) y esta página.
+  // ?stage=<id>: sin UI propia hoy (ver comentario en OnboardingTopbar),
+  // pero page.tsx lo sigue aceptando por si se reintroduce un salto directo
+  // más adelante.
   const selectedStageId = requestedStageId ?? journey.currentStageId;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 pb-24 pt-10 lg:px-12">
-      {leaders.length > 0 && <TeamTeaser count={leaders.length} />}
+    <main className="mx-auto max-w-4xl px-6 pb-24 pt-10 lg:px-12">
       {journey.currentStageId === null ? (
         <FinishCard />
       ) : (
-        <header className="mb-10 text-center">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
+        <header className="mb-10 rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-8 py-10 sm:px-12">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
             Tu recorrido
           </span>
-          <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">Vamos paso a paso</h1>
-          <p className="mx-auto mt-3 max-w-md text-ink-soft">
-            Recorré cada etapa, marcá lo obligatorio como leído y completá los pasos de tu rol.
-          </p>
+          <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">{routeHeader.headline}</h1>
+          {routeHeader.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft">{routeHeader.subtitle}</p>}
         </header>
       )}
 
-      <OnboardingJourney stages={stages} currentStageId={selectedStageId} />
+      <OnboardingJourney
+        stages={stages}
+        currentStageId={selectedStageId}
+        equipoCount={equipo.length}
+        roleLabel={journey.role?.label ?? null}
+        gerencia={gerencia}
+      />
     </main>
-  );
-}
-
-function TeamTeaser({ count }: { count: number }) {
-  return (
-    <Link
-      href="/onboarding/leaders"
-      className="mb-8 flex items-center justify-between gap-4 rounded-lg border border-brand-soft bg-brand-tint px-5 py-4 transition-colors hover:border-brand"
-    >
-      <div>
-        <p className="text-sm font-semibold text-ink">Conocé a tu equipo antes de empezar</p>
-        <p className="text-xs text-ink-soft">
-          {count} {count === 1 ? "líder" : "líderes"} de tu proceso — podés volver a esta página cuando quieras.
-        </p>
-      </div>
-      <span className="flex-shrink-0 text-sm font-semibold text-brand-strong">Ver equipo →</span>
-    </Link>
   );
 }
 
 function FinishCard() {
   return (
-    <div className="mb-10 overflow-hidden rounded-xl bg-gradient-to-br from-ink to-[#2d2622] p-10 text-center text-white shadow-lg">
+    <div className="mb-10 overflow-hidden rounded-xl bg-gradient-to-br from-ink to-[#201a1a] p-10 text-center text-white shadow-lg">
       <TerminalCelebration />
       <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-xl bg-brand shadow-lg">
         <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8" aria-hidden="true">

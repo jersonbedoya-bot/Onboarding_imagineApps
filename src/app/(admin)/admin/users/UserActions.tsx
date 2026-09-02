@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Select } from "@/components/Field";
+import { Icon } from "@/components/Icon";
 
 type RoleOption = { id: string; label: string };
 
@@ -76,9 +77,19 @@ export function UserActions({ userId, status, functionalRoleId, roles, isSelf }:
         className={status === "ACTIVE" ? "px-3 py-1.5 text-xs text-danger hover:bg-danger-soft" : "px-3 py-1.5 text-xs"}
         isLoading={isPending}
         disabled={isSelf}
-        onClick={handleToggleStatus}
+                        onClick={handleToggleStatus}
       >
-        {status === "ACTIVE" ? "Desactivar" : "Reactivar"}
+        {status === "ACTIVE" ? (
+          <>
+            <Icon name="archive" size="sm" />
+            Desactivar
+          </>
+        ) : (
+          <>
+            <Icon name="reactivate" size="sm" />
+            Reactivar
+          </>
+        )}
       </Button>
       {error && (
         <span role="alert" className="text-xs text-danger">

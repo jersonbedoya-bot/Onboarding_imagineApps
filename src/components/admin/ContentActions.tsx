@@ -6,6 +6,8 @@ import { Modal } from "@/components/Modal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useResourceActions } from "@/lib/admin/useResourceActions";
 import { ContentForm, type ContentFormInitial } from "./ContentForm";
+import { StatusActionButtons } from "./StatusActionButtons";
+import { Icon } from "@/components/Icon";
 import type { ContentItemType, ContentRequirement } from "@/types/enums";
 
 type RoleOption = { id: string; label: string };
@@ -44,41 +46,21 @@ export function ContentActions({ item, roles }: { item: ContentActionItem; roles
     requirement: item.requirement ?? "",
   };
 
-  return (
+    return (
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsEditing(true)}>
+        <Icon name="edit" size="sm" />
         Editar
       </Button>
-      {item.status === "DRAFT" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("publish", item.id)}>
-          Publicar
-        </Button>
-      )}
-      {item.status !== "ARCHIVED" && (
-        <Button
-          variant="ghost"
-          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
-          isLoading={isPending}
-          onClick={() => run("archive", item.id)}
-        >
-          Archivar
-        </Button>
-      )}
-      {item.status === "ARCHIVED" && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" isLoading={isPending} onClick={() => run("reactivate", item.id)}>
-          Reactivar
-        </Button>
-      )}
-      {item.status === "ARCHIVED" && (
-        <Button
-          variant="ghost"
-          className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
-          isLoading={isPending}
-          onClick={() => setIsConfirmingDelete(true)}
-        >
-          Borrar
-        </Button>
-      )}
+      <StatusActionButtons
+        status={item.status}
+        isPending={isPending}
+        onPublish={() => run("publish", item.id)}
+        onArchive={() => run("archive", item.id)}
+        onReactivate={() => run("reactivate", item.id)}
+        onDelete={() => setIsConfirmingDelete(true)}
+        compact
+      />
       {error && (
         <span role="alert" className="text-xs text-danger">
           {error}

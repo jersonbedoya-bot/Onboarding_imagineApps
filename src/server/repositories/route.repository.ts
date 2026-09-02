@@ -8,6 +8,13 @@ export type RouteDocument = {
   name: string;
   status: ContentStatus;
   createdAt: Date;
+  // Título/subtítulo del header de /onboarding (Bloque X) — opcionales:
+  // documentos creados antes de este campo simplemente no lo traen, y el
+  // caller (route.service.getRouteHeader) resuelve el default. No hay
+  // validador $jsonSchema para esta colección (ver schema.ts), así que
+  // agregarlos no requiere migración de Mongo.
+  headline?: string | null;
+  subtitle?: string | null;
 };
 
 async function collection() {
@@ -48,4 +55,11 @@ export async function getOrCreate(tenantId: ObjectId, name: string): Promise<{ r
 
 export async function updateStatus(tenantId: ObjectId, status: ContentStatus): Promise<RouteDocument | null> {
   return (await collection()).findOneAndUpdate({ tenantId }, { $set: { status } }, { returnDocument: "after" });
+}
+
+export async function updateContent(
+  tenantId: ObjectId,
+  patch: { headline?: string | null; subtitle?: string | null },
+): Promise<RouteDocument | null> {
+  return (await collection()).findOneAndUpdate({ tenantId }, { $set: patch }, { returnDocument: "after" });
 }

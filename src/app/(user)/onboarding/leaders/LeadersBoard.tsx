@@ -25,9 +25,14 @@ export function LeadersBoard({
 
   return (
     <div className="flex flex-col gap-12">
-      {gerencia.length > 0 && <LeaderSection title="Gerencia" leaders={gerencia} onPlay={setPlaying} />}
+      {gerencia.length > 0 && <LeaderSection id="gerencia" title="Gerencia" leaders={gerencia} onPlay={setPlaying} />}
       {equipo.length > 0 && (
-        <LeaderSection title={equipoLabel ? `Tu equipo · ${equipoLabel}` : "Tu equipo"} leaders={equipo} onPlay={setPlaying} />
+        <LeaderSection
+          id="equipo"
+          title={equipoLabel ? `Tu equipo · ${equipoLabel}` : "Tu equipo"}
+          leaders={equipo}
+          onPlay={setPlaying}
+        />
       )}
 
       <Modal open={playing !== null} onClose={() => setPlaying(null)} title={playing?.name} maxWidthClassName="max-w-2xl">
@@ -43,9 +48,19 @@ export function LeadersBoard({
   );
 }
 
-function LeaderSection({ title, leaders, onPlay }: { title: string; leaders: LeaderCardData[]; onPlay: (leader: LeaderCardData) => void }) {
+function LeaderSection({
+  id,
+  title,
+  leaders,
+  onPlay,
+}: {
+  id: string;
+  title: string;
+  leaders: LeaderCardData[];
+  onPlay: (leader: LeaderCardData) => void;
+}) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-8">
       <h2 className="mb-4 font-display text-xl font-semibold text-ink">{title}</h2>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {leaders.map((leader) => (

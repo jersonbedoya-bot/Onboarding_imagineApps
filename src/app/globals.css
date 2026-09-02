@@ -11,16 +11,21 @@
  * que haya que tocar ningún componente.
  */
 @theme {
-  --color-brand: #e8520c;
-  --color-brand-strong: #f6781f;
-  --color-brand-soft: #fbe7dc;
-  --color-brand-tint: #fdf3ee;
+  /* Paleta extraída del CSS real de imagineapps.co (--theme-color-*):
+     link/hover para brand, title/text para ink, bg_color/bd_color para
+     paper/line. brand-soft/brand-tint no tienen equivalente directo en el
+     sitio (solo da el naranja "vívido" y su hover) — se calculan como el
+     mismo naranja mezclado con blanco, mismo criterio que antes. */
+  --color-brand: #cd3a00;
+  --color-brand-strong: #eb4604;
+  --color-brand-soft: #fce3d9;
+  --color-brand-tint: #fdf0eb;
 
-  --color-ink: #1a1614;
-  --color-ink-soft: #6b625c;
-  --color-paper: #fbf8f4;
+  --color-ink: #2e2325;
+  --color-ink-soft: #86898c;
+  --color-paper: #ebebeb;
   --color-card: #ffffff;
-  --color-line: #eae2d9;
+  --color-line: #d7d9ca;
 
   --color-success: #2e7d5b;
   --color-success-soft: #eaf5ef;
@@ -34,9 +39,9 @@
   --radius-lg: 18px;
   --radius-xl: 24px;
 
-  --shadow-sm: 0 1px 2px rgba(26, 22, 20, 0.04);
-  --shadow-md: 0 1px 2px rgba(26, 22, 20, 0.04), 0 8px 28px -12px rgba(232, 82, 12, 0.16);
-  --shadow-lg: 0 2px 4px rgba(26, 22, 20, 0.05), 0 24px 60px -20px rgba(232, 82, 12, 0.22);
+  --shadow-sm: 0 1px 2px rgba(46, 35, 37, 0.04);
+  --shadow-md: 0 1px 2px rgba(46, 35, 37, 0.04), 0 8px 28px -12px rgba(235, 70, 4, 0.16);
+  --shadow-lg: 0 2px 4px rgba(46, 35, 37, 0.05), 0 24px 60px -20px rgba(235, 70, 4, 0.22);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;

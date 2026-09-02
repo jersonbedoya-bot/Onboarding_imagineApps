@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 
 /**
  * Envoltorio colapsable para la lista de items ARCHIVED de un recurso
@@ -22,15 +23,13 @@ export function ArchivedSection({ count, children }: { count: number; children: 
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`}
+            >
+        <Icon
+          name="chevron-right"
+          size="sm"
+          className={`transition-transform ${open ? "rotate-90" : ""}`}
           aria-hidden="true"
-        >
-          <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        />
         Ver archivados · {count}
       </button>
       {open && <div className="mt-3">{children}</div>}

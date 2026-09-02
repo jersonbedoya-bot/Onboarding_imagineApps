@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/components/Toast";
 
-const CONFETTI_COLORS = ["#e8520c", "#f6781f", "#2e7d5b", "#fbe7dc", "#1a1614"];
+const CONFETTI_COLORS = ["#cd3a00", "#eb4604", "#2e7d5b", "#fce3d9", "#2e2325"];
 
 function launchConfetti() {
   for (let i = 0; i < 60; i++) {

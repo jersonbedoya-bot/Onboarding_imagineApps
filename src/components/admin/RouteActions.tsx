@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
+import { Icon } from "@/components/Icon";
 
 export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
   const router = useRouter();
@@ -23,10 +24,11 @@ export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCH
     router.refresh();
   }
 
-  return (
+    return (
     <span className="inline-flex items-center gap-2">
       {status === "DRAFT" && (
         <Button variant="primary" className="px-4 py-1.5 text-xs" isLoading={isPending} onClick={() => callAction("/api/route/publish")}>
+          <Icon name="check" size="sm" />
           Publicar ruta
         </Button>
       )}
@@ -37,6 +39,7 @@ export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCH
           isLoading={isPending}
           onClick={() => callAction("/api/route/archive")}
         >
+          <Icon name="archive" size="sm" />
           Archivar ruta
         </Button>
       )}
@@ -47,6 +50,7 @@ export function RouteActions({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCH
           isLoading={isPending}
           onClick={() => callAction("/api/route/reactivate")}
         >
+          <Icon name="reactivate" size="sm" />
           Reactivar ruta
         </Button>
       )}

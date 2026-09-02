@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { Icon, type IconName } from "@/components/Icon";
 
-const ADMIN_NAV_ITEMS = [
-  { href: "/admin/modules", label: "Módulos" },
-  { href: "/admin/leaders", label: "Líderes" },
-  { href: "/admin/users", label: "Usuarios" },
-  { href: "/admin/audit", label: "Auditoría" },
+type NavItem = { href: string; label: string; icon: IconName };
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+    { href: "/admin/modules", label: "Módulos", icon: "grid" },
+  { href: "/admin/leaders", label: "Líderes", icon: "crown" },
+  { href: "/admin/users", label: "Usuarios", icon: "users" },
+  { href: "/admin/audit", label: "Auditoría", icon: "eye" },
 ];
 
 export function AdminNav() {
@@ -28,11 +31,19 @@ export function AdminNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-paper hover:text-ink",
+              "group inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              active
+                ? "bg-brand-tint text-brand-strong"
+                : "text-ink-soft hover:bg-paper hover:text-ink",
             )}
           >
+            <Icon
+              name={item.icon}
+              size="sm"
+              className={cn("transition-colors", active ? "text-brand-strong" : "text-ink-soft group-hover:text-ink")}
+            />
             {item.label}
           </Link>
         );

@@ -22,7 +22,7 @@
 export type ProcessGroupDef = { name: string; matches: string[] };
 
 const FASE_02_GROUPS: ProcessGroupDef[] = [
-  { name: "Arranque", matches: ["Kickoff Interno", "Kickoff del Proyecto con Cliente"] },
+  { name: "Inicio del proyecto", matches: ["Kickoff Interno", "Kickoff del Proyecto con Cliente"] },
   {
     name: "Planificación",
     matches: ["Generación de Historias de Usuario", "Definición de Hitos", "Construcción de Plan de Trabajo"],

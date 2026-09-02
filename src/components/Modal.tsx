@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { Icon } from "@/components/Icon";
 
 export type ModalProps = {
   open: boolean;
@@ -48,9 +49,7 @@ export function Modal({ open, onClose, title, children, maxWidthClassName = "max
             aria-label="Cerrar"
             className="ml-auto grid h-7 w-7 place-items-center rounded-md text-ink-soft transition-colors hover:bg-brand-tint hover:text-brand-strong"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-            </svg>
+                        <Icon name="close" size="md" />
           </button>
         </div>
         {/* Solo esta parte scrollea — el header (título + cerrar) queda fijo arriba.

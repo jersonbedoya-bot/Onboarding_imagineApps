@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
-import { ensureRoute } from "@/server/services/route.service";
+import { ensureRoute, getRouteHeader } from "@/server/services/route.service";
 import { listStages } from "@/server/services/stage.service";
 import { listContentByStage } from "@/server/services/content.service";
 import { listProcessesByStage } from "@/server/services/process.service";
@@ -12,6 +12,7 @@ import { ModuleSummaryBadge, countByStatus, type ModuleSummaryCounts } from "@/c
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { RouteActions } from "@/components/admin/RouteActions";
+import { RouteContentForm } from "@/components/admin/RouteContentForm";
 import { StageActions } from "@/components/admin/StageActions";
 import { StageForm } from "@/components/admin/StageForm";
 
@@ -36,7 +37,7 @@ export default async function AdminModulesPage() {
     redirect("/login");
   }
 
-  const [route, stages] = await Promise.all([ensureRoute(identity), listStages(identity)]);
+  const [route, routeHeader, stages] = await Promise.all([ensureRoute(identity), getRouteHeader(identity.tenantId), listStages(identity)]);
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
 
   // Conteo de contenido/procesos por etapa — sin servicio nuevo, se reutilizan
@@ -114,6 +115,10 @@ export default async function AdminModulesPage() {
           </div>
         }
       />
+
+      <div className="mb-8">
+        <RouteContentForm headline={routeHeader.headline} subtitle={routeHeader.subtitle} />
+      </div>
 
       <DataTable rows={activeStages} rowKey={(stage) => stage._id.toString()} emptyMessage="Todavía no hay módulos." columns={columns} />
 

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 
 type ToastMessage = { id: number; text: string };
 
@@ -34,9 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role="status"
             className="flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white shadow-lg"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 flex-shrink-0 text-success" aria-hidden="true">
-              <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+                        <Icon name="check" size="md" className="text-success" />
             {toast.text}
           </div>
         ))}

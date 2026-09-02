@@ -2,21 +2,22 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { requireActiveUser } from "@/server/auth/session";
 import { resolveJourney } from "@/server/services/progress.service";
-import { OnboardingSidebar } from "@/components/OnboardingSidebar";
+import { OnboardingTopbar } from "@/components/OnboardingTopbar";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
 
 /**
  * Chrome compartido de todo /onboarding/* (recorrido, equipo, recursos).
- * Antes cada página repetía el guard de identidad/rol y su propio
- * <OnboardingTopbar/>; ahora vive acá una sola vez, y el layout decide si
- * hay algo que mostrar antes de renderizar la página pedida — por eso las
- * páginas hijas ya no necesitan su propio try/catch de auth.
+ * Antes cada página repetía el guard de identidad/rol y su propio topbar;
+ * ahora vive acá una sola vez, y el layout decide si hay algo que mostrar
+ * antes de renderizar la página pedida — por eso las páginas hijas ya no
+ * necesitan su propio try/catch de auth.
  *
- * El sidebar es el mapa del recorrido (Bloque 2): las 4 fases reales +
- * "Cierre y Seguimiento" (sintética, no es un stage — ver comentario en
- * OnboardingSidebar) quedan separadas de Recursos, que es independiente
- * del avance secuencial.
+ * Antes esto era un panel lateral fijo (mapa de las 5 fases con salto
+ * directo a cualquiera ya alcanzada) — se reemplazó por una barra
+ * horizontal delgada (Bloque Y): esa navegación directa no se estaba
+ * usando y le quitaba todo el ancho de pantalla al contenido. Si hace
+ * falta más adelante, se puede reintroducir.
  */
 export default async function OnboardingLayout({ children }: { children: ReactNode }) {
   let identity;
@@ -44,12 +45,12 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
   const journey = await resolveJourney(identity);
 
   return (
-    <div className="lg:flex lg:min-h-screen">
-      <OnboardingSidebar
+    <div className="min-h-screen">
+      <OnboardingTopbar
         stages={journey.stages.filter((stage) => stage.key !== "recursos")}
         currentStageId={journey.currentStageId}
       />
-      <div className="min-w-0 lg:flex-1">{children}</div>
+      {children}
     </div>
   );
 }

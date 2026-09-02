@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 
 export type BreadcrumbItem = { label: string; href?: string };
 
@@ -10,22 +11,23 @@ export type BreadcrumbItem = { label: string; href?: string };
  */
 export function Breadcrumb({ items, className }: { items: BreadcrumbItem[]; className?: string }) {
   return (
-    <nav aria-label="Ruta de navegación" className={`flex flex-wrap items-center gap-1.5 text-sm ${className ?? ""}`}>
+    <nav
+      aria-label="Ruta de navegación"
+      className={`flex flex-wrap items-center gap-1.5 text-sm text-ink-soft ${className ?? ""}`}
+    >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (
           <span key={index} className="flex items-center gap-1.5">
             {index > 0 && (
-              <span className="text-ink-soft" aria-hidden="true">
-                /
-              </span>
+              <Icon name="chevron-right" size="sm" className="text-line" aria-hidden="true" />
             )}
             {item.href && !isLast ? (
-              <Link href={item.href} className="text-ink-soft hover:text-brand-strong hover:underline">
+              <Link href={item.href} className="hover:text-brand-strong hover:underline">
                 {item.label}
               </Link>
             ) : (
-              <span className={isLast ? "font-medium text-ink" : "text-ink-soft"}>{item.label}</span>
+              <span className={isLast ? "font-medium text-ink" : undefined}>{item.label}</span>
             )}
           </span>
         );

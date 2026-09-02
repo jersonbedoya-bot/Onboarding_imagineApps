@@ -10,6 +10,7 @@ import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
 import { LinkButton } from "@/components/Button";
+import { Icon } from "@/components/Icon";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ModuleSummaryBadge, countByStatus } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
@@ -135,17 +136,19 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <Breadcrumb items={[{ label: "Módulos", href: "/admin/modules" }, { label: stage.title }]} />
         <div className="flex flex-wrap items-center gap-2">
           {prevStage && (
             <LinkButton href={`/admin/modules/${prevStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
-              ← {prevStage.title}
+              <Icon name="chevron-left" size="sm" />
+              {prevStage.title}
             </LinkButton>
           )}
           {nextStage && (
             <LinkButton href={`/admin/modules/${nextStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
-              {nextStage.title} →
+              {nextStage.title}
+              <Icon name="chevron-right" size="sm" />
             </LinkButton>
           )}
         </div>
