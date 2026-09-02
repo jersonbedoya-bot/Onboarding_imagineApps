@@ -24,7 +24,7 @@ export default async function OnboardingLeadersPage() {
           Nuestro equipo
         </span>
         <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">Conocé a tus líderes</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">Podés volver a esta página cuando quieras desde el menú lateral.</p>
+        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">Podés volver a esta página cuando quieras desde &quot;Nuestro equipo&quot; arriba.</p>
       </header>
 
       {leaders.length === 0 ? (

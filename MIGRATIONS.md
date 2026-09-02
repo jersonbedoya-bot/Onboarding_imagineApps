@@ -252,6 +252,71 @@ el módulo destino, y archiva+borra el stage `recursos` ya vacío vía
 el stage de Cómo Trabajamos ya exista con ese `_id`) — mismo aviso: IDs
 hardcodeados para el tenant de desarrollo, adaptar para otro tenant.
 
+### 9. Links reales de herramientas + remoción de "Agents Hub" (tenant imagine-apps)
+
+A diferencia de #7/#8, esta no toca `stageId` ni estructura de etapas — son
+ediciones de contenido normales (body/objective/context/expectedResult/
+resources de content_items, processes y process_steps), así que
+`scripts/migrate-add-tool-links.ts` corre por los `*.service.ts` reales
+(`updateContentItem`/`updateProcess`/`updateStep`), no por `getDb()`
+directo — cada cambio quedó en `audit_logs` como una edición normal desde
+el admin panel. A diferencia de #7/#8, el clasificador de auto-mode de
+Claude Code **no bloqueó** este `--apply` — parece tratar distinto una
+escritura vía service (edición de contenido reconocible) que una
+reasignación de `stageId`/archivado de stage.
+
+**Origen**: el usuario pidió (a) agregar links reales a herramientas
+mencionadas como texto plano — Basecamp, Google Drive, Magi para
+Daily/Weekly — usando las URLs reales de "Metologías (All).md" (archivo
+gitignored, insumo de contenido, no versionado), y (b) remover toda
+mención de "Agents Hub" (decisión de producto: ya no se usa en la
+operación). "OPS HUB" ya no aparecía en ningún lado del contenido vivo al
+auditar (alguien ya lo había limpiado en un pase anterior).
+
+**Decisiones confirmadas con el usuario antes de escribir el script**
+(ninguna de las 3 estaba resuelta por el documento o el código):
+
+- **Magi**: no aparece en "Metologías (All).md" ni en el contenido — URL
+  confirmada por el usuario: `https://magi.imagineapps.co/login`.
+- **Gimena** (la IA para HUs, hoy envuelta en "Agents Hub"): el documento
+  tenía un link, pero es una IP interna cruda
+  (`http://3.132.40.53:9002/app`) — el usuario aclaró que Gimena es parte
+  de Agents Hub y por lo tanto **tampoco va** en el onboarding: se removió
+  sin reemplazo (ni el link, ni un tool alternativo inventado).
+- **Google Drive**: el único link del documento era la carpeta de un
+  proyecto puntual, no un punto de entrada general — se usó un link
+  genérico a `drive.google.com` en su lugar.
+
+**Contenido tocado**: 1 content_item ("💻 Ecosistema Digital de Trabajo" —
+linkea Basecamp/Drive, agrega Magi, remueve la mención de Agents Hub), 6
+processes (Kickoff Interno, Generación de HUs, Construcción de Plan de
+Trabajo, Daily, Weekly, Actas de Reunión) y 6 process_steps. El paso
+"Invocar a Gimena" (dentro de Generación de HUs) se reescribió en vez de
+borrarse — pasó a "Redactar la historia de usuario" sin nombrar ninguna
+herramienta de IA — para no perder el progreso ya completado por usuarios
+que ya hicieron ese paso (`user_progress` referencia el `stepId`, que no
+cambió).
+
+**Nota de alcance**: `process_steps` tiene un campo `links: string[]`
+(validado en `step.schema.ts`) pensado exactamente para esto, pero **no
+está renderizado en ningún lado de la UI hoy** (`ProcessStepsTimeline` no
+lo lee) — usarlo no habría mostrado nada al usuario. Por eso los links se
+insertaron como Markdown (`[texto](url)`) dentro de los campos de texto que
+sí se renderizan (`objective`/`context`/`expectedResult`/`instruction` vía
+`MarkdownContent`, que ya soporta `<a>`). Si en el futuro se quiere un
+tratamiento visual propio para "herramientas con link" (ej. chips
+clickeables en vez de texto embebido), ahí sí valdría la pena construir esa
+UI y migrar estos links al campo `links` real.
+
+**Aplicado en Atlas de desarrollo el 2026-09-02**, vía
+`scripts/migrate-add-tool-links.ts` (mismo patrón dry-run/backup/`--apply`).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-add-tool-links.ts --apply` — mismo aviso que #7/#8: IDs
+hardcodeados para el tenant de desarrollo, adaptar para otro tenant. Si
+las URLs de Basecamp/Magi/Drive cambian, actualizar las constantes al
+principio del script.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

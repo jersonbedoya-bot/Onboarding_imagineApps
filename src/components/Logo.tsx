@@ -11,7 +11,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2 font-display font-bold text-ink", className)}>
       <Image src="/logo.png" alt="" width={28} height={24} className="h-6 w-[28px] shrink-0 object-contain" priority />
-      Imagine Apps
+      <span className="whitespace-nowrap">Imagine Apps</span>
     </span>
   );
 }
