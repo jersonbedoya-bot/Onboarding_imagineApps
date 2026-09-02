@@ -66,6 +66,16 @@ function CompletedCheck({ label }: { label: string }) {
  * comentario), así que `currentStageId` puede llegar ya resuelto a una
  * etapa distinta de la actual del usuario.
  */
+/** Ícono de reloj para el eyebrow "Paso X de Y" — inline para no sumar una dependencia por un solo glifo. */
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
 export function OnboardingJourney({
   stages,
   currentStageId,
@@ -115,6 +125,7 @@ export function OnboardingJourney({
       <StageSection
         stage={stage}
         index={index}
+        total={stages.length}
         isCurrent={stage.id === currentStageId}
         equipoCount={equipoCount}
         roleLabel={roleLabel}
@@ -157,6 +168,7 @@ function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<Journ
 function StageSection({
   stage,
   index,
+  total,
   isCurrent,
   equipoCount,
   roleLabel,
@@ -165,6 +177,7 @@ function StageSection({
 }: {
   stage: JourneyStage;
   index: number;
+  total: number;
   isCurrent: boolean;
   equipoCount: number;
   roleLabel: string | null;
@@ -187,33 +200,32 @@ function StageSection({
 
   return (
     <section>
-      <div className="mb-8 flex items-start gap-4 xl:mb-10 xl:gap-6">
-        <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong font-display text-xl font-bold tabular-nums text-white shadow-md xl:h-16 xl:w-16 xl:text-2xl">
-          {String(index + 1).padStart(2, "0")}
+      <div className="mb-8 xl:mb-10">
+        <span className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
+          <ClockIcon />
+          Paso {index + 1} de {total}
         </span>
-        <div className="min-w-0 flex-1 pt-1.5">
-          {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
-            <div className="mb-1.5 flex flex-wrap items-center gap-2">
-              {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
-              {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
-              {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
-            </div>
-          )}
-          <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">{stage.title}</h2>
-        </div>
+        {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
+            {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
+            {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
+          </div>
+        )}
+        <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">{stage.title}</h2>
+        {summary && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{summary}</p>}
       </div>
 
       {stage.readOnly ? (
         <p className="mb-6 text-sm text-ink-soft">Contenido de consulta — no requiere acciones.</p>
       ) : (
-        <div className="mb-2 max-w-xs xl:max-w-sm">
+        <div className="mb-6 max-w-xs xl:max-w-sm">
           <ProgressBar
             value={stage.totalCompletable > 0 ? (stage.completedCount / stage.totalCompletable) * 100 : 100}
             label={`${stage.completedCount}/${stage.totalCompletable}`}
           />
         </div>
       )}
-      {summary && <p className="mb-6 text-sm text-ink-soft">{summary}</p>}
 
       {!stage.unlocked ? null : (
         <div className="flex flex-col gap-4">
@@ -357,7 +369,7 @@ function ProcessGroupNav({
   onSelect: (index: number) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-2">
+    <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-2.5">
       {groups.map((group, i) => {
         // Se cuenta por proceso, no por paso — el completado ahora se
         // dispara de un tirón por proceso entero (CompleteProcessButton),
@@ -376,16 +388,17 @@ function ProcessGroupNav({
             aria-selected={isActive}
             onClick={() => onSelect(i)}
             className={cn(
-              "flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
-              isActive
-                ? "border-brand bg-brand-tint text-brand-strong"
-                : "border-line text-ink-soft hover:border-brand-soft hover:text-ink",
+              "flex min-w-[140px] flex-col items-start gap-1 rounded-xl border-2 px-4 py-2.5 text-left transition-colors",
+              isActive ? "border-brand bg-brand-tint" : "border-line bg-paper hover:border-brand-soft",
             )}
           >
-            {group.name}
+            <span className="flex items-center gap-1.5 font-display text-sm font-semibold text-ink">
+              <span aria-hidden="true">{group.icon}</span>
+              {group.name}
+            </span>
             {totalProcesses > 0 && (
-              <span className={cn("font-mono text-xs tabular-nums", isActive ? "text-brand" : "text-ink-soft/60")}>
-                {completedProcesses}/{totalProcesses}
+              <span className={cn("font-mono text-xs tabular-nums", isActive ? "text-brand-strong" : "text-ink-soft/70")}>
+                {completedProcesses}/{totalProcesses} procesos
               </span>
             )}
           </button>

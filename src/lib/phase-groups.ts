@@ -19,7 +19,12 @@
  * MIGRATIONS.md): cae en el grupo "Gestión de equipo" para quien lo vea,
  * sin necesitar una entrada aparte para UX/UI.
  */
-export type ProcessGroupDef = { name: string; matches: string[] };
+// `icon` es puramente decorativo (mismo criterio que `name`: config de
+// código, no dato de admin) — inspirado en el pipeline de fases de
+// imagine-apps-onboarding/paso-2-ciclo-de-vida.html (mockup estático, ver
+// BACKLOG.md respecto al simulador tipo quiz de esa misma referencia, que
+// NO se adoptó).
+export type ProcessGroupDef = { name: string; icon: string; matches: string[] };
 
 /**
  * Fusión de contenido (migración de fases, ver MIGRATIONS.md): esta fase
@@ -42,12 +47,13 @@ export type ProcessGroupDef = { name: string; matches: string[] };
  */
 const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
   // Ciclo de vida del proyecto (COMMON, mismo para todos los roles)
-  { name: "Inicio del proyecto", matches: ["Kickoff Interno", "Kickoff del Proyecto con Cliente"] },
+  { name: "Inicio del proyecto", icon: "🚀", matches: ["Kickoff Interno", "Kickoff del Proyecto con Cliente"] },
   {
     name: "Planificación",
+    icon: "📐",
     matches: ["Generación de Historias de Usuario", "Definición de Hitos", "Construcción de Plan de Trabajo"],
   },
-  { name: "Ritmo operativo", matches: ["Daily", "Weekly", "Levantamiento de Alertas"] },
+  { name: "Ritmo operativo", icon: "⏱️", matches: ["Daily", "Weekly", "Levantamiento de Alertas"] },
   // PDM
   // "Actas de Reunión" vive acá y no en "Cierre de proyecto": su propio
   // contexto ("Inicia al terminar una reunión... dentro de las 24 horas
@@ -55,13 +61,18 @@ const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
   // reunión durante todo el proyecto, no una acción de cierre — y de paso
   // el contenido ⚠️ que tiene adentro queda más visible (primer grupo, no
   // el último). Validado contra Metologías (All).md antes de mover.
-  { name: "Reporting y seguimiento", matches: ["Project Status", "360º", "NPS (Net Promoter Score)", "Pulso de Operaciones", "Actas de Reunión"] },
-  { name: "Riesgo y mejora", matches: ["Matriz de Riesgo", "Planes de Mejora"] },
+  {
+    name: "Reporting y seguimiento",
+    icon: "📊",
+    matches: ["Project Status", "360º", "NPS (Net Promoter Score)", "Pulso de Operaciones", "Actas de Reunión"],
+  },
+  { name: "Riesgo y mejora", icon: "🛡️", matches: ["Matriz de Riesgo", "Planes de Mejora"] },
   // UX/UI Designer
-  { name: "Discovery y planificación", matches: ["Design Interview", "Plan de Trabajo (Experiencia)", "Sitemaps"] },
-  { name: "Diseño y sistema", matches: ["Lineamientos de Diseño", "UI Kit / Design System"] },
+  { name: "Discovery y planificación", icon: "🔍", matches: ["Design Interview", "Plan de Trabajo (Experiencia)", "Sitemaps"] },
+  { name: "Diseño y sistema", icon: "🎨", matches: ["Lineamientos de Diseño", "UI Kit / Design System"] },
   {
     name: "Entrega y validación",
+    icon: "✅",
     matches: [
       "Handoff al Equipo de Desarrollo",
       "Entrega a Cliente (Diseño)",
@@ -71,8 +82,8 @@ const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
     ],
   },
   // Compartido — cierra el recorrido temático de ambos roles
-  { name: "Gestión de equipo", matches: ["1:1 (One on One)", "Onboarding de Proyecto", "Offboarding", "Empalme de Duplas"] },
-  { name: "Cierre de proyecto", matches: ["Entrega Parcial", "Entrega Final", "Manejo de Garantía"] },
+  { name: "Gestión de equipo", icon: "🤝", matches: ["1:1 (One on One)", "Onboarding de Proyecto", "Offboarding", "Empalme de Duplas"] },
+  { name: "Cierre de proyecto", icon: "🏁", matches: ["Entrega Parcial", "Entrega Final", "Manejo de Garantía"] },
 ];
 
 // Key inmutable (ver stage.repository.ts) — exportada para que
@@ -112,7 +123,7 @@ export function contentItemSection(title: string): "Reglas y Herramientas" | "Bi
   return BIENESTAR_CONTENT_TITLES.some((t) => title.includes(t)) ? "Bienestar y Permisos" : "Reglas y Herramientas";
 }
 
-export type GroupedProcesses<T> = { name: string; processes: T[] };
+export type GroupedProcesses<T> = { name: string; icon: string; processes: T[] };
 
 /**
  * Agrupa `processes` según la config de la fase. Devuelve `null` cuando la
@@ -129,14 +140,14 @@ export function groupProcesses<T extends { title: string }>(stageKey: string, pr
     .map((def) => {
       const matched = processes.filter((p) => def.matches.some((m) => p.title.includes(m)));
       matched.forEach((p) => used.add(p));
-      return { name: def.name, processes: matched };
+      return { name: def.name, icon: def.icon, processes: matched };
     })
     .filter((g) => g.processes.length > 0);
 
   // Red de seguridad: un proceso nuevo que todavía no tiene grupo asignado
   // no debe desaparecer silenciosamente de la vista.
   const leftover = processes.filter((p) => !used.has(p));
-  if (leftover.length > 0) groups.push({ name: "Otros", processes: leftover });
+  if (leftover.length > 0) groups.push({ name: "Otros", icon: "📦", processes: leftover });
 
   return groups;
 }
