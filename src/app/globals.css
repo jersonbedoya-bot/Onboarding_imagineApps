@@ -81,3 +81,27 @@ body::before {
   -webkit-background-clip: text;
   color: transparent;
 }
+
+/* Entrada con stagger para las cards de contenido de una etapa (Bloque
+   "vida" de Fase 01, ver OnboardingJourney): cada card aplica esta clase con
+   un animation-delay creciente por índice. `both` para que no haya flash
+   con opacity 0 antes de que arranque. Respeta prefers-reduced-motion —
+   ahí queda visible sin animar, nunca oculta contenido. */
+@keyframes stage-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-stage-in {
+  animation: stage-item-in 0.4s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-stage-in {
+    animation: none;
+  }
+}

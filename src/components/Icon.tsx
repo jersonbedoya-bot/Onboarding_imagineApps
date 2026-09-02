@@ -27,6 +27,7 @@ export type IconName =
   | "grid"
   | "list"
   | "logout"
+  | "message"
   | "plus"
   | "reactivate"
   | "route"
@@ -98,6 +99,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M21 12H9" />
     </>
   ),
+  message: (
+    <>
+      <path d="M21 12c0 4.42-4.03 8-9 8-1.5 0-2.9-.32-4.14-.9L3 20l1.06-3.68A7.93 7.93 0 0 1 3 12c0-4.42 4.03-8 9-8s9 3.58 9 8z" />
+      <path d="M8 11h8M8 14h5" />
+    </>
+  ),
   plus: <path d="M12 5v14M5 12h14" />,
   reactivate: (
     <>
@@ -161,6 +168,7 @@ const ICON_LABELS: Record<IconName, string> = {
   grid: "Módulos",
   list: "Lista",
   logout: "Cerrar sesión",
+  message: "Mensajes",
   plus: "Añadir",
   reactivate: "Reactivar",
   route: "Ruta",

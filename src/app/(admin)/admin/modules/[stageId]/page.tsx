@@ -125,6 +125,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
             objective: item.objective,
             context: item.context,
             expectedResult: item.expectedResult,
+            resources: item.resources,
             scope: item.scope,
             roleIds: item.roleIds.map((id) => id.toString()),
           }}
@@ -139,15 +140,19 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <Breadcrumb items={[{ label: "Módulos", href: "/admin/modules" }, { label: stage.title }]} />
         <div className="flex flex-wrap items-center gap-2">
+          <LinkButton href="/admin/modules" variant="secondary" className="px-3 py-1.5 text-xs">
+            <Icon name="chevron-left" size="sm" />
+            Volver a módulos
+          </LinkButton>
           {prevStage && (
             <LinkButton href={`/admin/modules/${prevStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
               <Icon name="chevron-left" size="sm" />
-              {prevStage.title}
+              Módulo anterior
             </LinkButton>
           )}
           {nextStage && (
             <LinkButton href={`/admin/modules/${nextStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
-              {nextStage.title}
+              Siguiente módulo
               <Icon name="chevron-right" size="sm" />
             </LinkButton>
           )}
@@ -179,7 +184,12 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <h2 className="font-display text-lg font-semibold text-ink">Contenido</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(content)} />
         </div>
-        <DataTable rows={activeContent} rowKey={(item) => item._id.toString()} emptyMessage="Este módulo todavía no tiene contenido." columns={contentColumns} />
+        <DataTable
+          rows={activeContent}
+          rowKey={(item) => item._id.toString()}
+          emptyMessage="Este módulo todavía no tiene contenido de lectura. Si es un módulo solo de procesos, no hace falta agregar nada acá."
+          columns={contentColumns}
+        />
         <ArchivedSection count={archivedContent.length}>
           <DataTable rows={archivedContent} rowKey={(item) => item._id.toString()} emptyMessage="Sin contenido archivado." columns={contentColumns} />
         </ArchivedSection>
@@ -193,7 +203,12 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <h2 className="font-display text-lg font-semibold text-ink">Procesos</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(processes)} />
         </div>
-        <DataTable rows={activeProcesses} rowKey={(item) => item._id.toString()} emptyMessage="Este módulo todavía no tiene procesos." columns={processColumns} />
+        <DataTable
+          rows={activeProcesses}
+          rowKey={(item) => item._id.toString()}
+          emptyMessage="Este módulo todavía no tiene procesos operativos. Si es un módulo solo de contenido, no hace falta agregar nada acá."
+          columns={processColumns}
+        />
         <ArchivedSection count={archivedProcesses.length}>
           <DataTable rows={archivedProcesses} rowKey={(item) => item._id.toString()} emptyMessage="Sin procesos archivados." columns={processColumns} />
         </ArchivedSection>

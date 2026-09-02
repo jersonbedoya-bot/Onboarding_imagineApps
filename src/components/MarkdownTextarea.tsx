@@ -6,17 +6,30 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { uploadMedia } from "@/lib/admin/upload-media";
 import { cn } from "@/lib/cn";
 
+// Plantillas de los botones de "Insertar bloque" — ver comentario del
+// componente. El texto es el punto de partida, el admin lo edita después;
+// lo único que importa es que calcen con lo que MarkdownContent.tsx sabe
+// renderizar de forma destacada (checklist, callout, link solo en su
+// párrafo, tabla).
+const SNIPPETS = {
+  checklist: "- [ ] Primer paso\n- [ ] Segundo paso",
+  callout: "> **Dato clave:** completá esto antes de tal fecha, usando tal herramienta.",
+  link: "[Abrir herramienta](https://)",
+  table: "| Columna 1 | Columna 2 |\n| --- | --- |\n| Dato | Dato |",
+} as const;
+
 /**
  * Textarea con toggle "Editar / Vista previa" para campos que se guardan
  * como Markdown (body de contenido, objective/context/expectedResult de
  * procesos, description/instruction de pasos) — el equivalente a
  * Ctrl+Shift+V de VS Code, para ver cómo va a quedar antes de publicar.
  *
- * "Insertar imagen" sube el archivo y pega `![](url)` justo en la posición
- * del cursor dentro del texto — antes la única forma de agregar una imagen
- * era el campo de "imagen destacada" del content item, que siempre queda
- * al final del cuerpo sin importar de qué párrafo habla, así que no había
- * forma de que la imagen coincida con el texto que explica.
+ * Los botones "Insertar…" pegan una plantilla en la posición del cursor
+ * (mismo mecanismo que ya existía para imágenes): así el admin arma
+ * contenido accionable (checklist, dato clave destacado, enlace a
+ * herramienta real, tabla) sin tener que memorizar sintaxis Markdown —
+ * ver MarkdownContent.tsx, que es quien le da el tratamiento visual
+ * especial a cada una de estas 4 formas.
  */
 export function MarkdownTextarea({ id, label, error, className, value, onChange, ...rest }: TextareaProps) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
@@ -25,6 +38,31 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const text = typeof value === "string" ? value : "";
+
+  function insertSnippet(snippet: string) {
+    if (!onChange) return;
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? text.length;
+    const end = textarea?.selectionEnd ?? text.length;
+    // El espacio antes/después evita que quede pegado a texto sin salto
+    // de línea previo (ej. justo después de una palabra).
+    const before = text.slice(0, start);
+    const after = text.slice(end);
+    const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
+    const insert = `${needsLeadingBreak ? "\n\n" : ""}${snippet}\n\n`;
+    const nextValue = `${before}${insert}${after}`;
+
+    // MarkdownTextarea es controlado (value/onChange vienen del *Form
+    // padre) — se fabrica un evento mínimo porque todos los call sites
+    // solo leen event.target.value.
+    onChange({ target: { value: nextValue } } as ChangeEvent<HTMLTextAreaElement>);
+
+    const cursorPos = before.length + insert.length;
+    requestAnimationFrame(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(cursorPos, cursorPos);
+    });
+  }
 
   async function handleInsertImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -35,28 +73,7 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
     setIsUploading(true);
     try {
       const { url } = await uploadMedia(file);
-      const textarea = textareaRef.current;
-      const start = textarea?.selectionStart ?? text.length;
-      const end = textarea?.selectionEnd ?? text.length;
-      const markdown = `![](${url})`;
-      // El espacio antes/después evita que quede pegado a texto sin salto
-      // de línea previo (ej. justo después de una palabra).
-      const before = text.slice(0, start);
-      const after = text.slice(end);
-      const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
-      const insert = `${needsLeadingBreak ? "\n\n" : ""}${markdown}\n\n`;
-      const nextValue = `${before}${insert}${after}`;
-
-      // MarkdownTextarea es controlado (value/onChange vienen del *Form
-      // padre) — se fabrica un evento mínimo porque todos los call sites
-      // solo leen event.target.value.
-      onChange({ target: { value: nextValue } } as ChangeEvent<HTMLTextAreaElement>);
-
-      const cursorPos = before.length + insert.length;
-      requestAnimationFrame(() => {
-        textarea?.focus();
-        textarea?.setSelectionRange(cursorPos, cursorPos);
-      });
+      insertSnippet(`![](${url})`);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
     } finally {
@@ -85,6 +102,34 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
               {isUploading ? "Subiendo…" : "🖼️ Insertar imagen"}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInsertImage} className="hidden" />
+            <button
+              type="button"
+              onClick={() => insertSnippet(SNIPPETS.checklist)}
+              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
+            >
+              ☑️ Checklist
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSnippet(SNIPPETS.callout)}
+              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
+            >
+              🔑 Dato clave
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSnippet(SNIPPETS.link)}
+              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
+            >
+              🔗 Enlace a herramienta
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSnippet(SNIPPETS.table)}
+              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
+            >
+              📊 Tabla
+            </button>
           </>
         )}
       </div>
@@ -110,7 +155,7 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
           {text.trim() ? <MarkdownContent>{text}</MarkdownContent> : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
         </div>
       )}
-      <p className="mt-1 text-xs text-ink-soft/70">Ubicá el cursor donde va la imagen antes de subirla — se inserta ahí, no al final.</p>
+      <p className="mt-1 text-xs text-ink-soft/70">Ubicá el cursor antes de insertar un bloque — se agrega ahí, no al final.</p>
     </FieldShell>
   );
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { ProgressBar } from "@/components/ProgressBar";
 import { UserMenu } from "@/components/UserMenu";
+import { Logo } from "@/components/Logo";
 import type { resolveJourney } from "@/server/services/progress.service";
 
 type JourneyStage = Awaited<ReturnType<typeof resolveJourney>>["stages"][number];
@@ -16,8 +17,10 @@ type JourneyStage = Awaited<ReturnType<typeof resolveJourney>>["stages"][number]
  * (el avance ya es secuencial vía "Módulo anterior/siguiente" en
  * OnboardingJourney); si se necesita esa navegación directa más adelante,
  * se reintroduce. Esta barra da solo lo que no vive en ningún otro lado
- * (Equipo/Recursos/logout) + progreso global, y libera todo el ancho de la
+ * (Equipo/logout) + progreso global, y libera todo el ancho de la
  * pantalla para el contenido en vez de compartirlo con un panel fijo.
+ * Recursos ya no tiene link propio acá — sus políticas pasaron a ser
+ * contenido real dentro de "Tu Día a Día en Imagine Apps" (ver MIGRATIONS.md).
  */
 export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneyStage[]; currentStageId: string | null }) {
   const pathname = usePathname();
@@ -32,8 +35,8 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
-        <Link href="/onboarding" className="font-display text-base font-bold text-ink xl:text-lg">
-          imagine<span className="text-brand">.</span>
+        <Link href="/onboarding">
+          <Logo className="text-base xl:text-lg" />
         </Link>
 
         <div className="hidden min-w-0 flex-1 items-center gap-3 sm:flex">
@@ -46,9 +49,6 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
         <nav className="ml-auto flex items-center gap-1 xl:gap-2">
           <TopbarLink href="/onboarding/leaders" active={pathname === "/onboarding/leaders"}>
             Nuestro equipo
-          </TopbarLink>
-          <TopbarLink href="/onboarding/resources" active={pathname === "/onboarding/resources"}>
-            📚 Recursos
           </TopbarLink>
           <UserMenu />
         </nav>

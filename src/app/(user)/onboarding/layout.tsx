@@ -7,7 +7,10 @@ import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
 
 /**
- * Chrome compartido de todo /onboarding/* (recorrido, equipo, recursos).
+ * Chrome compartido de todo /onboarding/* (recorrido, equipo). Antes había
+ * una tercera sección, Recursos, con su propia etapa siempre desbloqueada
+ * fuera del recorrido secuencial — se eliminó (ver MIGRATIONS.md #8): sus
+ * políticas pasaron a ser contenido real de "Tu Día a Día en Imagine Apps".
  * Antes cada página repetía el guard de identidad/rol y su propio topbar;
  * ahora vive acá una sola vez, y el layout decide si hay algo que mostrar
  * antes de renderizar la página pedida — por eso las páginas hijas ya no
@@ -46,10 +49,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
 
   return (
     <div className="min-h-screen">
-      <OnboardingTopbar
-        stages={journey.stages.filter((stage) => stage.key !== "recursos")}
-        currentStageId={journey.currentStageId}
-      />
+      <OnboardingTopbar stages={journey.stages} currentStageId={journey.currentStageId} />
       {children}
     </div>
   );

@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { resolveJourney } from "@/server/services/progress.service";
-import { CompleteStepButton } from "./CompleteStepButton";
+import type { GuideMessage } from "@/server/services/route.service";
 import { MarkAsReadButton } from "./MarkAsReadButton";
+import { CompleteProcessButton } from "./CompleteProcessButton";
 import { ContentViewTracker } from "./ContentViewTracker";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Card } from "@/components/Card";
@@ -14,25 +15,46 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { PendingBadge } from "@/components/PendingBadge";
 import { TeamTeaser } from "@/components/TeamTeaser";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { ProcessStepsTimeline } from "@/components/ProcessStepsTimeline";
 import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
 import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
+import { CultureValuesGrid } from "@/components/CultureValuesGrid";
 import { LeadersBoard } from "./leaders/LeadersBoard";
 import type { LeaderCardData } from "./leaders/LeaderCard";
-import { groupProcesses, FASE_02_STAGE_KEY, FASE_04_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
+import { groupProcesses, FASE_04_STAGE_KEY, FASE_COMO_TRABAJAMOS_STAGE_KEY, contentItemSection, type GroupedProcesses } from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
 import {
   isHistoryTimelineContent,
   isImpactProjectsContent,
   isNonNegotiablesContent,
+  isCultureValuesContent,
   parseTimelineItems,
   parseImpactProjects,
   parseNonNegotiables,
+  splitCultureValues,
 } from "@/lib/institutional-content";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
 type JourneyProcess = JourneyStage["processes"][number];
+
+/**
+ * Indicador de solo lectura para un paso ya completado — sin acción
+ * propia, ya que dentro de un proceso el completado se dispara una sola
+ * vez para todos sus pasos (ver CompleteProcessButton). Nada se muestra
+ * si todavía no está completado: no hay botón individual al que volver.
+ */
+function CompletedCheck({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-success">
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+        <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {label}
+    </span>
+  );
+}
 
 /**
  * Antes se mostraban TODAS las etapas apiladas en una sola página larga
@@ -50,12 +72,18 @@ export function OnboardingJourney({
   equipoCount,
   roleLabel,
   gerencia,
+  blockedNextMessage,
+  pendingContentMessage,
 }: {
   stages: JourneyStage[];
   currentStageId: string | null;
   equipoCount: number;
   roleLabel: string | null;
   gerencia: LeaderCardData[];
+  // Antes quemados acá — ahora editables/desactivables desde
+  // /admin/messages (ver route.service.getRouteContent).
+  blockedNextMessage: GuideMessage;
+  pendingContentMessage: GuideMessage;
 }) {
   const initialIndex = Math.max(
     0,
@@ -66,6 +94,22 @@ export function OnboardingJourney({
   const prevStage = stages[index - 1] ?? null;
   const nextStage = stages[index + 1] ?? null;
 
+  // Al cambiar de módulo (prev/next) se sube al tope de la página: sin esto
+  // el cambio de contenido pasaba desapercibido si veías el final de la
+  // etapa anterior (ver ProcessCard más abajo) — un simple swap in-place se
+  // sentía como "ya pasé de largo" en vez de una transición real. Se salta
+  // el primer render (montaje inicial, no un cambio de módulo) y respeta
+  // prefers-reduced-motion (mismo criterio que .animate-stage-in en globals.css).
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
+  }, [index]);
+
   return (
     <div>
       <StageSection
@@ -75,6 +119,7 @@ export function OnboardingJourney({
         equipoCount={equipoCount}
         roleLabel={roleLabel}
         gerencia={gerencia}
+        pendingContentMessage={pendingContentMessage}
       />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 xl:mt-12 xl:pt-8">
@@ -91,7 +136,7 @@ export function OnboardingJourney({
               Siguiente módulo ›
             </Button>
           ) : (
-            <p className="text-xs text-ink-soft">Completá lo pendiente de esta etapa para avanzar.</p>
+            blockedNextMessage.enabled && <p className="text-xs text-ink-soft">{blockedNextMessage.text}</p>
           ))}
       </div>
     </div>
@@ -106,8 +151,7 @@ export function OnboardingJourney({
 function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<JourneyProcess>[] | null): string | null {
   if (!groups) return null;
   const totalProcesses = stage.processes.length;
-  const unit = stage.key === FASE_02_STAGE_KEY ? "momentos de un mismo ciclo" : "grupos por tema";
-  return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} ${unit}.`;
+  return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} grupos por tema.`;
 }
 
 function StageSection({
@@ -117,6 +161,7 @@ function StageSection({
   equipoCount,
   roleLabel,
   gerencia,
+  pendingContentMessage,
 }: {
   stage: JourneyStage;
   index: number;
@@ -124,6 +169,7 @@ function StageSection({
   equipoCount: number;
   roleLabel: string | null;
   gerencia: LeaderCardData[];
+  pendingContentMessage: GuideMessage;
 }) {
   const groups = groupProcesses(stage.key, stage.processes);
   // Por defecto abre el primer grupo con trabajo pendiente (si ya
@@ -171,39 +217,59 @@ function StageSection({
 
       {!stage.unlocked ? null : (
         <div className="flex flex-col gap-4">
-          {/* En Fase 04 este mismo Card es, hoy, la introducción de rol
-              (Bloque 4) — un content_item real (scope ROLE, ver
-              content.service) titulado "Tu rol como <rol>", cargado por
-              findVisibleForRole igual que cualquier otro contenido: cada
-              usuario ve solo el suyo, sin lógica especial acá. */}
+          {/* En la fase de Los Proyectos y Tu Rol en Ellos este mismo Card es,
+              hoy, la introducción de rol (Bloque 4) — un content_item real
+              (scope ROLE, ver content.service) titulado "Tu rol como <rol>",
+              cargado por findVisibleForRole igual que cualquier otro
+              contenido: cada usuario ve solo el suyo, sin lógica especial acá. */}
           {stage.items.length > 0 && (
             <div className="flex flex-col gap-5">
-              {stage.items.map((item) => {
+              {stage.items.map((item, itemIndex) => {
                 const pending = isPendingContentItem(item.title);
                 // Fase 01 (Bloque de historia): "Hitos que nos Definieron",
-                // "Proyectos de Alto Impacto" y "Principios No Negociables"
-                // son 3 content items fijos con layout propio (timeline /
-                // grilla) en vez de texto plano — ver institutional-content.ts.
-                // La gerencia (scope COMMON)
-                // se embebe justo después de los hitos, como pidió el
-                // usuario ("origen y trayectoria... ahí las cards de la
-                // gerencia"), reusando el mismo LeadersBoard de /leaders.
+                // "Proyectos de Alto Impacto", "Principios No Negociables" y
+                // los valores dentro de "Quiénes Somos y Nuestra Visión" son
+                // 4 content items fijos con layout propio (timeline / grilla
+                // / mini-cards clickeables) en vez de texto plano — ver
+                // institutional-content.ts. La gerencia (scope COMMON) se
+                // embebe justo después de los hitos, como pidió el usuario
+                // ("origen y trayectoria... ahí las cards de la gerencia"),
+                // reusando el mismo LeadersBoard de /leaders.
                 const isTimeline = isHistoryTimelineContent(item.title);
                 const timelineItems = isTimeline && item.body ? parseTimelineItems(item.body) : null;
                 const isProjects = isImpactProjectsContent(item.title);
                 const projectItems = isProjects && item.body ? parseImpactProjects(item.body) : null;
                 const isNonNegotiables = isNonNegotiablesContent(item.title);
                 const nonNegotiableItems = isNonNegotiables && item.body ? parseNonNegotiables(item.body) : null;
+                const isCultureValues = isCultureValuesContent(item.title);
+                const cultureSplit = isCultureValues && item.body ? splitCultureValues(item.body) : null;
+                // "Tu Día a Día en Imagine Apps" (ver phase-groups.ts) junta 6
+                // cards de temas distintos (reglas/herramientas + políticas de
+                // bienestar que antes vivían en la etapa Recursos, ya
+                // eliminada) — un subtítulo de sección evita que se sientan
+                // como una lista plana sin organización temática.
+                const section = stage.key === FASE_COMO_TRABAJAMOS_STAGE_KEY ? contentItemSection(item.title) : null;
+                const isNewSection = section !== null && (itemIndex === 0 || contentItemSection(stage.items[itemIndex - 1].title) !== section);
                 return (
                   <Fragment key={item.id}>
-                    <Card className="flex flex-col gap-3">
+                    {isNewSection && (
+                      <p className="mt-2 text-xs font-bold uppercase tracking-widest text-brand first:mt-0">{section}</p>
+                    )}
+                    <Card
+                      hover
+                      className="animate-stage-in flex flex-col gap-3"
+                      style={{ animationDelay: `${Math.min(itemIndex, 5) * 70}ms` }}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <span className="flex flex-wrap items-center gap-2">
                           <p className="font-display text-xl font-semibold leading-snug text-ink xl:text-2xl">{item.title}</p>
                           {pending && <PendingBadge />}
                         </span>
                         {item.requirement === "OBLIGATORY" && (
-                          <MarkAsReadButton contentItemId={item.id} completed={item.completed} />
+                          // Confeti chico solo en Fase 01 (index === 0, ver StageSection):
+                          // el momento más "humano" del recorrido pide algo de
+                          // celebración; el confeti grande queda para el final total.
+                          <MarkAsReadButton contentItemId={item.id} completed={item.completed} celebrate={index === 0} />
                         )}
                       </div>
                       <ContentViewTracker
@@ -217,6 +283,11 @@ function StageSection({
                           <ImpactProjectsGrid projects={projectItems} />
                         ) : nonNegotiableItems ? (
                           <NonNegotiablesGrid items={nonNegotiableItems} />
+                        ) : cultureSplit ? (
+                          <>
+                            {cultureSplit.intro && <MarkdownContent>{cultureSplit.intro}</MarkdownContent>}
+                            <CultureValuesGrid values={cultureSplit.values} />
+                          </>
                         ) : (
                           item.body && <MarkdownContent>{item.body}</MarkdownContent>
                         )}
@@ -230,10 +301,8 @@ function StageSection({
                         )}
                         {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
                       </ContentViewTracker>
-                      {pending && (
-                        <p className="text-xs text-ink-soft">
-                          Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.
-                        </p>
+                      {pending && pendingContentMessage.enabled && (
+                        <p className="text-xs text-ink-soft">{pendingContentMessage.text}</p>
                       )}
                     </Card>
                     {timelineItems && gerencia.length > 0 && (
@@ -290,8 +359,14 @@ function ProcessGroupNav({
   return (
     <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-2">
       {groups.map((group, i) => {
-        const totalSteps = group.processes.reduce((sum, p) => sum + p.steps.length, 0);
-        const completedSteps = group.processes.reduce((sum, p) => sum + p.steps.filter((s) => s.completed).length, 0);
+        // Se cuenta por proceso, no por paso — el completado ahora se
+        // dispara de un tirón por proceso entero (CompleteProcessButton),
+        // así que un conteo de pasos sueltos (16/16, 19/19...) ya no refleja
+        // la acción real que hace el usuario. Un proceso sin pasos no entra
+        // en el total: no hay nada que marcarle como completo.
+        const withSteps = group.processes.filter((p) => p.steps.length > 0);
+        const totalProcesses = withSteps.length;
+        const completedProcesses = withSteps.filter((p) => p.steps.every((s) => s.completed)).length;
         const isActive = i === active;
         return (
           <button
@@ -308,9 +383,9 @@ function ProcessGroupNav({
             )}
           >
             {group.name}
-            {totalSteps > 0 && (
+            {totalProcesses > 0 && (
               <span className={cn("font-mono text-xs tabular-nums", isActive ? "text-brand" : "text-ink-soft/60")}>
-                {completedSteps}/{totalSteps}
+                {completedProcesses}/{totalProcesses}
               </span>
             )}
           </button>
@@ -322,11 +397,16 @@ function ProcessGroupNav({
 
 function ProcessCard({ process }: { process: JourneyProcess }) {
   const pending = isPendingProcess(process.title);
+  const hasSteps = process.steps.length > 0;
+  const allStepsCompleted = hasSteps && process.steps.every((s) => s.completed);
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
-        {pending && <PendingBadge />}
+        <span className="flex items-center gap-2">
+          {pending && <PendingBadge />}
+          {hasSteps && (allStepsCompleted ? <CompletedCheck label="Proceso completado" /> : <CompleteProcessButton processId={process.id} />)}
+        </span>
       </div>
       {pending && (
         <p className="mt-1 text-xs text-ink-soft">Este proceso depende de una herramienta en revisión — el paso a paso puede cambiar.</p>
@@ -334,25 +414,23 @@ function ProcessCard({ process }: { process: JourneyProcess }) {
       {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
       {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
       {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
-      <ul className="mt-4 flex flex-col gap-4">
-        {process.steps.map((step) => {
-          const stepPending = !pending && isPendingStep(step.title);
-          return (
-            <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-ink xl:text-lg">
-                  {step.title}
-                  {stepPending && <PendingBadge />}
-                </span>
-                <CompleteStepButton stepId={step.id} completed={step.completed} />
-              </div>
-              {step.description && <MarkdownContent>{step.description}</MarkdownContent>}
-              {step.instruction && <MarkdownContent>{step.instruction}</MarkdownContent>}
-              {step.videoUrl && <VideoEmbed src={step.videoUrl} title={step.title} provider={step.videoProvider} />}
-            </li>
-          );
-        })}
-      </ul>
+      {process.resources.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>
+          {process.resources.map((resource) => (
+            <span key={resource} className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
+              {resource}
+            </span>
+          ))}
+        </div>
+      )}
+      {hasSteps && (
+        <ProcessStepsTimeline
+          steps={process.steps}
+          allCompleted={allStepsCompleted}
+          isStepPending={(title) => !pending && isPendingStep(title)}
+        />
+      )}
     </Card>
   );
 }

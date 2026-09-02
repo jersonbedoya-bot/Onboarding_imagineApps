@@ -19,6 +19,7 @@ export type ProcessActionItem = {
   objective: string;
   context: string;
   expectedResult: string;
+  resources: string[];
   scope: "COMMON" | "ROLE";
   roleIds: string[];
 };
@@ -47,6 +48,7 @@ export function ProcessActions({
     objective: item.objective,
     context: item.context,
     expectedResult: item.expectedResult,
+    resources: item.resources,
     scope: item.scope,
     roleIds: item.roleIds,
   };

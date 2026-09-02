@@ -8,7 +8,8 @@ import { Icon, type IconName } from "@/components/Icon";
 type NavItem = { href: string; label: string; icon: IconName };
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-    { href: "/admin/modules", label: "Módulos", icon: "grid" },
+  { href: "/admin/modules", label: "Módulos", icon: "grid" },
+  { href: "/admin/messages", label: "Mensajes", icon: "message" },
   { href: "/admin/leaders", label: "Líderes", icon: "crown" },
   { href: "/admin/users", label: "Usuarios", icon: "users" },
   { href: "/admin/audit", label: "Auditoría", icon: "eye" },

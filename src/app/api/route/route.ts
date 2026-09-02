@@ -18,6 +18,10 @@ export async function GET() {
         status: route.status,
         headline: route.headline ?? null,
         subtitle: route.subtitle ?? null,
+        blockedNextMessage: route.blockedNextMessage ?? null,
+        blockedNextMessageEnabled: route.blockedNextMessageEnabled ?? true,
+        pendingContentMessage: route.pendingContentMessage ?? null,
+        pendingContentMessageEnabled: route.pendingContentMessageEnabled ?? true,
       },
     });
   } catch (error) {
@@ -25,7 +29,7 @@ export async function GET() {
   }
 }
 
-/** Edita el título/subtítulo del header de /onboarding — ver route.service.getRouteHeader. */
+/** Edita el título/subtítulo del header de /onboarding y los mensajes de guía — ver route.service.getRouteContent. */
 export async function PATCH(request: Request) {
   try {
     const actingAdmin = await requireAdmin();
@@ -37,7 +41,15 @@ export async function PATCH(request: Request) {
     const route = await updateRouteContent(actingAdmin, parsed.data);
     return NextResponse.json({
       success: true,
-      data: { id: route._id.toString(), headline: route.headline ?? null, subtitle: route.subtitle ?? null },
+      data: {
+        id: route._id.toString(),
+        headline: route.headline ?? null,
+        subtitle: route.subtitle ?? null,
+        blockedNextMessage: route.blockedNextMessage ?? null,
+        blockedNextMessageEnabled: route.blockedNextMessageEnabled ?? true,
+        pendingContentMessage: route.pendingContentMessage ?? null,
+        pendingContentMessageEnabled: route.pendingContentMessageEnabled ?? true,
+      },
     });
   } catch (error) {
     return toErrorResponse(error);

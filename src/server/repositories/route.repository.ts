@@ -10,11 +10,19 @@ export type RouteDocument = {
   createdAt: Date;
   // Título/subtítulo del header de /onboarding (Bloque X) — opcionales:
   // documentos creados antes de este campo simplemente no lo traen, y el
-  // caller (route.service.getRouteHeader) resuelve el default. No hay
+  // caller (route.service.getRouteContent) resuelve el default. No hay
   // validador $jsonSchema para esta colección (ver schema.ts), así que
   // agregarlos no requiere migración de Mongo.
   headline?: string | null;
   subtitle?: string | null;
+  // Mensajes de guía que hoy vivían quemados en el código (OnboardingJourney)
+  // — mismo criterio: opcionales, con default + "enabled" resuelto en el
+  // service. `*Enabled` en `null`/undefined se trata como `true` (el
+  // comportamiento de siempre, antes de que existiera el toggle).
+  blockedNextMessage?: string | null;
+  blockedNextMessageEnabled?: boolean | null;
+  pendingContentMessage?: string | null;
+  pendingContentMessageEnabled?: boolean | null;
 };
 
 async function collection() {
@@ -59,7 +67,14 @@ export async function updateStatus(tenantId: ObjectId, status: ContentStatus): P
 
 export async function updateContent(
   tenantId: ObjectId,
-  patch: { headline?: string | null; subtitle?: string | null },
+  patch: {
+    headline?: string | null;
+    subtitle?: string | null;
+    blockedNextMessage?: string | null;
+    blockedNextMessageEnabled?: boolean | null;
+    pendingContentMessage?: string | null;
+    pendingContentMessageEnabled?: boolean | null;
+  },
 ): Promise<RouteDocument | null> {
   return (await collection()).findOneAndUpdate({ tenantId }, { $set: patch }, { returnDocument: "after" });
 }

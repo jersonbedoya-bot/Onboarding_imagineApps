@@ -160,6 +160,41 @@ export async function completeStep(identity: RequestIdentity, stepId: ObjectId):
   await stickIfComplete(identity.tenantId, identity.userId, roleId, found.process.stageId);
 }
 
+/**
+ * Completar TODOS los pasos de UN proceso de un tirón (ej. "Project
+ * Status", "360 Operación", "NPS", "Pulso de Operaciones") — reemplaza el
+ * flujo de marcar cada paso del proceso por separado (ver
+ * OnboardingJourney.tsx). El contenido obligatorio del módulo (lectura)
+ * sigue marcándose aparte con markContentAsRead: esto solo toca los pasos
+ * del proceso indicado. Reusa upsertCompletion, que ya es idempotente por
+ * índice único: los pasos ya completados individualmente antes de este
+ * cambio simplemente se saltan.
+ */
+export async function completeProcess(identity: RequestIdentity, processId: ObjectId): Promise<void> {
+  const roleId = requireRoleId(identity);
+  const { processes } = await resolveVisibleSteps(identity.tenantId, roleId);
+
+  const found = processes.find(({ process }) => process._id.equals(processId));
+  if (!found) throw new NotFoundError();
+
+  const rows = await progressRepository.findByUser(identity.tenantId, identity.userId);
+  const progressByTarget = buildProgressByTarget(rows);
+
+  for (const step of found.steps) {
+    if (progressByTarget.has(`STEP:${step._id.toString()}`)) continue;
+    await progressRepository.upsertCompletion({
+      tenantId: identity.tenantId,
+      userId: identity.userId,
+      targetType: "STEP",
+      targetId: step._id,
+      stageId: found.process.stageId,
+      processId: found.process._id,
+    });
+  }
+
+  await stickIfComplete(identity.tenantId, identity.userId, roleId, found.process.stageId);
+}
+
 export async function markContentAsRead(identity: RequestIdentity, contentItemId: ObjectId): Promise<void> {
   const roleId = requireRoleId(identity);
   const { stages } = await resolveVisibleContent(identity.tenantId, roleId);
@@ -329,6 +364,7 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
         objective: process.objective,
         context: process.context,
         expectedResult: process.expectedResult,
+        resources: process.resources,
         steps: steps.map((step) => ({
           id: step._id.toString(),
           title: step.title,

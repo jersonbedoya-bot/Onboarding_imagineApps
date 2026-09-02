@@ -45,6 +45,11 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Excluye las rutas propias de NextAuth (login/callback/csrf) y assets estáticos.
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // Excluye las rutas propias de NextAuth (login/callback/csrf) y assets
+  // estáticos: no solo los generados por Next (_next/static, _next/image)
+  // sino cualquier archivo servido tal cual desde /public (logo.png, etc.)
+  // — sin esto, el optimizador de imágenes hace un fetch interno a la ruta
+  // del archivo, ese fetch no lleva la cookie de sesión, el middleware lo
+  // redirige a /login, y el archivo llega como HTML en vez de imagen.
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)$).*)"],
 };

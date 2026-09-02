@@ -98,6 +98,7 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
                 objective: process.objective,
                 context: process.context,
                 expectedResult: process.expectedResult,
+                resources: process.resources,
                 scope: process.scope,
                 roleIds: process.roleIds.map((rid) => rid.toString()),
               }}

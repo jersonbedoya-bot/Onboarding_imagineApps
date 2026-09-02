@@ -46,3 +46,6 @@ next-env.d.ts
 /onboarding-imagine-apps UX UI.md
 /onboarding-seed-data.json
 /imagine-apps-onboarding
+
+# backups de scripts de migración (dump de documentos reales, no versionar)
+/scripts/.backups

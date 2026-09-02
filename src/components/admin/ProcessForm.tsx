@@ -15,6 +15,7 @@ export type ProcessFormInitial = {
   objective: string;
   context: string;
   expectedResult: string;
+  resources: string[];
   scope: "COMMON" | "ROLE";
   roleIds: string[];
 };
@@ -46,6 +47,11 @@ export function ProcessForm({
   const [objective, setObjective] = useState(initial?.objective ?? "");
   const [context, setContext] = useState(initial?.context ?? "");
   const [expectedResult, setExpectedResult] = useState(initial?.expectedResult ?? "");
+  // Se edita como texto separado por comas en vez de una lista repetible:
+  // son 2-5 nombres de herramientas ("Basecamp, Figma, Slack"), no vale la
+  // pena la complejidad de un input dinámico para eso — ver render en
+  // OnboardingJourney.tsx (ProcessCard), que las muestra como chips.
+  const [resourcesText, setResourcesText] = useState((initial?.resources ?? []).join(", "));
   const [scope, setScope] = useState<"COMMON" | "ROLE">(initial?.scope ?? "ROLE");
   const [roleIds, setRoleIds] = useState<string[]>(initial?.roleIds ?? []);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +76,10 @@ export function ProcessForm({
         objective,
         context,
         expectedResult,
+        resources: resourcesText
+          .split(",")
+          .map((r) => r.trim())
+          .filter(Boolean),
         scope,
         roleIds: scope === "ROLE" ? roleIds : [],
       }),
@@ -89,6 +99,7 @@ export function ProcessForm({
       setObjective("");
       setContext("");
       setExpectedResult("");
+      setResourcesText("");
       setScope("ROLE");
       setRoleIds([]);
       setIsModalOpen(false);
@@ -117,6 +128,16 @@ export function ProcessForm({
         value={expectedResult}
         onChange={(event) => setExpectedResult(event.target.value)}
       />
+      <div>
+        <Input
+          id={`process-resources-${mode}`}
+          label="Herramientas / recursos"
+          placeholder="Basecamp, Figma, Slack"
+          value={resourcesText}
+          onChange={(event) => setResourcesText(event.target.value)}
+        />
+        <p className="mt-1 text-xs text-ink-soft/70">Separadas por coma — se muestran como chips de referencia rápida en el proceso.</p>
+      </div>
 
       <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Alcance</legend>

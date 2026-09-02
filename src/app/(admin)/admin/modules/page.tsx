@@ -1,34 +1,25 @@
 import { redirect } from "next/navigation";
-import type { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
-import { ensureRoute, getRouteHeader } from "@/server/services/route.service";
+import { ensureRoute } from "@/server/services/route.service";
 import { listStages } from "@/server/services/stage.service";
 import { listContentByStage } from "@/server/services/content.service";
 import { listProcessesByStage } from "@/server/services/process.service";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/Badge";
-import { ModuleSummaryBadge, countByStatus, type ModuleSummaryCounts } from "@/components/ModuleSummaryBadge";
+import { countByStatus, type ModuleSummaryCounts } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
+import { ModuleCard } from "@/components/admin/ModuleCard";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { RouteActions } from "@/components/admin/RouteActions";
-import { RouteContentForm } from "@/components/admin/RouteContentForm";
-import { StageActions } from "@/components/admin/StageActions";
 import { StageForm } from "@/components/admin/StageForm";
-
-type StageRow = {
-  _id: ObjectId;
-  title: string;
-  order: number;
-  dependsOnStageId: ObjectId | null;
-  isBlocking: boolean;
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-};
 
 // Lista de módulos (etapas) — reemplaza a /admin/routes, /admin/content y
 // /admin/processes como punto de entrada: desde acá se entra al módulo
 // completo en vez de elegir la etapa por separado en 2 pantallas sin
-// estado compartido.
+// estado compartido. Cards en vez de tabla: "Depende de"/"Bloqueante" son
+// configuración avanzada que casi no se toca día a día — quedan solo en el
+// modal de edición, no como columnas permanentes (menos densidad visual
+// para un admin no técnico).
 export default async function AdminModulesPage() {
   let identity;
   try {
@@ -37,7 +28,7 @@ export default async function AdminModulesPage() {
     redirect("/login");
   }
 
-  const [route, routeHeader, stages] = await Promise.all([ensureRoute(identity), getRouteHeader(identity.tenantId), listStages(identity)]);
+  const [route, stages] = await Promise.all([ensureRoute(identity), listStages(identity)]);
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
 
   // Conteo de contenido/procesos por etapa — sin servicio nuevo, se reutilizan
@@ -58,50 +49,26 @@ export default async function AdminModulesPage() {
   const activeStages = stages.filter((stage) => stage.status !== "ARCHIVED");
   const archivedStages = stages.filter((stage) => stage.status === "ARCHIVED");
 
-  const columns: DataTableColumn<StageRow>[] = [
-    { header: "Orden", render: (stage) => stage.order },
-    { header: "Módulo", render: (stage) => <span className="font-medium text-ink">{stage.title}</span> },
-    {
-      header: "Depende de",
-      render: (stage) => stageOptions.find((option) => option.id === stage.dependsOnStageId?.toString())?.title ?? "—",
-    },
-    { header: "Bloqueante", render: (stage) => (stage.isBlocking ? "Sí" : "No") },
-    {
-      header: "Contenido",
-      render: (stage) => {
-        const summary = summaryByStageId.get(stage._id.toString());
-        return (
-          <div className="flex flex-col gap-1">
-            <ModuleSummaryBadge label="Contenido" counts={summary?.content ?? emptySummary} />
-            <ModuleSummaryBadge label="Procesos" counts={summary?.processes ?? emptySummary} />
-          </div>
-        );
-      },
-    },
-    {
-      header: "Estado",
-      render: (stage) => (
-        <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[stage.status]}</Badge>
-      ),
-    },
-    {
-      header: "Acciones",
-      render: (stage) => (
-        <StageActions
-          item={{
-            id: stage._id.toString(),
-            title: stage.title,
-            order: stage.order,
-            dependsOnStageId: stage.dependsOnStageId?.toString() ?? "",
-            isBlocking: stage.isBlocking,
-            status: stage.status,
-          }}
-          allStages={stageOptions}
-          viewHref={`/admin/modules/${stage._id.toString()}`}
-        />
-      ),
-    },
-  ];
+  function renderCard(stage: (typeof stages)[number]) {
+    const summary = summaryByStageId.get(stage._id.toString());
+    return (
+      <ModuleCard
+        key={stage._id.toString()}
+        stage={{
+          id: stage._id.toString(),
+          title: stage.title,
+          order: stage.order,
+          dependsOnStageId: stage.dependsOnStageId?.toString() ?? "",
+          isBlocking: stage.isBlocking,
+          status: stage.status,
+        }}
+        allStages={stageOptions}
+        viewHref={`/admin/modules/${stage._id.toString()}`}
+        content={summary?.content ?? emptySummary}
+        processes={summary?.processes ?? emptySummary}
+      />
+    );
+  }
 
   return (
     <div>
@@ -116,14 +83,14 @@ export default async function AdminModulesPage() {
         }
       />
 
-      <div className="mb-8">
-        <RouteContentForm headline={routeHeader.headline} subtitle={routeHeader.subtitle} />
-      </div>
-
-      <DataTable rows={activeStages} rowKey={(stage) => stage._id.toString()} emptyMessage="Todavía no hay módulos." columns={columns} />
+      {activeStages.length === 0 ? (
+        <p className="text-sm text-ink-soft">Todavía no hay módulos.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{activeStages.map(renderCard)}</div>
+      )}
 
       <ArchivedSection count={archivedStages.length}>
-        <DataTable rows={archivedStages} rowKey={(stage) => stage._id.toString()} emptyMessage="No hay módulos archivados." columns={columns} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{archivedStages.map(renderCard)}</div>
       </ArchivedSection>
 
       <div className="mt-8">

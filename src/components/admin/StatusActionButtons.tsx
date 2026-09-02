@@ -1,11 +1,12 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { IconButton } from "@/components/IconButton";
 import { Icon } from "@/components/Icon";
 
 /**
  * Fila estándar de botones de estado (Publicar / Archivar / Reactivar /
- * Borrar) con ICONOS, compartida por los 4 Action* del admin.
+ * Borrar), compartida por los 4 Action* del admin.
  *
  * Antes estos 4 archivos (Content/Process/Stage/StepActions) duplicaban el
  * mismo bloque de botones en texto plano. Este componente centraliza el
@@ -23,6 +24,7 @@ export function StatusActionButtons({
   onReactivate,
   onDelete,
   compact = false,
+  iconOnly = false,
 }: {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   isPending: boolean;
@@ -32,7 +34,20 @@ export function StatusActionButtons({
   onDelete: () => void;
   /** compact=true reduce padding — usado dentro de filas de tabla (DataTable). */
   compact?: boolean;
+  /** iconOnly=true usa IconButton (sin texto) — para filas densas como ModuleCard, donde el texto repetido compite con la acción primaria de la card. */
+  iconOnly?: boolean;
 }) {
+  if (iconOnly) {
+    return (
+      <>
+        {status === "DRAFT" && <IconButton name="check" label="Publicar" isLoading={isPending} onClick={onPublish} />}
+        {status !== "ARCHIVED" && <IconButton name="archive" label="Archivar" danger isLoading={isPending} onClick={onArchive} />}
+        {status === "ARCHIVED" && <IconButton name="reactivate" label="Reactivar" isLoading={isPending} onClick={onReactivate} />}
+        {status === "ARCHIVED" && <IconButton name="trash" label="Borrar" danger isLoading={isPending} onClick={onDelete} />}
+      </>
+    );
+  }
+
   const btnClass = compact ? "px-3 py-1.5 text-xs" : "";
   return (
     <>

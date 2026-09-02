@@ -4,8 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
+import { launchConfetti } from "@/lib/confetti";
 
-export function MarkAsReadButton({ contentItemId, completed }: { contentItemId: string; completed: boolean | null }) {
+export function MarkAsReadButton({
+  contentItemId,
+  completed,
+  celebrate = false,
+}: {
+  contentItemId: string;
+  completed: boolean | null;
+  /** Refuerzo positivo puntual (confeti chico) al marcar como leído — hoy solo
+   * lo pide Fase 01 (ver OnboardingJourney), no todo el recorrido: el confeti
+   * grande queda reservado para el final absoluto (TerminalCelebration). */
+  celebrate?: boolean;
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, setIsPending] = useState(false);
@@ -22,6 +34,7 @@ export function MarkAsReadButton({ contentItemId, completed }: { contentItemId: 
       setError(body?.error?.message ?? "No se pudo registrar la lectura.");
       return;
     }
+    if (celebrate) launchConfetti(24);
     showToast("Marcado como leído");
     router.refresh();
   }

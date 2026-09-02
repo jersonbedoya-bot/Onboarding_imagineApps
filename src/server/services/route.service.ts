@@ -8,6 +8,10 @@ import * as auditRepository from "@/server/repositories/audit.repository";
 const DEFAULT_ROUTE_NAME = "Ruta de onboarding";
 const DEFAULT_HEADLINE = "Vamos paso a paso";
 const DEFAULT_SUBTITLE = "Recorré cada etapa y completá los pasos de tu rol.";
+// Antes quemados en OnboardingJourney.tsx — ahora son el default de fábrica,
+// editable y desactivable desde /admin/messages (ver getRouteContent).
+const DEFAULT_BLOCKED_NEXT_MESSAGE = "Completá lo pendiente de esta etapa para avanzar.";
+const DEFAULT_PENDING_CONTENT_MESSAGE = "Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.";
 
 /**
  * Creación perezosa: no hay un paso admin explícito "crear ruta" — se
@@ -30,24 +34,50 @@ export async function ensureRoute(actingAdmin: RequestIdentity) {
   return route;
 }
 
+export type GuideMessage = { text: string; enabled: boolean };
+export type RouteContent = {
+  headline: string;
+  subtitle: string;
+  blockedNextMessage: GuideMessage;
+  pendingContentMessage: GuideMessage;
+};
+
 /**
- * Lectura pública (cualquier usuario activo del tenant, no solo ADMIN) del
- * título/subtítulo de su recorrido. El default solo aplica si el campo
- * nunca se configuró (`??`, no `||`): un admin que lo vacía a propósito
- * desde /admin/modules quiere que quede vacío, no que reaparezca el texto
- * de fábrica.
+ * Lectura pública (cualquier usuario activo del tenant, no solo ADMIN) de
+ * todo el contenido editable del recorrido: título/subtítulo del header de
+ * /onboarding + los 2 mensajes de guía que antes vivían quemados en
+ * OnboardingJourney.tsx. El default de texto solo aplica si el campo nunca
+ * se configuró (`??`, no `||`): un admin que lo vacía a propósito desde
+ * /admin/messages quiere que quede vacío, no que reaparezca el texto de
+ * fábrica. `enabled` default `true` — mismo comportamiento de siempre,
+ * antes de que existiera el toggle (el mensaje ya se mostraba siempre).
  */
-export async function getRouteHeader(tenantId: ObjectId): Promise<{ headline: string; subtitle: string }> {
+export async function getRouteContent(tenantId: ObjectId): Promise<RouteContent> {
   const route = await routeRepository.findByTenant(tenantId);
   return {
     headline: route?.headline ?? DEFAULT_HEADLINE,
     subtitle: route?.subtitle ?? DEFAULT_SUBTITLE,
+    blockedNextMessage: {
+      text: route?.blockedNextMessage ?? DEFAULT_BLOCKED_NEXT_MESSAGE,
+      enabled: route?.blockedNextMessageEnabled ?? true,
+    },
+    pendingContentMessage: {
+      text: route?.pendingContentMessage ?? DEFAULT_PENDING_CONTENT_MESSAGE,
+      enabled: route?.pendingContentMessageEnabled ?? true,
+    },
   };
 }
 
 export async function updateRouteContent(
   actingAdmin: RequestIdentity,
-  patch: { headline?: string | null; subtitle?: string | null },
+  patch: {
+    headline?: string | null;
+    subtitle?: string | null;
+    blockedNextMessage?: string | null;
+    blockedNextMessageEnabled?: boolean | null;
+    pendingContentMessage?: string | null;
+    pendingContentMessageEnabled?: boolean | null;
+  },
 ) {
   await ensureRoute(actingAdmin);
   const updated = await routeRepository.updateContent(actingAdmin.tenantId, patch);

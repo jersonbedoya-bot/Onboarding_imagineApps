@@ -1,7 +1,7 @@
 import { requireActiveUser } from "@/server/auth/session";
 import { resolveJourney } from "@/server/services/progress.service";
 import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service";
-import { getRouteHeader } from "@/server/services/route.service";
+import { getRouteContent } from "@/server/services/route.service";
 import { TerminalCelebration } from "./TerminalCelebration";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
@@ -14,10 +14,10 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   // las consultas propias de esta pantalla.
   const identity = await requireActiveUser();
 
-  const [journey, leaders, routeHeader, { stage: requestedStageId }] = await Promise.all([
+  const [journey, leaders, routeContent, { stage: requestedStageId }] = await Promise.all([
     resolveJourney(identity),
     resolveVisibleLeadersWithMedia(identity.tenantId, identity.functionalRoleId!),
-    getRouteHeader(identity.tenantId),
+    getRouteContent(identity.tenantId),
     searchParams,
   ]);
 
@@ -28,12 +28,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const gerencia = leaders.filter((leader) => leader.scope === "COMMON");
   const equipo = leaders.filter((leader) => leader.scope === "ROLE");
 
-  // Recursos no es parte del recorrido secuencial (ver Bloque 1) — el
-  // sidebar ya lo excluye del stepper; acá también, para que "Módulo
-  // anterior/siguiente" de OnboardingJourney nunca aterrice ahí.
-  const stages = journey.stages.filter((stage) => stage.key !== "recursos");
-
-  if (stages.length === 0) {
+  if (journey.stages.length === 0) {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
         <EmptyState
@@ -59,17 +54,19 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
             Tu recorrido
           </span>
-          <h1 className="text-gradient-brand font-display text-4xl font-semibold leading-tight sm:text-5xl xl:text-6xl">{routeHeader.headline}</h1>
-          {routeHeader.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft xl:text-lg">{routeHeader.subtitle}</p>}
+          <h1 className="text-gradient-brand font-display text-4xl font-semibold leading-tight sm:text-5xl xl:text-6xl">{routeContent.headline}</h1>
+          {routeContent.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft xl:text-lg">{routeContent.subtitle}</p>}
         </header>
       )}
 
       <OnboardingJourney
-        stages={stages}
+        stages={journey.stages}
         currentStageId={selectedStageId}
         equipoCount={equipo.length}
         roleLabel={journey.role?.label ?? null}
         gerencia={gerencia}
+        blockedNextMessage={routeContent.blockedNextMessage}
+        pendingContentMessage={routeContent.pendingContentMessage}
       />
     </main>
   );

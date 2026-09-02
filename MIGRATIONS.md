@@ -145,6 +145,113 @@ dejado inválidas para cualquier escritura futura sobre ellas (ej.
 validador actual de `schema.ts`, seguido del backfill de arriba, luego
 `db:bootstrap` (agrega el índice si faltara — no cambió en este paso).
 
+## Migraciones de contenido (no-schema)
+
+A diferencia de todo lo de arriba, esto no toca `schema.ts` — es una
+reasignación de `stageId` sobre `content_items`/`processes` existentes más
+rename/reorder de `onboarding_stages`, algo que el admin panel no soporta
+hoy (`ProcessForm` solo setea `stageId` al crear un proceso, nunca al
+editarlo). Se documenta acá por el mismo motivo que las migraciones de
+schema: no es reproducible corriendo `db:bootstrap`/`db:seed`.
+
+### 7. Fusión de fases del recorrido de onboarding (tenant imagine-apps)
+
+**Antes** (4 fases numeradas + Recursos, decidido en conversación con el
+usuario tras notar que la navegación se sentía corta): Fase 01 · Bienvenida
+y Cultura (incluía Principios No Negociables) → Fase 02 · Cómo Trabajamos
+(en realidad, por un rename previo, contenía el Ciclo de Vida del
+Proyecto) → Fase 03 · Tu Entorno de Trabajo (Ecosistema Digital +
+Timeboxing) → Fase 04 · Tu Rol y Responsabilidades (Tu rol + procesos por
+rol) → Recursos.
+
+**Después** (3 fases + Recursos): Fase 01 · Bienvenida y Cultura (sin No
+Negociables) → Fase 02 · Cómo Trabajamos (No Negociables + Entorno de
+Trabajo, con aviso hacia Recursos) → Fase 03 · Los Proyectos y Tu Rol en
+Ellos (Ciclo de Vida + Tu Rol fusionados, un solo stage con pastillas de
+`phase-groups.ts` combinadas) → Recursos (sin cambio de contenido, solo
+`order` 5→4).
+
+**Por qué**: "No Negociables" es comportamiento operativo (reglas de
+transparencia/reuniones/timeboxing), encaja mejor en "Cómo Trabajamos" que
+en la fase de identidad/cultura. Ciclo de Vida y Tu Rol son dos lentes del
+mismo tema (el arco genérico del proyecto, y qué hacés vos específicamente
+dentro de ese arco) — separarlas en dos fases obligaba a completar "el
+proyecto en general" antes de descubrir "tu parte en él", como si fueran
+temas inconexos.
+
+De paso se encontró (no relacionado a la fusión) que el content item con
+los 5 valores de cultura estaba `ARCHIVED` — reemplazado por "🎯 Nuestra
+Historia", que no los tenía. Se fusionó ese texto dentro de "Nuestra
+Historia" para no perderlo (el `ARCHIVED` no se reactiva, es transición
+terminal — ver `assertValidTransition`).
+
+**Aplicado en Atlas de desarrollo el 2026-09-02**, vía
+`scripts/migrate-merge-fases.ts` (dry-run por defecto, `--apply` para
+escribir de verdad; siempre escribe antes un backup JSON de cada documento
+tocado en `scripts/.backups/`). El script:
+
+1. Mueve `stageId` de "Principios No Negociables" y de los 8 procesos de
+   ciclo de vida a sus stages destino (reasignación directa vía `getDb()`,
+   no vía repository — el campo no es editable por ahí, ver arriba).
+2. Actualiza el body de "Nuestra Historia" con el texto fusionado.
+3. Usa el `stage.service` real (`updateStage`/`archiveStage`/`deleteStage`)
+   para renombrar/reordenar las 2 fases sobrevivientes y borrar la que
+   quedó vacía — así el cambio queda en `audit_logs` como cualquier edición
+   hecha desde el admin panel.
+
+No se migraron los `user_progress` de tipo `STAGE` (el "hecho sticky" de
+etapa completada) del stage borrado — quedan huérfanos, mismo estado que ya
+existía en la base para 2 registros de una reorganización anterior (sin
+impacto: ese `targetType` es solo una cache de idempotencia, ver comentario
+en `progress.service.ts`; el progreso real —`STEP`/`CONTENT_ITEM`— no
+referencia `stageId` como clave y sigue siendo válido tras el move).
+
+**Cómo migrar otra base existente** (ej. producción, cuando se promueva):
+correr `scripts/migrate-merge-fases.ts --apply` contra esa base — los IDs
+de stage/content/proceso están hardcodeados para el tenant imagine-apps de
+desarrollo, así que un tenant distinto necesita adaptarlos primero (leer el
+estado real con una consulta de solo lectura antes de tocar nada — el
+`matchTitle` de `scripts/data/onboarding-content.ts` ya está desactualizado
+respecto al título real de las etapas, no usarlo como fuente de verdad).
+
+### 8. Pliegue de "Recursos" dentro de "Cómo Trabajamos" (tenant imagine-apps)
+
+**Antes**: Recursos era una etapa aparte (`key: "recursos"`), siempre
+desbloqueada y fuera del recorrido secuencial (ver el comentario que tenía
+`resources/page.tsx`, hoy eliminado), con link propio en `OnboardingTopbar`.
+Contenía 3 content items informativos: Política de Vacaciones, Política de
+Citas Médicas, Política de Cumpleaños.
+
+**Después**: esas 3 políticas pasaron a ser content items reales de "🧭 Tu
+Día a Día en Imagine Apps" (el módulo de la migración #7, antes titulado
+"🔄 Fase 02 · Cómo Trabajamos" — se le sacó el "Fase 02" del título porque
+ya no describía todo lo que contiene). El módulo quedó con 6 content items
+en 2 secciones visuales (`contentItemSection` en `phase-groups.ts`):
+"Reglas y Herramientas" (No Negociables, Ecosistema Digital, Timeboxing) y
+"Bienestar y Permisos" (las 3 políticas). El stage `recursos` y la ruta
+`/onboarding/resources` se eliminaron.
+
+**Por qué**: decisión explícita del usuario — no le gustaba el patrón
+"card-aviso que linkea afuera" (mismo patrón que sí se mantiene para
+Equipo, ver `TeamTeaser`) para un contenido tan chico (3 políticas
+cortas); prefirió que fuera contenido real del módulo. **Trade-off
+aceptado a propósito**: esas 3 políticas dejan de estar "siempre
+disponibles" — antes se veían sin importar en qué fase estuvieras, ahora
+solo mientras estás parado en este módulo específico. Sin impacto en
+completable/bloqueo: las 3 son `requirement: INFORMATIONAL`, nunca
+contaron para `totalCompletableOf` (ver `progress.service.ts`).
+
+**Aplicado en Atlas de desarrollo el 2026-09-02**, vía
+`scripts/migrate-fold-recursos.ts` (mismo patrón dry-run/`--apply`/backup
+JSON que la migración #7). Mueve el `stageId` de las 3 políticas, renombra
+el módulo destino, y archiva+borra el stage `recursos` ya vacío vía
+`stage.service` real.
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-fold-recursos.ts --apply` después de la #7 (depende de que
+el stage de Cómo Trabajamos ya exista con ese `_id`) — mismo aviso: IDs
+hardcodeados para el tenant de desarrollo, adaptar para otro tenant.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

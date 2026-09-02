@@ -21,26 +21,33 @@
  */
 export type ProcessGroupDef = { name: string; matches: string[] };
 
-const FASE_02_GROUPS: ProcessGroupDef[] = [
+/**
+ * Fusión de contenido (migración de fases, ver MIGRATIONS.md): esta fase
+ * mostraba antes el ciclo de vida del proyecto y "Tu Rol" por separado en
+ * dos etapas distintas — se unificaron en una sola ("Los Proyectos y Tu
+ * Rol en Ellos") porque son dos lentes del mismo tema (el arco genérico del
+ * proyecto, y qué hacés vos específicamente dentro de ese arco), y el
+ * mecanismo de pastillas de acá abajo ya evita la "pared de contenido": solo
+ * se renderiza el grupo activo, nunca los ~16-17 procesos juntos.
+ *
+ * Orden: primero los momentos comunes del ciclo de vida (mismos para todos
+ * los roles), después los grupos propios de cada rol — para que el punto de
+ * partida natural (primer grupo con trabajo pendiente, ver
+ * defaultGroupIndex en OnboardingJourney.tsx) sea "Inicio del proyecto", no
+ * un grupo de rol. Los grupos de PDM (Reporting/Riesgo) y de UX/UI
+ * (Discovery/Diseño/Entrega) conviven acá porque cada usuario solo trae (vía
+ * findVisibleForRole) los procesos de su propio rol + los COMMON — un grupo
+ * sin procesos visibles para ese usuario simplemente se omite (ver
+ * groupProcesses más abajo), sin bifurcar esta lista por rol.
+ */
+const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
+  // Ciclo de vida del proyecto (COMMON, mismo para todos los roles)
   { name: "Inicio del proyecto", matches: ["Kickoff Interno", "Kickoff del Proyecto con Cliente"] },
   {
     name: "Planificación",
     matches: ["Generación de Historias de Usuario", "Definición de Hitos", "Construcción de Plan de Trabajo"],
   },
   { name: "Ritmo operativo", matches: ["Daily", "Weekly", "Levantamiento de Alertas"] },
-];
-
-/**
- * Orden pensado para que el grupo por defecto (el primero con trabajo
- * pendiente — ver defaultGroupIndex en OnboardingJourney.tsx) sea siempre
- * el punto de partida natural del rol, no "Gestión de equipo": para PDM
- * eso deja intacto Reporting → Riesgo → Gestión de equipo → Cierre; para
- * UX/UI, que no tiene Reporting/Riesgo (se filtran por estar vacíos), el
- * primero que queda es Discovery — no "Gestión de equipo", que quedó al
- * final por ser el "cierre común" de ambos roles (Empalme de Duplas, ver
- * Bloque 1).
- */
-const FASE_04_GROUPS: ProcessGroupDef[] = [
   // PDM
   // "Actas de Reunión" vive acá y no en "Cierre de proyecto": su propio
   // contexto ("Inicia al terminar una reunión... dentro de las 24 horas
@@ -68,16 +75,42 @@ const FASE_04_GROUPS: ProcessGroupDef[] = [
   { name: "Cierre de proyecto", matches: ["Entrega Parcial", "Entrega Final", "Manejo de Garantía"] },
 ];
 
-// Keys inmutables (ver stage.repository.ts) — exportadas para que
-// OnboardingJourney.tsx pueda distinguir el copy de orientación de cada
-// fase sin repetir el literal.
-export const FASE_02_STAGE_KEY = "modulo_3_ciclo_de_vida_del_proyecto"; // 🔄 Fase 02 · Cómo Trabajamos
-export const FASE_04_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps"; // 🧭 Fase 04 · Tu Rol y Responsabilidades
+// Key inmutable (ver stage.repository.ts) — exportada para que
+// OnboardingJourney.tsx pueda distinguir el copy/comportamiento de esta
+// fase sin repetir el literal. El nombre quedó de cuando esta etapa era
+// solo "Tu Rol" (módulo 4 del seed original); hoy, tras la fusión, es
+// "🔁 Fase 03 · Los Proyectos y Tu Rol en Ellos" — la key en sí es un
+// identificador opaco, no necesita coincidir con el título vigente.
+export const FASE_04_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps";
+
+// Misma idea: key opaca heredada del módulo original de "Ecosistema de
+// Herramientas y Bienestar". Tras dos migraciones (ver MIGRATIONS.md #7 y
+// #8) hoy es "🧭 Tu Día a Día en Imagine Apps": Principios No Negociables +
+// Entorno de Trabajo + las 3 políticas que antes vivían en la etapa
+// "Recursos" (Vacaciones/Citas Médicas/Cumpleaños, ahora eliminada — esas
+// políticas dejaron de estar "siempre disponibles" y pasaron a ser
+// contenido real de este módulo). Esta fase no tiene procesos, así que no
+// entra en GROUPS_BY_STAGE_KEY; se usa solo para separar sus content items
+// en 2 secciones visuales (ver contentItemSection más abajo).
+export const FASE_COMO_TRABAJAMOS_STAGE_KEY = "modulo_2_ecosistema_de_herramientas_y_bienestar";
 
 const GROUPS_BY_STAGE_KEY: Record<string, ProcessGroupDef[]> = {
-  [FASE_02_STAGE_KEY]: FASE_02_GROUPS,
-  [FASE_04_STAGE_KEY]: FASE_04_GROUPS,
+  [FASE_04_STAGE_KEY]: PROYECTOS_Y_ROL_GROUPS,
 };
+
+/**
+ * Agrupación visual de los content items de "Tu Día a Día en Imagine Apps"
+ * en 2 secciones con subtítulo (mismo espíritu que groupProcesses de
+ * arriba, pero para content items, que no tienen su propio mecanismo de
+ * agrupación) — evita que 6 cards seguidas se sientan como una lista plana
+ * sin ninguna organización temática. Match por sub-string sobre el título,
+ * igual criterio que ProcessGroupDef.
+ */
+const BIENESTAR_CONTENT_TITLES = ["Vacaciones", "Citas Médicas", "Cumpleaños"];
+
+export function contentItemSection(title: string): "Reglas y Herramientas" | "Bienestar y Permisos" {
+  return BIENESTAR_CONTENT_TITLES.some((t) => title.includes(t)) ? "Bienestar y Permisos" : "Reglas y Herramientas";
+}
 
 export type GroupedProcesses<T> = { name: string; processes: T[] };
 
