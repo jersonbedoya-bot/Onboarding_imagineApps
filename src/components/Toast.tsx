@@ -33,9 +33,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             role="status"
-            className="flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white shadow-lg"
+            className="flex items-center gap-2 rounded-lg bg-card px-5 py-3 text-sm font-semibold text-ink shadow-lg"
           >
-                        <Icon name="check" size="md" className="text-success" />
+            <Icon name="check" size="lg" className="text-success" />
             {toast.text}
           </div>
         ))}

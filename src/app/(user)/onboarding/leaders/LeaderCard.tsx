@@ -58,8 +58,8 @@ export function LeaderCard({ leader, onPlay }: { leader: LeaderCardData; onPlay:
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-0.5 p-4">
-        <h3 className="font-display text-base font-semibold leading-snug text-ink">{leader.name}</h3>
+      <div className="flex flex-1 flex-col gap-0.5 p-4 xl:p-5">
+        <h3 className="font-display text-base font-semibold leading-snug text-ink xl:text-lg">{leader.name}</h3>
         <p className="text-sm text-ink-soft">{leader.title}</p>
       </div>
     </div>

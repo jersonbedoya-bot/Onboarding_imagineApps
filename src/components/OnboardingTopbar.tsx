@@ -31,19 +31,19 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3 lg:px-12">
-        <Link href="/onboarding" className="font-display text-base font-bold text-ink">
+      <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
+        <Link href="/onboarding" className="font-display text-base font-bold text-ink xl:text-lg">
           imagine<span className="text-brand">.</span>
         </Link>
 
         <div className="hidden min-w-0 flex-1 items-center gap-3 sm:flex">
-          <div className="max-w-[220px] flex-1">
+          <div className="max-w-[220px] flex-1 xl:max-w-xs">
             <ProgressBar value={(completedPhases / totalPhases) * 100} label={`${completedPhases}/${totalPhases}`} />
           </div>
-          <span className="whitespace-nowrap text-xs text-ink-soft">{phaseLabel}</span>
+          <span className="whitespace-nowrap text-xs text-ink-soft xl:text-sm">{phaseLabel}</span>
         </div>
 
-        <nav className="ml-auto flex items-center gap-1">
+        <nav className="ml-auto flex items-center gap-1 xl:gap-2">
           <TopbarLink href="/onboarding/leaders" active={pathname === "/onboarding/leaders"}>
             Nuestro equipo
           </TopbarLink>
@@ -62,7 +62,7 @@ function TopbarLink({ href, active, children }: { href: string; active: boolean;
     <Link
       href={href}
       className={cn(
-        "whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors",
+        "whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors xl:px-3 xl:py-2 xl:text-sm",
         active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-brand-tint hover:text-brand-strong",
       )}
     >

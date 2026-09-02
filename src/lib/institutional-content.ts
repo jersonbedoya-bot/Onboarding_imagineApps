@@ -1,21 +1,23 @@
 /**
- * Layout especial para 2 content items institucionales de Fase 01: "Hitos
- * que nos Definieron" se pinta como línea de tiempo (HistoryTimeline) y
- * "Proyectos de Alto Impacto" como grilla de cards (ImpactProjectsGrid), en
- * vez del render de texto plano de MarkdownContent — mismo patrón de match
- * por título ya usado en pending-content.ts, sin agregar un tipo de
- * content_item nuevo solo para estos 2 (contenido institucional fijo, no
- * operativo, que no necesita su propio esquema).
+ * Layout especial para 3 content items institucionales de Fase 01: "Hitos
+ * que nos Definieron" se pinta como línea de tiempo (HistoryTimeline),
+ * "Proyectos de Alto Impacto" y "Principios No Negociables" como grilla de
+ * cards (ImpactProjectsGrid / NonNegotiablesGrid), en vez del render de
+ * texto plano de MarkdownContent — mismo patrón de match por título ya
+ * usado en pending-content.ts, sin agregar un tipo de content_item nuevo
+ * solo para estos 3 (contenido institucional fijo, no operativo, que no
+ * necesita su propio esquema).
  *
  * El body en Mongo sigue siendo Markdown editable desde el admin: una lista
- * con formato fijo (`- **A — B**: C` / `- **A** (B): C`). Si el admin lo
- * edita y el formato deja de calzar, el parser devuelve `null` y el caller
- * cae al render de MarkdownContent normal — nunca se rompe la vista, en el
- * peor caso se pierde el layout especial.
+ * con formato fijo (`- **A — B**: C` / `- **A** (B): C` / `- **A:** B`). Si
+ * el admin lo edita y el formato deja de calzar, el parser devuelve `null` y
+ * el caller cae al render de MarkdownContent normal — nunca se rompe la
+ * vista, en el peor caso se pierde el layout especial.
  */
 
 const HISTORY_TIMELINE_TITLE = "Hitos que nos Definieron";
 const IMPACT_PROJECTS_TITLE = "Proyectos de Alto Impacto";
+const NON_NEGOTIABLES_TITLE = "Principios No Negociables";
 
 export function isHistoryTimelineContent(title: string): boolean {
   return title.includes(HISTORY_TIMELINE_TITLE);
@@ -23,6 +25,10 @@ export function isHistoryTimelineContent(title: string): boolean {
 
 export function isImpactProjectsContent(title: string): boolean {
   return title.includes(IMPACT_PROJECTS_TITLE);
+}
+
+export function isNonNegotiablesContent(title: string): boolean {
+  return title.includes(NON_NEGOTIABLES_TITLE);
 }
 
 export type TimelineItem = { year: string; title: string; description: string };
@@ -61,4 +67,23 @@ export function parseImpactProjects(body: string): ImpactProject[] | null {
     return { client, sector, description };
   });
   return items.every((item): item is ImpactProject => item !== null) ? items : null;
+}
+
+export type NonNegotiable = { title: string; description: string };
+const NON_NEGOTIABLE_LINE = /^[-*]\s*\*\*(.+?):\*\*\s*(.+)$/;
+
+export function parseNonNegotiables(body: string): NonNegotiable[] | null {
+  const lines = body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("-") || line.startsWith("*"));
+  if (lines.length === 0) return null;
+
+  const items = lines.map((line) => {
+    const match = NON_NEGOTIABLE_LINE.exec(line);
+    if (!match) return null;
+    const [, title, description] = match;
+    return { title, description };
+  });
+  return items.every((item): item is NonNegotiable => item !== null) ? items : null;
 }

@@ -9,7 +9,7 @@ import type { ReactNode, SVGProps } from "react";
  * StepIndicator, ArchivedSection, etc. Este componente centraliza TODOS los
  * iconos con:
  *  - Un único viewBox (24×24) y trazo por defecto 2.
- *  - Tamaño por token (sm=14px, md=16px, lg=20px) desde una sola constante.
+ *  - Tamaño por token (sm=14px, md=16px, lg=20px, xl=28px) desde una sola constante.
  *  - `color: currentColor` para que herede el color del contexto.
  *
  * Uso: <Icon name="edit" size="sm" />
@@ -36,13 +36,14 @@ export type IconName =
 
 type IconProps = Omit<SVGProps<SVGSVGElement>, "name"> & {
   name: IconName;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 };
 
 const SIZE_CLASSES: Record<NonNullable<IconProps["size"]>, string> = {
   sm: "h-3.5 w-3.5",
   md: "h-4 w-4",
   lg: "h-5 w-5",
+  xl: "h-7 w-7",
 };
 
 /** Los paths reutilizan el MISMO trazo (strokeWidth={2}) y strokeLinecap/join "round". */

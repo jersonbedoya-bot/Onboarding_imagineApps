@@ -64,7 +64,7 @@ export function UserActions({ userId, status, functionalRoleId, roles, isSelf }:
         value={functionalRoleId ?? ""}
         disabled={isPending}
         onChange={(event) => handleRoleChange(event.target.value)}
-        className="w-auto py-1.5 text-xs"
+        className="w-auto min-w-[9rem] py-1.5 text-xs"
       >
         {roles.map((role) => (
           <option key={role.id} value={role.id}>
@@ -77,7 +77,7 @@ export function UserActions({ userId, status, functionalRoleId, roles, isSelf }:
         className={status === "ACTIVE" ? "px-3 py-1.5 text-xs text-danger hover:bg-danger-soft" : "px-3 py-1.5 text-xs"}
         isLoading={isPending}
         disabled={isSelf}
-                        onClick={handleToggleStatus}
+        onClick={handleToggleStatus}
       >
         {status === "ACTIVE" ? (
           <>

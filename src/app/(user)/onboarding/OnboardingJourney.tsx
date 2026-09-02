@@ -15,11 +15,19 @@ import { PendingBadge } from "@/components/PendingBadge";
 import { TeamTeaser } from "@/components/TeamTeaser";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
 import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
+import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
 import { LeadersBoard } from "./leaders/LeadersBoard";
 import type { LeaderCardData } from "./leaders/LeaderCard";
 import { groupProcesses, FASE_02_STAGE_KEY, FASE_04_STAGE_KEY, type GroupedProcesses } from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
-import { isHistoryTimelineContent, isImpactProjectsContent, parseTimelineItems, parseImpactProjects } from "@/lib/institutional-content";
+import {
+  isHistoryTimelineContent,
+  isImpactProjectsContent,
+  isNonNegotiablesContent,
+  parseTimelineItems,
+  parseImpactProjects,
+  parseNonNegotiables,
+} from "@/lib/institutional-content";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
@@ -69,7 +77,7 @@ export function OnboardingJourney({
         gerencia={gerencia}
       />
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 xl:mt-12 xl:pt-8">
         {prevStage ? (
           <Button variant="secondary" className="px-4 py-2 text-sm" onClick={() => setIndex(index - 1)}>
             ‹ Módulo anterior
@@ -133,8 +141,8 @@ function StageSection({
 
   return (
     <section>
-      <div className="mb-8 flex items-start gap-4">
-        <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong font-display text-xl font-bold tabular-nums text-white shadow-md">
+      <div className="mb-8 flex items-start gap-4 xl:mb-10 xl:gap-6">
+        <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong font-display text-xl font-bold tabular-nums text-white shadow-md xl:h-16 xl:w-16 xl:text-2xl">
           {String(index + 1).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1 pt-1.5">
@@ -145,14 +153,14 @@ function StageSection({
               {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
             </div>
           )}
-          <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">{stage.title}</h2>
+          <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">{stage.title}</h2>
         </div>
       </div>
 
       {stage.readOnly ? (
         <p className="mb-6 text-sm text-ink-soft">Contenido de consulta — no requiere acciones.</p>
       ) : (
-        <div className="mb-2 max-w-xs">
+        <div className="mb-2 max-w-xs xl:max-w-sm">
           <ProgressBar
             value={stage.totalCompletable > 0 ? (stage.completedCount / stage.totalCompletable) * 100 : 100}
             label={`${stage.completedCount}/${stage.totalCompletable}`}
@@ -172,10 +180,11 @@ function StageSection({
             <div className="flex flex-col gap-5">
               {stage.items.map((item) => {
                 const pending = isPendingContentItem(item.title);
-                // Fase 01 (Bloque de historia): "Hitos que nos Definieron" y
-                // "Proyectos de Alto Impacto" son 2 content items fijos con
-                // layout propio (timeline / grilla) en vez de texto plano —
-                // ver institutional-content.ts. La gerencia (scope COMMON)
+                // Fase 01 (Bloque de historia): "Hitos que nos Definieron",
+                // "Proyectos de Alto Impacto" y "Principios No Negociables"
+                // son 3 content items fijos con layout propio (timeline /
+                // grilla) en vez de texto plano — ver institutional-content.ts.
+                // La gerencia (scope COMMON)
                 // se embebe justo después de los hitos, como pidió el
                 // usuario ("origen y trayectoria... ahí las cards de la
                 // gerencia"), reusando el mismo LeadersBoard de /leaders.
@@ -183,12 +192,14 @@ function StageSection({
                 const timelineItems = isTimeline && item.body ? parseTimelineItems(item.body) : null;
                 const isProjects = isImpactProjectsContent(item.title);
                 const projectItems = isProjects && item.body ? parseImpactProjects(item.body) : null;
+                const isNonNegotiables = isNonNegotiablesContent(item.title);
+                const nonNegotiableItems = isNonNegotiables && item.body ? parseNonNegotiables(item.body) : null;
                 return (
                   <Fragment key={item.id}>
                     <Card className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <span className="flex flex-wrap items-center gap-2">
-                          <p className="font-display text-xl font-semibold leading-snug text-ink">{item.title}</p>
+                          <p className="font-display text-xl font-semibold leading-snug text-ink xl:text-2xl">{item.title}</p>
                           {pending && <PendingBadge />}
                         </span>
                         {item.requirement === "OBLIGATORY" && (
@@ -204,6 +215,8 @@ function StageSection({
                           <HistoryTimeline items={timelineItems} />
                         ) : projectItems ? (
                           <ImpactProjectsGrid projects={projectItems} />
+                        ) : nonNegotiableItems ? (
+                          <NonNegotiablesGrid items={nonNegotiableItems} />
                         ) : (
                           item.body && <MarkdownContent>{item.body}</MarkdownContent>
                         )}
@@ -312,7 +325,7 @@ function ProcessCard({ process }: { process: JourneyProcess }) {
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="font-display text-xl font-semibold text-ink">{process.title}</h3>
+        <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
         {pending && <PendingBadge />}
       </div>
       {pending && (
@@ -327,7 +340,7 @@ function ProcessCard({ process }: { process: JourneyProcess }) {
           return (
             <li key={step.id} className="flex flex-col gap-2 border-b border-line pb-4 last:border-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-ink">
+                <span className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-ink xl:text-lg">
                   {step.title}
                   {stepPending && <PendingBadge />}
                 </span>

@@ -1,4 +1,10 @@
-﻿# CONTINUE.md — Imagine Apps Onboarding Platform
+---
+name: "Project Overview - Imagine Apps Onboarding Platform"
+description: "Guia operativa condensada del proyecto para agentes de IA (Next.js, MongoDB, arquitectura y convenciones)"
+alwaysApply: true
+---
+
+# CONTINUE.md — Imagine Apps Onboarding Platform
 
 > **Purpose**: This file is the primary project guide for AI agents (and humans) working in this codebase. It is loaded automatically by Continue when working in this repository. Always read `DOCUMENTATION.md` (root) for the authoritative, exhaustive technical reference; this file is the condensed operational playbook.
 

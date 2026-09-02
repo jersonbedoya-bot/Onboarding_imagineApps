@@ -61,8 +61,8 @@ function LeaderSection({
 }) {
   return (
     <section id={id} className="scroll-mt-8">
-      <h2 className="mb-4 font-display text-xl font-semibold text-ink">{title}</h2>
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="mb-4 font-display text-xl font-semibold text-ink xl:text-2xl">{title}</h2>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {leaders.map((leader) => (
           <LeaderCard key={leader.id} leader={leader} onPlay={onPlay} />
         ))}

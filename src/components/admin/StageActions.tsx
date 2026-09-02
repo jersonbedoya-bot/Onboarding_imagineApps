@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, LinkButton } from "@/components/Button";
 import { Modal } from "@/components/Modal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { useResourceActions } from "@/lib/admin/useResourceActions";
 import { StageForm, type StageFormInitial } from "@/components/admin/StageForm";
 import { StatusActionButtons } from "./StatusActionButtons";
@@ -19,14 +20,17 @@ export type StageActionItem = {
 
 type StageOption = { id: string; title: string };
 
-// Sin "Borrar": las etapas/la ruta no tienen borrado permanente por diseño
-// (ver CLAUDE.md y BACKLOG.md — archivar la ruta no tiene vuelta atrás).
 // `viewHref` es opcional: solo se pasa desde la lista de módulos (ahí hace
 // falta un botón para entrar al detalle); en el propio detalle del módulo
 // no aplica, ya estás ahí.
 export function StageActions({ item, allStages, viewHref }: { item: StageActionItem; allStages: StageOption[]; viewHref?: string }) {
   const { isPending, error, run } = useResourceActions("/api/stages");
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  async function deleteItem() {
+    if (await run("delete", item.id)) setIsConfirmingDelete(false);
+  }
 
   const initial: StageFormInitial = {
     title: item.title,
@@ -53,7 +57,7 @@ export function StageActions({ item, allStages, viewHref }: { item: StageActionI
         onPublish={() => run("publish", item.id)}
         onArchive={() => run("archive", item.id)}
         onReactivate={() => run("reactivate", item.id)}
-        onDelete={() => {}}
+        onDelete={() => setIsConfirmingDelete(true)}
         compact
       />
       {error && (
@@ -65,6 +69,15 @@ export function StageActions({ item, allStages, viewHref }: { item: StageActionI
       <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar módulo">
         <StageForm existingStages={allStages} mode="edit" stageId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
       </Modal>
+
+      <ConfirmModal
+        open={isConfirmingDelete}
+        title="Borrar módulo para siempre"
+        description={`"${item.title}" se va a borrar para siempre. Esta acción no se puede deshacer.`}
+        isLoading={isPending}
+        onConfirm={deleteItem}
+        onClose={() => setIsConfirmingDelete(false)}
+      />
     </div>
   );
 }

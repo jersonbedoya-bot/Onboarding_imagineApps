@@ -11,26 +11,27 @@
  * que haya que tocar ningún componente.
  */
 @theme {
-  /* Paleta extraída del CSS real de imagineapps.co (--theme-color-*):
-     link/hover para brand, title/text para ink, bg_color/bd_color para
-     paper/line. brand-soft/brand-tint no tienen equivalente directo en el
-     sitio (solo da el naranja "vívido" y su hover) — se calculan como el
-     mismo naranja mezclado con blanco, mismo criterio que antes. */
-  --color-brand: #cd3a00;
-  --color-brand-strong: #eb4604;
-  --color-brand-soft: #fce3d9;
-  --color-brand-tint: #fdf0eb;
+  /* Paleta oscura de la maqueta de referencia (imagine-apps-onboarding/
+     assets/css/styles.css) — violeta/naranja sobre fondo casi negro,
+     decisión explícita del usuario tras reconsiderar la paleta clara del
+     sitio oficial. brand-soft/brand-tint quedan como rgba (tintes de
+     naranja sobre oscuro, no mezclas con blanco) porque un token CSS
+     acepta cualquier función de color. */
+  --color-brand: #e94800;
+  --color-brand-strong: #ff5500;
+  --color-brand-soft: rgba(255, 85, 0, 0.16);
+  --color-brand-tint: rgba(255, 85, 0, 0.08);
 
-  --color-ink: #2e2325;
-  --color-ink-soft: #86898c;
-  --color-paper: #ebebeb;
-  --color-card: #ffffff;
-  --color-line: #d7d9ca;
+  --color-ink: #f7f1ff;
+  --color-ink-soft: #dbcff5;
+  --color-paper: #0a051b;
+  --color-card: #1b1130;
+  --color-line: rgba(247, 241, 255, 0.1);
 
   --color-success: #2e7d5b;
-  --color-success-soft: #eaf5ef;
+  --color-success-soft: rgba(46, 125, 91, 0.18);
   --color-danger: #d4634a;
-  --color-danger-soft: #fbeae6;
+  --color-danger-soft: rgba(212, 99, 74, 0.18);
 
   /* Sobreescriben la escala de radios/sombras por defecto de Tailwind:
      rounded-sm/md/lg/xl y shadow-sm/md/lg ya salen con el look de marca. */
@@ -39,20 +40,44 @@
   --radius-lg: 18px;
   --radius-xl: 24px;
 
-  --shadow-sm: 0 1px 2px rgba(46, 35, 37, 0.04);
-  --shadow-md: 0 1px 2px rgba(46, 35, 37, 0.04), 0 8px 28px -12px rgba(235, 70, 4, 0.16);
-  --shadow-lg: 0 2px 4px rgba(46, 35, 37, 0.05), 0 24px 60px -20px rgba(235, 70, 4, 0.22);
+  --shadow-sm: 0 6px 18px rgba(6, 3, 14, 0.3);
+  --shadow-md: 0 1px 2px rgba(6, 3, 14, 0.3), 0 12px 34px -12px rgba(6, 3, 14, 0.38);
+  --shadow-lg: 0 2px 4px rgba(6, 3, 14, 0.3), 0 24px 60px -20px rgba(255, 85, 0, 0.22);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
+/* Degradado real de imagineapps.co (inspeccionado en vivo, sección hero de
+   /es): negro-violeta hacia violeta intenso. Va en un pseudo-elemento
+   `fixed` propio, no en `background-attachment: fixed` del body — ese
+   approach se rompe en páginas largas (el gradiente queda anclado al
+   viewport inicial y el resto del scroll se ve sin fondo). */
 body {
+  position: relative;
   background-color: var(--color-paper);
   color: var(--color-ink);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(145deg, var(--color-paper) 52%, #351986 100%);
 }
 
 ::selection {
   background: var(--color-brand);
   color: #fff;
+}
+
+/* Mismo gradiente de texto violeta→naranja que "SOLUCIONES DE IA" en el
+   sitio real — para headlines destacados, no para uso general (rompe si
+   el fondo detrás no es oscuro, ya que el texto queda transparente). */
+.text-gradient-brand {
+  background: linear-gradient(90deg, #7b4dff 0%, var(--color-brand-strong) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }

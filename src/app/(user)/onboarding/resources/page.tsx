@@ -19,13 +19,13 @@ export default async function OnboardingResourcesPage() {
   const recursos = journey.stages.find((stage) => stage.key === "recursos");
 
   return (
-    <main className="mx-auto max-w-3xl px-6 pb-24 pt-10 lg:px-12">
+    <main className="mx-auto max-w-3xl px-6 pb-24 pt-10 lg:px-12 xl:max-w-4xl">
       <header className="mb-10 text-center">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
           Recursos
         </span>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">Consulta libre</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink-soft">
+        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">Consulta libre</h1>
+        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">
           No forma parte del recorrido obligatorio — volvé acá cuando lo necesites.
         </p>
       </header>

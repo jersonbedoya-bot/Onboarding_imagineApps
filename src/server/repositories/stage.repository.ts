@@ -82,6 +82,12 @@ export async function updateStatus(
   );
 }
 
+/** Borrado permanente — solo debe llamarse tras validar en el Service que la etapa está ARCHIVED y sin hijos. */
+export async function remove(tenantId: ObjectId, stageId: ObjectId): Promise<boolean> {
+  const result = await (await collection()).deleteOne({ _id: stageId, tenantId });
+  return result.deletedCount === 1;
+}
+
 export async function maxOrder(tenantId: ObjectId, routeId: ObjectId): Promise<number> {
   const last = await (await collection())
     .find({ tenantId, routeId })

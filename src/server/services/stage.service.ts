@@ -4,6 +4,8 @@ import { slugify } from "@/lib/slug";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import * as stageRepository from "@/server/repositories/stage.repository";
+import * as contentRepository from "@/server/repositories/content.repository";
+import * as processRepository from "@/server/repositories/process.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
 import { ensureRoute } from "@/server/services/route.service";
 
@@ -121,6 +123,42 @@ export async function archiveStage(actingAdmin: RequestIdentity, stageId: Object
   });
 
   return updated;
+}
+
+/**
+ * Borrado permanente — ver comentario equivalente en content.service.ts.
+ * Solo permitido sobre una etapa ya ARCHIVED, y solo si ya no le quedan
+ * content items ni procesos (de ningún status): una etapa es "hoja" en
+ * cuanto a cascada de borrado (no se implementó borrado en cascada), así
+ * que primero hay que borrar cada hijo individualmente.
+ */
+export async function deleteStage(actingAdmin: RequestIdentity, stageId: ObjectId): Promise<void> {
+  const current = await stageRepository.findById(actingAdmin.tenantId, stageId);
+  if (!current) throw new NotFoundError();
+  if (current.status !== "ARCHIVED") {
+    throw new ValidationError("Solo se puede borrar un módulo que ya esté archivado.");
+  }
+
+  const remainingContent = await contentRepository.listByStage(actingAdmin.tenantId, stageId);
+  if (remainingContent.length > 0) {
+    throw new ValidationError("Este módulo todavía tiene contenido — borralo primero antes de borrar el módulo.");
+  }
+
+  const remainingProcesses = await processRepository.listByStage(actingAdmin.tenantId, stageId);
+  if (remainingProcesses.length > 0) {
+    throw new ValidationError("Este módulo todavía tiene procesos — borralos primero antes de borrar el módulo.");
+  }
+
+  const deleted = await stageRepository.remove(actingAdmin.tenantId, stageId);
+  if (!deleted) throw new NotFoundError();
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "STAGE_DELETED",
+    resource: "stage",
+    resourceId: stageId,
+  });
 }
 
 /** Reactivar: ARCHIVED -> DRAFT. Nunca directo a PUBLISHED — hay que publicarla de nuevo explícitamente. */

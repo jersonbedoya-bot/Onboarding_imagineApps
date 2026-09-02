@@ -18,13 +18,13 @@ export default async function OnboardingLeadersPage() {
   const equipo = leaders.filter((leader) => leader.scope === "ROLE");
 
   return (
-    <main className="mx-auto max-w-5xl px-6 pb-24 pt-10 lg:px-12">
+    <main className="mx-auto max-w-5xl px-6 pb-24 pt-10 lg:px-12 xl:max-w-6xl xl:px-16">
       <header className="mb-10 text-center">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
           Nuestro equipo
         </span>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">Conocé a tus líderes</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink-soft">Podés volver a esta página cuando quieras desde el menú lateral.</p>
+        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">Conocé a tus líderes</h1>
+        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">Podés volver a esta página cuando quieras desde el menú lateral.</p>
       </header>
 
       {leaders.length === 0 ? (

@@ -51,16 +51,16 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const selectedStageId = requestedStageId ?? journey.currentStageId;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 pb-24 pt-10 lg:px-12">
+    <main className="mx-auto max-w-5xl px-6 pb-24 pt-10 lg:px-12 xl:max-w-6xl xl:px-16">
       {journey.currentStageId === null ? (
         <FinishCard />
       ) : (
-        <header className="mb-10 rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-8 py-10 sm:px-12">
+        <header className="mb-10 rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-8 py-10 sm:px-12 xl:py-14">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
             Tu recorrido
           </span>
-          <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">{routeHeader.headline}</h1>
-          {routeHeader.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft">{routeHeader.subtitle}</p>}
+          <h1 className="text-gradient-brand font-display text-4xl font-semibold leading-tight sm:text-5xl xl:text-6xl">{routeHeader.headline}</h1>
+          {routeHeader.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft xl:text-lg">{routeHeader.subtitle}</p>}
         </header>
       )}
 
@@ -77,15 +77,15 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
 
 function FinishCard() {
   return (
-    <div className="mb-10 overflow-hidden rounded-xl bg-gradient-to-br from-ink to-[#201a1a] p-10 text-center text-white shadow-lg">
+    <div className="mb-10 overflow-hidden rounded-xl bg-gradient-to-br from-brand-strong to-brand p-10 text-center text-white shadow-lg xl:p-16">
       <TerminalCelebration />
-      <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-xl bg-brand shadow-lg">
-        <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8" aria-hidden="true">
+      <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-xl bg-card shadow-lg xl:h-20 xl:w-20">
+        <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8 xl:h-10 xl:w-10" aria-hidden="true">
           <path d="M12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.7 5.8 21 7 14 2 9.3 9 8.5z" fill="#fff" />
         </svg>
       </div>
-      <h1 className="font-display text-3xl font-semibold sm:text-4xl">¡Completaste tu onboarding!</h1>
-      <p className="mx-auto mt-3 max-w-md text-white/75">
+      <h1 className="font-display text-3xl font-semibold sm:text-4xl xl:text-5xl">¡Completaste tu onboarding!</h1>
+      <p className="mx-auto mt-3 max-w-md text-white/75 xl:text-lg">
         Recorriste todas las etapas. El contenido sigue disponible acá abajo como consulta.
       </p>
     </div>

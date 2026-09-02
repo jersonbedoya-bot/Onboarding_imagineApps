@@ -1,7 +1,7 @@
 import type { FormHTMLAttributes, HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-const CARD_CLASSES = "rounded-lg border border-line bg-card p-6 shadow-md";
+const CARD_CLASSES = "rounded-lg border border-line bg-card p-6 shadow-md xl:p-8";
 
 export type CardProps = HTMLAttributes<HTMLDivElement> & {
   as?: "div";
