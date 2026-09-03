@@ -232,9 +232,7 @@ Organiza tu Google Calendar con la metodología de Timeboxing: asignarle a cada 
 - [ ] Si tu horario se interrumpe con regularidad por algo además del almuerzo, registra también ese quiebre.
 - [ ] Categoriza tu calendario por colores según el tipo de actividad o área.
 
-> **Dato clave:** tu calendario es la bitácora real de tu trabajo diario — mantenlo actualizado.
-
-[Ver video: consejos para llevar tu calendario](https://youtube.com/watch?v=nwgHM0f07P0)`,
+> **Dato clave:** tu calendario es la bitácora real de tu trabajo diario — mantenlo actualizado.`,
       },
       {
         title: "🌴 Política de Vacaciones",
@@ -248,7 +246,10 @@ Organiza tu Google Calendar con la metodología de Timeboxing: asignarle a cada 
 
 - [ ] Habla con tu líder directo (CEO, CTO, Directora de Operaciones) o tu PM y propón fechas tentativas.
 - [ ] Definan juntos las fechas exactas, asegurando que no se vean afectados entregables ni compromisos del equipo.
-- [ ] Formaliza la solicitud por correo con asunto "Solicitud de vacaciones // [Tu nombre]", indicando fechas de inicio y fin, y si son días hábiles, consecutivos o fraccionados. Copia a tu líder, a People (kelly.ospina@imagineapps.co), a la Directora de Operaciones y al CEO.
+- [ ] Ingresa a Magi, entra al módulo de solicitudes y registra ahí tu solicitud de vacaciones con las fechas acordadas.
+- [ ] Espera la aprobación de tu líder y de la Directora de Operaciones — la solicitud queda formalizada solo cuando ambas aprueban.
+
+[Ir a Magi](https://magi.imagineapps.co/login)
 
 ### Importante
 

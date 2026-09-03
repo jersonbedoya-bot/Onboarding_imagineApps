@@ -144,6 +144,10 @@ export function OnboardingJourney({
   const quizItem = stage.items.find((item) => isQuizContent(item.title));
   const quizQuestions = quizItem?.body ? parseQuizQuestions(quizItem.body) : null;
   const [quizGateOpen, setQuizGateOpen] = useState(false);
+  // Arranca en false y QuizBlock lo vuelve a poner en false apenas se monta
+  // (answeredCount arranca en 0) — cada apertura del modal es un quiz
+  // fresco, así que no hace falta resetear esto a mano al abrir/cerrar.
+  const [quizAllAnswered, setQuizAllAnswered] = useState(false);
 
   function advance() {
     setQuizGateOpen(false);
@@ -220,10 +224,15 @@ export function OnboardingJourney({
 
       {quizQuestions && (
         <Modal open={quizGateOpen} onClose={() => setQuizGateOpen(false)} title={quizItem?.title} maxWidthClassName="max-w-2xl">
-          <QuizBlock questions={quizQuestions} />
-          <Button className="mt-5 w-full justify-center" onClick={advance}>
+          <QuizBlock questions={quizQuestions} onAllAnsweredChange={setQuizAllAnswered} />
+          <Button className="mt-5 w-full justify-center" onClick={advance} disabled={!quizAllAnswered}>
             {nextStage ? "Continuar al siguiente módulo ›" : "🎉 Finalizar Onboarding"}
           </Button>
+          {/* Pedido explícito del usuario: no se puede avanzar sin responder
+              las N preguntas (no importa si acertaste, solo que respondiste
+              todas) — antes el botón de acá abajo quedaba habilitado desde
+              que se abría el modal. */}
+          {!quizAllAnswered && <p className="mt-2 text-center text-xs text-ink-soft">Responde todas las preguntas para continuar.</p>}
         </Modal>
       )}
     </div>
@@ -429,7 +438,7 @@ function StageSection({
             <TeamTeaser
               href="/onboarding/leaders#equipo"
               title={`Conoce a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
-              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu área — puedes volver cuando quieras.`}
+              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu equipo — puedes volver cuando quieras.`}
             />
           )}
 

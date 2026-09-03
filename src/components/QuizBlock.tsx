@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { QuizQuestion } from "@/lib/institutional-content";
 import { cn } from "@/lib/cn";
@@ -9,17 +9,29 @@ const LETTERS = ["A", "B", "C", "D"];
 
 /**
  * Quiz de opción múltiple, divertido y sin evaluación real (ver
- * institutional-content.ts): responder no persiste nada ni afecta el
- * progreso — el content item que lo contiene ya se marca visto por
- * ContentViewTracker como cualquier otro item INFORMATIONAL. Es puramente
- * cliente (useState local por pregunta), a propósito: mismo criterio que la
- * maqueta de referencia (handleQuizAnswer en app.js), donde el objetivo es
- * el momento lúdico, no un registro de "quién sabe qué".
+ * institutional-content.ts): la respuesta CORRECTA no se exige — cualquier
+ * opción cuenta como "respondida" — solo se exige responder las N
+ * preguntas (pedido explícito del usuario, ver el gate en
+ * OnboardingJourney: "Continuar al siguiente módulo" queda deshabilitado
+ * hasta `answeredCount === questions.length`). Nada de esto persiste en
+ * `user_progress` ni pasa por el backend — es puramente cliente (useState
+ * local por pregunta, se resetea si el modal se cierra y se reabre), mismo
+ * criterio que la maqueta de referencia (handleQuizAnswer en app.js): el
+ * objetivo sigue siendo el momento lúdico, no un registro de "quién sabe
+ * qué" — solo que ahora además hace de "cierre" obligatorio del módulo.
  */
-export function QuizBlock({ questions }: { questions: QuizQuestion[] }) {
+export function QuizBlock({ questions, onAllAnsweredChange }: { questions: QuizQuestion[]; onAllAnsweredChange?: (allAnswered: boolean) => void }) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const answeredCount = Object.keys(answers).length;
   const correctCount = questions.filter((q, i) => answers[i] === q.correctIndex).length;
+
+  useEffect(() => {
+    // onAllAnsweredChange no entra en las deps a propósito: es un setState
+    // del padre, su identidad cambia en cada render de OnboardingJourney sin
+    // que eso deba re-disparar este efecto.
+    onAllAnsweredChange?.(answeredCount === questions.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answeredCount, questions.length]);
 
   return (
     <div className="flex flex-col gap-4">
