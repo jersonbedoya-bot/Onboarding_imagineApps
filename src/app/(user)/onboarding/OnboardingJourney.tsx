@@ -45,6 +45,28 @@ type Journey = Awaited<ReturnType<typeof resolveJourney>>;
 type JourneyStage = Journey["stages"][number];
 type JourneyProcess = JourneyStage["processes"][number];
 
+// Duración del scroll-al-tope al cambiar de módulo — el `behavior: "smooth"`
+// nativo (usado antes) no expone forma de ajustar su velocidad, y se sentía
+// muy brusco. 900ms con ease-in-out se ve pausado sin sentirse lento.
+const SCROLL_TO_TOP_DURATION_MS = 900;
+
+function easeInOutQuad(t: number) {
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+}
+
+function smoothScrollToTop(durationMs: number) {
+  const startY = window.scrollY;
+  if (startY === 0) return;
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const progress = Math.min((now - startTime) / durationMs, 1);
+    window.scrollTo(0, startY * (1 - easeInOutQuad(progress)));
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 /**
  * Indicador de solo lectura para un paso ya completado — sin acción
  * propia, ya que dentro de un proceso el completado se dispara una sola
@@ -144,6 +166,11 @@ export function OnboardingJourney({
   // sentía como "ya pasé de largo" en vez de una transición real. Se salta
   // el primer render (montaje inicial, no un cambio de módulo) y respeta
   // prefers-reduced-motion (mismo criterio que .animate-stage-in en globals.css).
+  //
+  // El scroll nativo (`behavior: "smooth"`) no tiene forma de ajustarle la
+  // velocidad — el usuario lo sintió muy brusco. Se reemplaza por una
+  // animación propia con duración fija y ease-in-out, bastante más pausada
+  // (ver SCROLL_TO_TOP_DURATION_MS).
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -151,7 +178,11 @@ export function OnboardingJourney({
       return;
     }
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
+    if (prefersReducedMotion) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    } else {
+      smoothScrollToTop(SCROLL_TO_TOP_DURATION_MS);
+    }
   }, [index]);
 
   return (
@@ -306,7 +337,7 @@ function StageSection({
                 const pending = isPendingContentItem(item.title);
                 // Fase 01 (Bloque de historia): "Hitos que nos Definieron",
                 // "Proyectos de Alto Impacto", "Principios No Negociables" y
-                // los valores dentro de "Quiénes Somos y Nuestra Visión" son
+                // los valores dentro de "Nuestra Visión" son
                 // 4 content items fijos con layout propio (timeline / grilla
                 // / mini-cards clickeables) en vez de texto plano — ver
                 // institutional-content.ts. La gerencia (scope COMMON) se
@@ -385,7 +416,7 @@ function StageSection({
                     </Card>
                     {timelineItems && gerencia.length > 0 && (
                       <Card>
-                        <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} />
+                        <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} variant="card" />
                       </Card>
                     )}
                   </Fragment>

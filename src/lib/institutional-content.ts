@@ -3,7 +3,7 @@
  * que nos Definieron" se pinta como línea de tiempo (HistoryTimeline),
  * "Proyectos de Alto Impacto" y "Principios No Negociables" como grilla de
  * cards (ImpactProjectsGrid / NonNegotiablesGrid), los 5 valores dentro de
- * "Quiénes Somos y Nuestra Visión" como mini-cards clickeables
+ * "Nuestra Visión" como mini-cards clickeables
  * (CultureValuesGrid), y un quiz de opción múltiple como el de
  * "Pon a Prueba lo que Aprendiste" (QuizBlock) — en vez del render de texto
  * plano de MarkdownContent para esas partes. Mismo patrón de match por
@@ -19,12 +19,16 @@
  * más abajo). Si el admin lo edita y el formato deja de calzar, el parser
  * devuelve `null` y el caller cae al render de MarkdownContent normal —
  * nunca se rompe la vista, en el peor caso se pierde el layout especial.
+ * OJO: el match es por TÍTULO — si el admin renombra alguno de estos 5 items
+ * de forma que ya no incluya la constante de abajo, pasa lo mismo (pierde el
+ * layout especial en silencio, sin error visible). Si el título cambia,
+ * hay que actualizar la constante acá.
  */
 
 const HISTORY_TIMELINE_TITLE = "Hitos que nos Definieron";
 const IMPACT_PROJECTS_TITLE = "Proyectos de Alto Impacto";
 const NON_NEGOTIABLES_TITLE = "Principios No Negociables";
-const CULTURE_VALUES_TITLE = "Quiénes Somos y Nuestra Visión";
+const CULTURE_VALUES_TITLE = "Nuestra Visión";
 const QUIZ_TITLE = "Pon a Prueba lo que Aprendiste";
 
 export function isHistoryTimelineContent(title: string): boolean {
