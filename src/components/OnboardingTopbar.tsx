@@ -32,26 +32,42 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
     ? "Recorrido completo"
     : `Fase ${currentIndex >= 0 ? currentIndex + 1 : totalPhases} de ${totalPhases}`;
 
+  const progressValue = (completedPhases / totalPhases) * 100;
+  const progressLabel = `${completedPhases}/${totalPhases}`;
+
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
-        <Link href="/onboarding">
-          <Logo className="text-base xl:text-lg" />
-        </Link>
+      <div className="mx-auto max-w-5xl px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
+        <div className="flex items-center gap-4">
+          <Link href="/onboarding">
+            <Logo className="text-base xl:text-lg" />
+          </Link>
 
-        <div className="hidden min-w-0 flex-1 items-center gap-3 sm:flex">
-          <div className="max-w-[220px] flex-1 xl:max-w-xs">
-            <ProgressBar value={(completedPhases / totalPhases) * 100} label={`${completedPhases}/${totalPhases}`} />
+          <div className="hidden min-w-0 flex-1 items-center gap-3 sm:flex">
+            <div className="max-w-[220px] flex-1 xl:max-w-xs">
+              <ProgressBar value={progressValue} label={progressLabel} />
+            </div>
+            <span className="whitespace-nowrap text-xs text-ink-soft xl:text-sm">{phaseLabel}</span>
           </div>
-          <span className="whitespace-nowrap text-xs text-ink-soft xl:text-sm">{phaseLabel}</span>
+
+          <nav className="ml-auto flex items-center gap-1 xl:gap-2">
+            <TopbarLink href="/onboarding/leaders" active={pathname === "/onboarding/leaders"}>
+              Nuestro equipo
+            </TopbarLink>
+            <UserMenu />
+          </nav>
         </div>
 
-        <nav className="ml-auto flex items-center gap-1 xl:gap-2">
-          <TopbarLink href="/onboarding/leaders" active={pathname === "/onboarding/leaders"}>
-            Nuestro equipo
-          </TopbarLink>
-          <UserMenu />
-        </nav>
+        {/* Debajo de sm el progreso no entra en la misma fila que logo+nav sin
+            amontonarse — antes se ocultaba del todo acá (ver auditoría), así
+            que en mobile no había NINGUNA señal de avance global fija en
+            pantalla. Segunda fila propia, mismo ProgressBar/label que arriba. */}
+        <div className="mt-2 flex items-center gap-3 sm:hidden">
+          <div className="min-w-0 flex-1">
+            <ProgressBar value={progressValue} label={progressLabel} />
+          </div>
+          <span className="whitespace-nowrap text-xs text-ink-soft">{phaseLabel}</span>
+        </div>
       </div>
     </header>
   );

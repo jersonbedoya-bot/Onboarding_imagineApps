@@ -89,7 +89,10 @@ function FinishCard() {
         </svg>
       </div>
       <h1 className="font-display text-3xl font-semibold sm:text-4xl xl:text-5xl">¡Completaste tu onboarding!</h1>
-      <p className="mx-auto mt-3 max-w-md text-white/75 xl:text-lg">
+      {/* text-white/75 medía 2.36–2.77:1 sobre este degradado (falla AA 4.5:1
+          para texto normal) — text-paper sólido da 5.1–6.2:1, sin agregar un
+          color nuevo (mismo token que el resto del sistema). */}
+      <p className="mx-auto mt-3 max-w-md text-paper xl:text-lg">
         Recorriste todas las etapas. El contenido sigue disponible acá abajo como consulta.
       </p>
     </div>

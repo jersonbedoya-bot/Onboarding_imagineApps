@@ -15,6 +15,7 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { PendingBadge } from "@/components/PendingBadge";
 import { TeamTeaser } from "@/components/TeamTeaser";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { TitleIcon } from "@/components/TitleIcon";
 import { ProcessStepsTimeline } from "@/components/ProcessStepsTimeline";
 import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
 import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
@@ -201,18 +202,35 @@ function StageSection({
   return (
     <section>
       <div className="mb-8 xl:mb-10">
+        {/* Mismo vocabulario ("Fase") que el indicador global del topbar —
+            antes decía "Paso X de Y" acá mientras el topbar decía "Fase X de
+            Y" para lo mismo (ver auditoría), y podían mostrar números
+            distintos a la vez si se navega con ?stage= a una etapa que no es
+            la actual del usuario. "Revisando" aclara esa diferencia en vez
+            de dejar que dos cifras convivan sin explicación. */}
         <span className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
           <ClockIcon />
-          Paso {index + 1} de {total}
+          {isCurrent ? `Fase ${index + 1} de ${total}` : `Revisando · Fase ${index + 1} de ${total}`}
         </span>
         {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
             {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
-            {stage.status === "COMPLETE" && <Badge variant="success">Completa</Badge>}
+            {stage.status === "COMPLETE" &&
+              // readOnly (total===0, sin nada obligatorio) queda COMPLETE de
+              // forma vacía apenas se entra, sin ninguna acción del usuario
+              // — "Completa" en verde ahí se leía como un logro que no
+              // existió (ver auditoría). Badge neutral en su lugar.
+              (stage.readOnly ? (
+                <Badge variant="neutral">Consulta disponible</Badge>
+              ) : (
+                <Badge variant="success">Completa</Badge>
+              ))}
           </div>
         )}
-        <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">{stage.title}</h2>
+        <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">
+          <TitleIcon title={stage.title} size="text-3xl xl:text-4xl" />
+        </h2>
         {summary && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{summary}</p>}
       </div>
 
@@ -408,14 +426,37 @@ function ProcessGroupNav({
   );
 }
 
+/** Mismo chevron que HistoryTimeline, para que "click para expandir" se vea igual en toda la app. */
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={cn("mt-1.5 h-4 w-4 flex-none text-ink-soft transition-transform duration-200 group-hover:text-brand", open && "rotate-180")}
+    >
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ProcessCard({ process }: { process: JourneyProcess }) {
   const pending = isPendingProcess(process.title);
   const hasSteps = process.steps.length > 0;
   const allStepsCompleted = hasSteps && process.steps.every((s) => s.completed);
+  // Colapsado por defecto solo si ya está completo: lo pendiente (la razón
+  // real de estar viendo este grupo) se ve entero desde el primer render;
+  // lo ya hecho no vuelve a ocupar pantalla salvo que se reabra a propósito
+  // — antes un grupo de 5 procesos con varios ya terminados obligaba a
+  // scrollear todo su detalle igual (ver auditoría, P5).
+  const [isOpen, setIsOpen] = useState(!allStepsCompleted);
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
+        <button type="button" onClick={() => setIsOpen((v) => !v)} aria-expanded={isOpen} className="group flex flex-1 items-start gap-2 text-left">
+          <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
+          <ChevronIcon open={isOpen} />
+        </button>
         <span className="flex items-center gap-2">
           {pending && <PendingBadge />}
           {hasSteps && (allStepsCompleted ? <CompletedCheck label="Proceso completado" /> : <CompleteProcessButton processId={process.id} />)}
@@ -425,24 +466,28 @@ function ProcessCard({ process }: { process: JourneyProcess }) {
         <p className="mt-1 text-xs text-ink-soft">Este proceso depende de una herramienta en revisión — el paso a paso puede cambiar.</p>
       )}
       {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
-      {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
-      {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
-      {process.resources.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>
-          {process.resources.map((resource) => (
-            <span key={resource} className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
-              {resource}
-            </span>
-          ))}
-        </div>
-      )}
-      {hasSteps && (
-        <ProcessStepsTimeline
-          steps={process.steps}
-          allCompleted={allStepsCompleted}
-          isStepPending={(title) => !pending && isPendingStep(title)}
-        />
+      {isOpen && (
+        <>
+          {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
+          {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
+          {process.resources.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>
+              {process.resources.map((resource) => (
+                <span key={resource} className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
+                  {resource}
+                </span>
+              ))}
+            </div>
+          )}
+          {hasSteps && (
+            <ProcessStepsTimeline
+              steps={process.steps}
+              allCompleted={allStepsCompleted}
+              isStepPending={(title) => !pending && isPendingStep(title)}
+            />
+          )}
+        </>
       )}
     </Card>
   );
