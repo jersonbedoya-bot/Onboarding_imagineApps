@@ -26,7 +26,7 @@ export default function LoginPage() {
 
     if (!result || result.error) {
       if (result?.code === "rate_limited") {
-        setError("Demasiados intentos. Esperá unos minutos y volvé a intentar.");
+        setError("Demasiados intentos. Espera unos minutos y vuelve a intentar.");
         return;
       }
       // Mensaje genérico: nunca distinguimos "no existe" de "password incorrecta"
@@ -39,7 +39,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Iniciar sesión" description="Ingresá con tu cuenta de Imagine Apps.">
+    <AuthShell title="Iniciar sesión" description="Ingresa con tu cuenta de Imagine Apps.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           id="email"

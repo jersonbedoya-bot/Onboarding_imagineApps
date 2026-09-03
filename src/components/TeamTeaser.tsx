@@ -4,10 +4,9 @@ import { cn } from "@/lib/cn";
 /**
  * Card-aviso genérica: vive DENTRO de una fase pero linkea a una página
  * independiente — pensada para contenido que existe a propósito fuera del
- * recorrido secuencial (equipo, recursos) y necesita visibilidad sin dejar
- * de ser "siempre accesible". Se usa hoy para "Conocé a tu equipo" (dentro
- * de la fase de rol) y para el aviso de Recursos (dentro de Cómo
- * Trabajamos) — mismo componente, mismo trato visual, solo cambia el CTA.
+ * recorrido secuencial y necesita visibilidad sin dejar de ser "siempre
+ * accesible". Se usa hoy para "Conoce a tu equipo" (dentro de la fase de
+ * rol) — genérico a propósito por si aparece un segundo caso de uso.
  */
 export function TeamTeaser({
   href,

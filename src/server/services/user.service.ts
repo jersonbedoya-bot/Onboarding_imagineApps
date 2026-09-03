@@ -15,7 +15,7 @@ export async function listUsers(actingAdmin: RequestIdentity, pagination: { page
 
 export async function deactivateUser(actingAdmin: RequestIdentity, targetUserId: ObjectId) {
   if (targetUserId.equals(actingAdmin.userId)) {
-    throw new ValidationError("No podés desactivar tu propia cuenta.");
+    throw new ValidationError("No puedes desactivar tu propia cuenta.");
   }
 
   const updated = await userRepository.updateStatus(actingAdmin.tenantId, targetUserId, "INACTIVE");

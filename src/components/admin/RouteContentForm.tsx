@@ -12,7 +12,7 @@ export type GuideMessageValue = { text: string; enabled: boolean };
  * Editor de todo el contenido "de guía" del recorrido: el título/subtítulo
  * del header de /onboarding (route.service.getRouteHeader de antes) más los
  * 2 mensajes que hasta ahora vivían quemados en OnboardingJourney.tsx
- * ("Completá lo pendiente..." y el aviso de contenido en revisión) — ver
+ * ("Completa lo pendiente..." y el aviso de contenido en revisión) — ver
  * route.service.getRouteContent. Vive en /admin/messages, no en
  * /admin/modules: es contenido editorial del recorrido completo, no de un
  * módulo puntual.
@@ -107,7 +107,7 @@ export function RouteContentForm({
       <Card className="max-w-3xl">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Mensajes de guía</h2>
         <p className="mb-4 text-sm text-ink-soft">
-          Textos de orientación cortos que aparecen dentro del recorrido — desactivalos si no querés mostrarlos, o cambiá su redacción.
+          Textos de orientación cortos que aparecen dentro del recorrido — desactívalos si no quieres mostrarlos, o cambia su redacción.
         </p>
         <div className="flex flex-col gap-4">
           <GuideMessageField

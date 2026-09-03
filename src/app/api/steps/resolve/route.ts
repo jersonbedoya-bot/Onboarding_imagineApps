@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     } else if (identity.functionalRoleId) {
       roleId = identity.functionalRoleId;
     } else {
-      throw new ValidationError("No tenés un rol funcional asignado.");
+      throw new ValidationError("No tienes un rol funcional asignado.");
     }
 
     const result = await resolveVisibleSteps(identity.tenantId, roleId);

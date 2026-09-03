@@ -107,11 +107,15 @@ describe("rate_limit_attempts — la query de conteo usa índice", () => {
       .find({ scope: "login", identifier: "email:x@example.com", expiresAt: { $gt: new Date() } })
       .explain("executionStats");
 
-    function findStage(node: any, stage: string): boolean {
+    // Forma mínima del árbol de winningPlan que necesitamos recorrer — el
+    // shape real de explain() varía por versión de Mongo/tipo de query, no
+    // vale la pena tiparlo completo para un solo test.
+    type QueryPlanNode = { stage?: string; inputStage?: QueryPlanNode; inputStages?: QueryPlanNode[] };
+    function findStage(node: QueryPlanNode | undefined, stage: string): boolean {
       if (!node) return false;
       if (node.stage === stage) return true;
       if (node.inputStage) return findStage(node.inputStage, stage);
-      if (node.inputStages) return node.inputStages.some((s: any) => findStage(s, stage));
+      if (node.inputStages) return node.inputStages.some((s) => findStage(s, stage));
       return false;
     }
 

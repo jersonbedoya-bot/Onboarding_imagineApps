@@ -397,7 +397,7 @@ El archivo **`MIGRATIONS.md`** registra:
 
 El archivo **`BACKLOG.md`** lista features explícitamente diferidas (decisión de Product Owner, no deuda técnica). Incluye:
 
-- **Fase 6 (visual)**: contenido tipo quiz, formulario "conocé al equipo".
+- **Fase 6 (visual)**: formulario "conocé al equipo" (el contenido tipo quiz ya se implementó — ver BACKLOG.md).
 - **Fase 2**: revocar/reenviar invitación, promover usuario a admin.
 - **Fase 3B (media)**: client-direct-upload a Vercel Blob; `BLOB_READ_WRITE_TOKEN` no configurado en dev.
 - **Fase 3 (rutas)**: ruta archivada sin retorno (`ARCHIVED` terminal para una ruta singleton).

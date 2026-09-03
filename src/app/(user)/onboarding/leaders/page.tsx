@@ -23,8 +23,8 @@ export default async function OnboardingLeadersPage() {
         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-soft bg-brand-tint px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">
           Nuestro equipo
         </span>
-        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">Conocé a tus líderes</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">Podés volver a esta página cuando quieras desde &quot;Nuestro equipo&quot; arriba.</p>
+        <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">Conoce a tus líderes</h1>
+        <p className="mx-auto mt-3 max-w-md text-ink-soft xl:text-lg">Puedes volver a esta página cuando quieras desde &quot;Nuestro equipo&quot; arriba.</p>
       </header>
 
       {leaders.length === 0 ? (

@@ -18,7 +18,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
       <main className="flex min-h-screen items-center justify-center px-6">
         <EmptyState
           title="Invitación inválida"
-          description="Este link no es válido o ya expiró. Pedile a quien te invitó que te comparta uno nuevo."
+          description="Este link no es válido o ya expiró. Pídele a quien te invitó que te comparta uno nuevo."
         />
       </main>
     );

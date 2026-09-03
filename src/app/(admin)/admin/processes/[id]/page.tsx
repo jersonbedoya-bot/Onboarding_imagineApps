@@ -12,6 +12,7 @@ import { ArchivedSection } from "@/components/admin/ArchivedSection";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { ProcessActions } from "@/components/admin/ProcessActions";
+import { ReorderableDataTable } from "@/components/admin/ReorderableDataTable";
 import { StepForm } from "./StepForm";
 import { StepActions } from "./StepActions";
 
@@ -42,34 +43,45 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
   const activeSteps = steps.filter((step) => step.status !== "ARCHIVED");
   const archivedSteps = steps.filter((step) => step.status === "ARCHIVED");
 
-  const stepColumns = [
-    { header: "Orden", render: (step: (typeof steps)[number]) => step.order },
-    { header: "Título", render: (step: (typeof steps)[number]) => step.title },
-    { header: "Video", render: (step: (typeof steps)[number]) => (step.videoUrl ? step.videoProvider : "—") },
-    {
-      header: "Estado",
-      render: (step: (typeof steps)[number]) => (
-        <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[step.status]}</Badge>
-      ),
-    },
-    {
-      header: "Acciones",
-      render: (step: (typeof steps)[number]) => (
-        <StepActions
-          item={{
-            id: step._id.toString(),
-            processId: step.processId.toString(),
-            status: step.status,
-            title: step.title,
-            description: step.description,
-            instruction: step.instruction,
-            videoUrl: step.videoUrl,
-            completionCriteria: step.completionCriteria,
-          }}
-        />
-      ),
-    },
-  ];
+  function buildStepColumns() {
+    return [
+      { header: "Orden", render: (step: (typeof steps)[number]) => step.order },
+      { header: "Título", render: (step: (typeof steps)[number]) => step.title },
+      { header: "Video", render: (step: (typeof steps)[number]) => (step.videoUrl ? step.videoProvider : "—") },
+      {
+        header: "Estado",
+        render: (step: (typeof steps)[number]) => (
+          <Badge variant={step.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[step.status]}</Badge>
+        ),
+      },
+      {
+        header: "Acciones",
+        render: (step: (typeof steps)[number]) => (
+          <StepActions
+            item={{
+              id: step._id.toString(),
+              processId: step.processId.toString(),
+              status: step.status,
+              title: step.title,
+              description: step.description,
+              instruction: step.instruction,
+              videoUrl: step.videoUrl,
+              completionCriteria: step.completionCriteria,
+            }}
+          />
+        ),
+      },
+    ];
+  }
+  const stepColumns = buildStepColumns();
+  // Celdas ya renderizadas en el servidor — ReorderableDataTable es un
+  // Client Component, no puede recibir los documentos de Mongo (ObjectId)
+  // ni las funciones `render` cruzando ese límite, solo JSX ya resuelto.
+  const stepRows = activeSteps.map((step) => ({
+    id: step._id.toString(),
+    order: step.order,
+    cells: stepColumns.map((column) => column.render(step)),
+  }));
 
   return (
     <div>
@@ -110,7 +122,12 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
       />
 
       <h2 className="mb-3 font-display text-lg font-semibold text-ink">Pasos</h2>
-      <DataTable rows={activeSteps} rowKey={(step) => step._id.toString()} emptyMessage="Este proceso todavía no tiene pasos." columns={stepColumns} />
+      <ReorderableDataTable
+        headers={stepColumns.map((column) => column.header)}
+        rows={stepRows}
+        emptyMessage="Este proceso todavía no tiene pasos."
+        basePath="/api/steps"
+      />
       <ArchivedSection count={archivedSteps.length}>
         <DataTable rows={archivedSteps} rowKey={(step) => step._id.toString()} emptyMessage="Sin pasos archivados." columns={stepColumns} />
       </ArchivedSection>

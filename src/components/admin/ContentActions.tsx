@@ -67,7 +67,7 @@ export function ContentActions({ item, roles }: { item: ContentActionItem; roles
         </span>
       )}
 
-      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar contenido">
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar contenido" maxWidthClassName="max-w-2xl">
         <ContentForm
           stageId={item.stageId}
           roles={roles}

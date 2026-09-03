@@ -74,11 +74,11 @@ export function ContentForm({
     setError(null);
 
     if (needsMedia && !mediaId) {
-      setError("Todavía no subiste la imagen (o la subida falló) — subí un archivo antes de guardar.");
+      setError("Todavía no subiste la imagen (o la subida falló) — sube un archivo antes de guardar.");
       return;
     }
     if (type === "VIDEO" && !videoUrl) {
-      setError("Completá la URL del video antes de guardar.");
+      setError("Completa la URL del video antes de guardar.");
       return;
     }
 
@@ -125,100 +125,115 @@ export function ContentForm({
     router.refresh();
   }
 
+  // Agrupado en 3 bloques (Contenido / Tipo y medios / Visibilidad) en vez
+  // de una sola columna larga de 8 controles sin separación — el modal
+  // angosto de antes hacía que esto se sintiera saturado para un admin no
+  // técnico. Cada bloque lleva su propio subtítulo mudo (mismo estilo que
+  // ya usaba el legend de "Alcance") y un separador sutil entre bloques.
   const fields = (
-    <div className="flex flex-col gap-4">
-      <Input id="content-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-      <MarkdownTextarea id="content-body" label="Cuerpo (admite Markdown)" required value={body} onChange={(event) => setBody(event.target.value)} />
-      <Select id="content-type" label="Tipo" value={type} onChange={(event) => setType(event.target.value as ContentItemType)}>
-        {CONTENT_ITEM_TYPES.map((option) => (
-          <option key={option} value={option}>
-            {CONTENT_TYPE_LABELS[option]}
-          </option>
-        ))}
-      </Select>
-      {(type === "VIDEO" || type === "IMAGE" || type === "MIXED") && (
-        <p className="-mt-2 text-xs text-ink-soft">Elegiste {CONTENT_TYPE_LABELS[type]}: completá el video y/o la imagen abajo.</p>
-      )}
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-ink-soft">Contenido</h4>
+        <Input id="content-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
+        <MarkdownTextarea id="content-body" label="Cuerpo (admite Markdown)" required value={body} onChange={(event) => setBody(event.target.value)} />
+      </div>
 
-      {needsMedia && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Imagen</span>
-          <MediaUploader key={mediaUploaderKey} onUploaded={(id) => setMediaId(id)} />
-        </div>
-      )}
-      {needsVideo && (
-        <div className="flex flex-col gap-1">
-          <Input
-            id="content-video"
-            label="Video (YouTube/Vimeo/Loom/Drive)"
-            type="url"
-            required={type === "VIDEO"}
-            value={videoUrl}
-            onChange={(event) => setVideoUrl(event.target.value)}
-            placeholder="https://youtube.com/watch?v=..."
-          />
-          <p className="text-xs text-ink-soft">
-            Si usás Google Drive, compartí el archivo con &quot;Cualquier persona con el enlace&quot; para que se
-            pueda reproducir.
-          </p>
-        </div>
-      )}
+      <div className="flex flex-col gap-4 border-t border-line pt-6">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-ink-soft">Tipo y medios</h4>
+        <Select id="content-type" label="Tipo" value={type} onChange={(event) => setType(event.target.value as ContentItemType)}>
+          {CONTENT_ITEM_TYPES.map((option) => (
+            <option key={option} value={option}>
+              {CONTENT_TYPE_LABELS[option]}
+            </option>
+          ))}
+        </Select>
+        {(type === "VIDEO" || type === "IMAGE" || type === "MIXED") && (
+          <p className="-mt-2 text-xs text-ink-soft">Elegiste {CONTENT_TYPE_LABELS[type]}: completa el video y/o la imagen abajo.</p>
+        )}
 
-      <Select
-        id="content-requirement"
-        label="Requisito"
-        value={requirement}
-        onChange={(event) => setRequirement(event.target.value as ContentRequirement | "")}
-      >
-        <option value="">— Ninguno (no aparece como acción para el usuario) —</option>
-        {CONTENT_REQUIREMENTS.map((option) => (
-          <option key={option} value={option}>
-            {CONTENT_REQUIREMENT_LABELS[option]}
-          </option>
-        ))}
-      </Select>
-      {requirement === "OBLIGATORY" && (
-        <p className="-mt-2 text-xs text-ink-soft">
-          El nuevo empleado va a ver un botón &quot;Marcar como leído&quot; en /onboarding para este contenido.
-        </p>
-      )}
-
-      <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Alcance</legend>
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="radio"
-            name={`content-scope-${mode}`}
-            checked={scope === "COMMON"}
-            onChange={() => setScope("COMMON")}
-            className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
-          />
-          Común (todos los roles)
-        </label>
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="radio"
-            name={`content-scope-${mode}`}
-            checked={scope === "ROLE"}
-            onChange={() => setScope("ROLE")}
-            className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
-          />
-          Específico por rol
-        </label>
-        {scope === "ROLE" && (
-          <div className="ml-6 flex flex-col gap-1.5 border-l border-line pl-3">
-            {roles.map((role) => (
-              <Checkbox
-                key={role.id}
-                id={`content-role-${mode}-${role.id}`}
-                label={role.label}
-                checked={roleIds.includes(role.id)}
-                onChange={() => toggleRole(role.id)}
-              />
-            ))}
+        {needsMedia && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Imagen</span>
+            <MediaUploader key={mediaUploaderKey} onUploaded={(id) => setMediaId(id)} />
           </div>
         )}
-      </fieldset>
+        {needsVideo && (
+          <div className="flex flex-col gap-1">
+            <Input
+              id="content-video"
+              label="Video (YouTube/Vimeo/Loom/Drive)"
+              type="url"
+              required={type === "VIDEO"}
+              value={videoUrl}
+              onChange={(event) => setVideoUrl(event.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+            />
+            <p className="text-xs text-ink-soft">
+              Si usas Google Drive, comparte el archivo con &quot;Cualquier persona con el enlace&quot; para que se
+              pueda reproducir.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-line pt-6">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-ink-soft">Visibilidad</h4>
+        <Select
+          id="content-requirement"
+          label="Requisito"
+          value={requirement}
+          onChange={(event) => setRequirement(event.target.value as ContentRequirement | "")}
+        >
+          <option value="">— Ninguno (no aparece como acción para el usuario) —</option>
+          {CONTENT_REQUIREMENTS.map((option) => (
+            <option key={option} value={option}>
+              {CONTENT_REQUIREMENT_LABELS[option]}
+            </option>
+          ))}
+        </Select>
+        {requirement === "OBLIGATORY" && (
+          <p className="-mt-2 text-xs text-ink-soft">
+            El nuevo empleado va a ver un botón &quot;Marcar como leído&quot; en /onboarding para este contenido.
+          </p>
+        )}
+
+        <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Alcance</legend>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name={`content-scope-${mode}`}
+              checked={scope === "COMMON"}
+              onChange={() => setScope("COMMON")}
+              className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
+            />
+            Común (todos los roles)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="radio"
+              name={`content-scope-${mode}`}
+              checked={scope === "ROLE"}
+              onChange={() => setScope("ROLE")}
+              className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
+            />
+            Específico por rol
+          </label>
+          {scope === "ROLE" && (
+            <div className="ml-6 flex flex-col gap-1.5 border-l border-line pl-3">
+              {roles.map((role) => (
+                <Checkbox
+                  key={role.id}
+                  id={`content-role-${mode}-${role.id}`}
+                  label={role.label}
+                  checked={roleIds.includes(role.id)}
+                  onChange={() => toggleRole(role.id)}
+                />
+              ))}
+            </div>
+          )}
+        </fieldset>
+      </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button type="submit" isLoading={isSubmitting} className="self-start">
@@ -233,7 +248,13 @@ export function ContentForm({
 
   if (variant === "modal") {
     return (
-      <FormModalTrigger triggerLabel={triggerLabel} modalTitle={modalTitle} isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+      <FormModalTrigger
+        triggerLabel={triggerLabel}
+        modalTitle={modalTitle}
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        maxWidthClassName="max-w-2xl"
+      >
         <form onSubmit={handleSubmit}>{fields}</form>
       </FormModalTrigger>
     );

@@ -22,6 +22,7 @@ export type IconName =
   | "chevron-right"
   | "close"
   | "crown"
+  | "drag-handle"
   | "edit"
   | "eye"
   | "grid"
@@ -65,6 +66,16 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M3 8l4 4 5-7 5 7 4-4-2 11H5L3 8z" />
       <path d="M5 19h14" />
+    </>
+  ),
+  "drag-handle": (
+    <>
+      <circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
     </>
   ),
   edit: (
@@ -163,6 +174,7 @@ const ICON_LABELS: Record<IconName, string> = {
   "chevron-right": "Siguiente",
   close: "Cerrar",
   crown: "Líderes",
+  "drag-handle": "Arrastrar para reordenar",
   edit: "Editar",
   eye: "Visibilidad",
   grid: "Módulos",

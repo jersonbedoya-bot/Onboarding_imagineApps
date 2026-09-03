@@ -22,7 +22,7 @@ import type { StepDocument } from "@/server/repositories/step.repository";
 
 function requireRoleId(identity: RequestIdentity): ObjectId {
   if (!identity.functionalRoleId) {
-    throw new ValidationError("No tenés un rol funcional asignado.");
+    throw new ValidationError("No tienes un rol funcional asignado.");
   }
   return identity.functionalRoleId;
 }

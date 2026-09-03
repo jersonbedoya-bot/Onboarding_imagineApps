@@ -22,19 +22,21 @@ export function FormModalTrigger({
   isOpen,
   onOpenChange,
   children,
+  maxWidthClassName,
 }: {
   triggerLabel: string;
   modalTitle: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
+  maxWidthClassName?: string;
 }) {
   return (
     <>
       <Button onClick={() => onOpenChange(true)} className="self-start">
         {triggerLabel}
       </Button>
-      <Modal open={isOpen} onClose={() => onOpenChange(false)} title={modalTitle}>
+      <Modal open={isOpen} onClose={() => onOpenChange(false)} title={modalTitle} maxWidthClassName={maxWidthClassName}>
         {children}
       </Modal>
     </>

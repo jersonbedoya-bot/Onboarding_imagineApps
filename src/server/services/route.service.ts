@@ -7,10 +7,10 @@ import * as auditRepository from "@/server/repositories/audit.repository";
 
 const DEFAULT_ROUTE_NAME = "Ruta de onboarding";
 const DEFAULT_HEADLINE = "Vamos paso a paso";
-const DEFAULT_SUBTITLE = "Recorré cada etapa y completá los pasos de tu rol.";
+const DEFAULT_SUBTITLE = "Recorre cada etapa y completa los pasos de tu rol.";
 // Antes quemados en OnboardingJourney.tsx — ahora son el default de fábrica,
 // editable y desactivable desde /admin/messages (ver getRouteContent).
-const DEFAULT_BLOCKED_NEXT_MESSAGE = "Completá lo pendiente de esta etapa para avanzar.";
+const DEFAULT_BLOCKED_NEXT_MESSAGE = "Completa lo pendiente de esta etapa para avanzar.";
 const DEFAULT_PENDING_CONTENT_MESSAGE = "Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.";
 
 /**

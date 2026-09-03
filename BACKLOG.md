@@ -4,7 +4,7 @@ Features y mejoras explícitamente diferidas — decisión del Product Owner, no
 
 ## Fase visual (Fase 6) — diferidas al aprobar el lineamiento de diseño
 
-- **Contenido tipo quiz / completar-la-frase**: la referencia visual traía preguntas de opción múltiple con feedback correcto/incorrecto y preguntas "completa la frase" con respuesta revelada. Requeriría un tipo de `content_item` nuevo (hoy es TEXT/VIDEO/IMAGE/MIXED) con su propia lógica de evaluación — no es solo piel. Por ahora esas secciones se renderizan como contenido de texto/lista normal.
+- ~~**Contenido tipo quiz**~~ — **implementado** (a pedido explícito del usuario, ver `QuizBlock.tsx`, `institutional-content.ts` `isQuizContent`/`parseQuizQuestions`, `scripts/add-quiz-questions.ts`, `scripts/migrate-fase1-quiz.ts`, MIGRATIONS.md #10). No se agregó un tipo de `content_item` nuevo como se planteaba acá: es un content item TEXT normal con un título especial reconocido por su título exacto (mismo patrón que Hitos/Valores/No Negociables) y un formato de Markdown (pregunta numerada + opciones + negrita en la correcta) que `parseQuizQuestions` interpreta. Sin evaluación real ni persistencia — responder no afecta el progreso, es puramente lúdico. La variante "completar-la-frase" sigue sin implementar.
 - **Formulario "conocé al equipo"**: la referencia visual permitía que el usuario llenara notas por cada líder (años en la empresa, proyectos, tips) además de marcarlo como conocido. Requeriría una colección nueva de respuestas por usuario+líder. El check de "conocido/visto" que ya soporta el modelo actual (basado en el mismo mecanismo de `user_progress`/visibilidad) alcanza por ahora — sin el formulario de notas.
 
 ## Fase 2 — administración de usuarios

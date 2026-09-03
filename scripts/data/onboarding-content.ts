@@ -184,7 +184,7 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
 
 * **Transparencia:** nunca hablamos por canales internos o privados — siempre en canales públicos.
 * **Reuniones:** nos conectamos 5 minutos antes de empezar, nunca tenemos reuniones en paralelo, entramos con cámara prendida y con la mejor actitud posible.
-* **Gente que resuelve (regla de los 30 minutos):** si un reto del proyecto te tomó más de 30 minutos sin solución, tenés 5 personas del equipo listas para apoyarte.
+* **Gente que resuelve (regla de los 30 minutos):** si un reto del proyecto te tomó más de 30 minutos sin solución, tienes 5 personas del equipo listas para apoyarte.
 * **Apropiación del negocio:** nunca hablamos mal de nuestros clientes, ni interna ni externamente; siempre buscamos entender a fondo su negocio antes de proponer una solución.
 * **Orientados a la excelencia:** ningún entregable o módulo se presenta a un cliente sin revisión previa del equipo de diseño y del equipo del proyecto.
 * **Responsabilidad:** siempre cumplimos nuestros compromisos y mantenemos el calendario actualizado como bitácora real de nuestro trabajo diario, usando la metodología de Timeboxing.`,
@@ -213,7 +213,7 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
 
 ### Contacto de contingencia
 
-> **Dato clave:** guardá ya en tu celular el número de Kelly Yohana Ospina (People): **314 860 0139**. Ante una emergencia operativa, People intentará contactarte por teléfono — si no tenés el número guardado, los filtros de spam pueden bloquear la llamada.`,
+> **Dato clave:** guarda ya en tu celular el número de Kelly Yohana Ospina (People): **314 860 0139**. Ante una emergencia operativa, People intentará contactarte por teléfono — si no tienes el número guardado, los filtros de spam pueden bloquear la llamada.`,
       },
       {
         title: "⏱️ Uso del Calendario (Timeboxing)",
@@ -223,18 +223,18 @@ Nuestra visión es ser **la primera empresa de tecnología colombiana de alcance
         scope: "COMMON",
         body: `### Timeboxing
 
-Organizá tu Google Calendar con la metodología de Timeboxing: asignarle a cada tarea un período de tiempo fijo y limitado, en lugar de trabajar en ella hasta terminarla. Es una de las técnicas más efectivas para equipos multidisciplinarios de alta productividad.
+Organiza tu Google Calendar con la metodología de Timeboxing: asignarle a cada tarea un período de tiempo fijo y limitado, en lugar de trabajar en ella hasta terminarla. Es una de las técnicas más efectivas para equipos multidisciplinarios de alta productividad.
 
-### Configurá tu calendario
+### Configura tu calendario
 
-- [ ] Entrá a la configuración de Google Calendar (ícono de engranaje) y andá a General → Horario Laboral y Ubicación.
-- [ ] Habilitá el horario laboral, elegí los días que trabajás y configurá los horarios (podés copiarlos entre días).
-- [ ] Si tu horario se interrumpe con regularidad por algo además del almuerzo, registrá también ese quiebre.
-- [ ] Categorizá tu calendario por colores según el tipo de actividad o área.
+- [ ] Entra a la configuración de Google Calendar (ícono de engranaje) y ve a General → Horario Laboral y Ubicación.
+- [ ] Habilita el horario laboral, elige los días que trabajas y configura los horarios (puedes copiarlos entre días).
+- [ ] Si tu horario se interrumpe con regularidad por algo además del almuerzo, registra también ese quiebre.
+- [ ] Categoriza tu calendario por colores según el tipo de actividad o área.
 
-> **Dato clave:** tu calendario es la bitácora real de tu trabajo diario — mantenelo actualizado.
+> **Dato clave:** tu calendario es la bitácora real de tu trabajo diario — mantenlo actualizado.
 
-[Ver video: consejos para llevar tu calendario](http://youtube.com/watch?v=nwgHM0f07P0)`,
+[Ver video: consejos para llevar tu calendario](https://youtube.com/watch?v=nwgHM0f07P0)`,
       },
       {
         title: "🌴 Política de Vacaciones",
@@ -242,18 +242,18 @@ Organizá tu Google Calendar con la metodología de Timeboxing: asignarle a cada
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
-        body: `> **Dato clave:** podés solicitar vacaciones una vez cumplido un (1) año laboral en Imagine Apps. La solicitud debe hacerse con mínimo un (1) mes de anticipación.
+        body: `> **Dato clave:** puedes solicitar vacaciones una vez cumplido un (1) año laboral en Imagine Apps. La solicitud debe hacerse con mínimo un (1) mes de anticipación.
 
 ### Pasos para solicitar
 
-- [ ] Hablá con tu líder directo (CEO, CTO, Directora de Operaciones) o tu PM y proponé fechas tentativas.
+- [ ] Habla con tu líder directo (CEO, CTO, Directora de Operaciones) o tu PM y propón fechas tentativas.
 - [ ] Definan juntos las fechas exactas, asegurando que no se vean afectados entregables ni compromisos del equipo.
-- [ ] Formalizá la solicitud por correo con asunto "Solicitud de vacaciones // [Tu nombre]", indicando fechas de inicio y fin, y si son días hábiles, consecutivos o fraccionados. Copiá a tu líder, a People (kelly.ospina@imagineapps.co), a la Directora de Operaciones y al CEO.
+- [ ] Formaliza la solicitud por correo con asunto "Solicitud de vacaciones // [Tu nombre]", indicando fechas de inicio y fin, y si son días hábiles, consecutivos o fraccionados. Copia a tu líder, a People (kelly.ospina@imagineapps.co), a la Directora de Operaciones y al CEO.
 
 ### Importante
 
-* Las vacaciones deben estar aprobadas y formalizadas antes de tomarlas; si necesitás cambiar fechas ya aprobadas, repetí el proceso.
-* Una vez aprobadas, actualizá tu calendario y tu estado en Gmail para el período que estarás ausente, y dejá actualizado el documento de entrega de puesto.
+* Las vacaciones deben estar aprobadas y formalizadas antes de tomarlas; si necesitas cambiar fechas ya aprobadas, repite el proceso.
+* Una vez aprobadas, actualiza tu calendario y tu estado en Gmail para el período que estarás ausente, y deja actualizado el documento de entrega de puesto.
 * People lleva el registro y control de los días tomados por cada colaborador.`,
       },
       {
@@ -264,13 +264,13 @@ Organizá tu Google Calendar con la metodología de Timeboxing: asignarle a cada
         scope: "COMMON",
         body: `Tu salud es una prioridad.
 
-> **Dato clave:** podés solicitar un permiso médico avisando con al menos una (1) semana de anticipación; si la cita surge de un día para otro, coordiná directamente con tu líder. El tiempo de asistencia a la cita médica no se compensa.
+> **Dato clave:** puedes solicitar un permiso médico avisando con al menos una (1) semana de anticipación; si la cita surge de un día para otro, coordina directamente con tu líder. El tiempo de asistencia a la cita médica no se compensa.
 
 ### Pasos
 
-- [ ] Escribile a tu líder directo por Gmail indicando el día y el tiempo de ausencia.
-- [ ] Acordá con tu líder o PM cómo cubrir tus actividades para que no se vean afectados los compromisos del equipo.
-- [ ] Agendá el espacio en tu Google Calendar, visible para todos, con el título "Permiso médico // [Tu nombre]".`,
+- [ ] Escríbele a tu líder directo por Gmail indicando el día y el tiempo de ausencia.
+- [ ] Acuerda con tu líder o PM cómo cubrir tus actividades para que no se vean afectados los compromisos del equipo.
+- [ ] Agenda el espacio en tu Google Calendar, visible para todos, con el título "Permiso médico // [Tu nombre]".`,
       },
       {
         title: "🎂 Política de Cumpleaños",
@@ -278,15 +278,15 @@ Organizá tu Google Calendar con la metodología de Timeboxing: asignarle a cada
         type: "TEXT",
         requirement: "OBLIGATORY",
         scope: "COMMON",
-        body: `Todos los colaboradores tienen derecho a un (1) día libre remunerado por su cumpleaños. Podés tomarlo el mismo día o dentro de los 15 días hábiles siguientes.
+        body: `Todos los colaboradores tienen derecho a un (1) día libre remunerado por su cumpleaños. Puedes tomarlo el mismo día o dentro de los 15 días hábiles siguientes.
 
-> **Dato clave:** solicitalo con al menos 30 días de antelación — necesita la aprobación de tu líder de área.
+> **Dato clave:** solicítalo con al menos 30 días de antelación — necesita la aprobación de tu líder de área.
 
 ### Cómo solicitarlo
 
-Enviá un correo a tu supervisor con copia a People, con asunto "Solicitud permiso cumpleaños // [Tu nombre]", indicando tu fecha de cumpleaños y la fecha en la que tomarás el permiso.
+Envía un correo a tu supervisor con copia a People, con asunto "Solicitud permiso cumpleaños // [Tu nombre]", indicando tu fecha de cumpleaños y la fecha en la que tomarás el permiso.
 
-> **Dato clave:** si tu cumpleaños cae en fin de semana, podés tomar el día en cualquier día hábil dentro de los 15 días siguientes. Este permiso es de disfrute personal: no es acumulable ni transferible.`,
+> **Dato clave:** si tu cumpleaños cae en fin de semana, puedes tomar el día en cualquier día hábil dentro de los 15 días siguientes. Este permiso es de disfrute personal: no es acumulable ni transferible.`,
       },
     ],
   },
@@ -438,7 +438,7 @@ Enviá un correo a tu supervisor con copia a People, con asunto "Solicitud permi
             title: "Usar emojis de estado",
             instruction: "Marcar cada tarea con ✔️ Dev, ✅ Listo QA, ❌ Bloqueo o ⏩ En proceso para que el estado sea legible de un vistazo.",
           },
-          { title: "Colaborar activamente", instruction: "Leer los reportes del equipo y ofrecer ayuda de inmediato si alguien tiene un bloqueo que podés resolver." },
+          { title: "Colaborar activamente", instruction: "Leer los reportes del equipo y ofrecer ayuda de inmediato si alguien tiene un bloqueo que puedes resolver." },
           { title: "Escalar bloqueos", instruction: "Si el obstáculo requiere gestión externa, el PDM lo escala para que el equipo siga fluyendo." },
         ],
       },

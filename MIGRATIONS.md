@@ -317,6 +317,40 @@ hardcodeados para el tenant de desarrollo, adaptar para otro tenant. Si
 las URLs de Basecamp/Magi/Drive cambian, actualizar las constantes al
 principio del script.
 
+### 10. Quiz de Fase 1 al mismo tono que Fase 2/3 (tenant imagine-apps)
+
+Igual que #9, esta es una edición de contenido normal (`body` de un solo
+content_item) vía `content.service.updateContentItem` — no toca `stageId`
+ni estructura, queda en `audit_logs` como cualquier edición desde el admin
+panel. El `--apply` **no fue bloqueado** por el clasificador de auto-mode
+(mismo comportamiento que #9).
+
+**Antes**: el quiz "🎉 Pon a Prueba lo que Aprendiste" de "🚀 Quiénes Somos"
+(creado junto con los otros 2 quizzes de `scripts/add-quiz-questions.ts`,
+ver comentario ahí) eran 5 preguntas de trivia seca en 3ra persona
+("¿En qué ciudad nació...?", "¿Qué edad tenían...?") — mientras que los
+quizzes de Fase 2 ("Tu Día a Día") y Fase 3 ("Tu Rol en los Proyectos") son
+mini-escenas en 2da persona con una opción con gracia de por medio.
+
+**Después**: las mismas 6 preguntas — 5 reescritas como escena +
+opción-con-gracia (mismos hechos y misma respuesta correcta que antes,
+verificados contra el body publicado en Atlas antes de escribir el
+script — no se inventó ni se cambió ningún dato) + 1 pregunta nueva sobre
+"Proyectos de Alto Impacto" (Memorial Sloan Kettering), la única sección de
+Fase 1 que el quiz anterior no cubría.
+
+**Por qué**: pedido explícito del usuario ("mejorar las preguntas de la
+fase 1, que sean así divertidas como las de la fase 2 y fase 3").
+
+**Aplicado en Atlas de desarrollo el 2026-09-02**, vía
+`scripts/migrate-fase1-quiz.ts` (mismo patrón dry-run/backup/`--apply`;
+antes de aplicar se verificó con `parseQuizQuestions` en un one-off que el
+nuevo body parsea a 6 preguntas con el `correctIndex` esperado).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-fase1-quiz.ts --apply` — mismo aviso que #7/#8/#9: el ID
+del content_item está hardcodeado para el tenant de desarrollo.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

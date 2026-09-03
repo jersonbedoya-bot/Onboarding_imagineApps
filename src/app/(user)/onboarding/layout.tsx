@@ -37,8 +37,8 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
         <EmptyState
-          title="No tenés un rol funcional asignado"
-          description="Pedile a un administrador que te asigne un rol para poder ver tu onboarding."
+          title="No tienes un rol funcional asignado"
+          description="Pídele a un administrador que te asigne un rol para poder ver tu onboarding."
         />
         <UserMenu />
       </main>

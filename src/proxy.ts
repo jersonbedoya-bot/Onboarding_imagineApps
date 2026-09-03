@@ -36,7 +36,7 @@ export default async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json(
-      { success: false, error: { code: "UNAUTHORIZED", message: "Debés iniciar sesión para continuar." } },
+      { success: false, error: { code: "UNAUTHORIZED", message: "Debes iniciar sesión para continuar." } },
       { status: 401 },
     );
   }

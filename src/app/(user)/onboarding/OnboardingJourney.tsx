@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { resolveJourney } from "@/server/services/progress.service";
 import type { GuideMessage } from "@/server/services/route.service";
 import { MarkAsReadButton } from "./MarkAsReadButton";
@@ -10,6 +11,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { PendingBadge } from "@/components/PendingBadge";
@@ -20,6 +22,7 @@ import { ProcessStepsTimeline } from "@/components/ProcessStepsTimeline";
 import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
 import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
 import { CultureValuesGrid } from "@/components/CultureValuesGrid";
+import { QuizBlock } from "@/components/QuizBlock";
 import { LeadersBoard } from "./leaders/LeadersBoard";
 import type { LeaderCardData } from "./leaders/LeaderCard";
 import { groupProcesses, FASE_04_STAGE_KEY, FASE_COMO_TRABAJAMOS_STAGE_KEY, contentItemSection, type GroupedProcesses } from "@/lib/phase-groups";
@@ -29,10 +32,12 @@ import {
   isImpactProjectsContent,
   isNonNegotiablesContent,
   isCultureValuesContent,
+  isQuizContent,
   parseTimelineItems,
   parseImpactProjects,
   parseNonNegotiables,
   splitCultureValues,
+  parseQuizQuestions,
 } from "@/lib/institutional-content";
 import { cn } from "@/lib/cn";
 
@@ -96,6 +101,7 @@ export function OnboardingJourney({
   blockedNextMessage: GuideMessage;
   pendingContentMessage: GuideMessage;
 }) {
+  const router = useRouter();
   const initialIndex = Math.max(
     0,
     stages.findIndex((s) => s.id === currentStageId),
@@ -104,6 +110,33 @@ export function OnboardingJourney({
   const stage = stages[index];
   const prevStage = stages[index - 1] ?? null;
   const nextStage = stages[index + 1] ?? null;
+
+  // Quiz de la etapa ACTUAL (no la siguiente): "Pon a Prueba lo que
+  // Aprendiste" cierra el módulo que estás dejando, no abre el que sigue.
+  // Antes vivía como una card más al final del listado de items (ver
+  // StageSection) — el usuario pidió que en vez de eso aparezca recién al
+  // hacer clic en "Siguiente módulo" (o, en la última etapa, "Terminar
+  // Onboarding") — un cierre con gracia antes de avanzar/terminar. Por eso
+  // StageSection ya no lo muestra nunca inline: siempre hay una acción acá
+  // abajo que lo dispara.
+  const quizItem = stage.items.find((item) => isQuizContent(item.title));
+  const quizQuestions = quizItem?.body ? parseQuizQuestions(quizItem.body) : null;
+  const [quizGateOpen, setQuizGateOpen] = useState(false);
+
+  function advance() {
+    setQuizGateOpen(false);
+    if (nextStage) {
+      setIndex(index + 1);
+    } else {
+      // Última etapa: no hay a dónde "avanzar" en este pager client-side —
+      // se le pide al server que recalcule el progreso real (mismo patrón
+      // que CompleteProcessButton/MarkAsReadButton). Si ya terminaste todo,
+      // journey.currentStageId pasa a null y page.tsx muestra la FinishCard
+      // arriba, sin perder acceso: el recorrido completo (este mismo
+      // componente) sigue debajo para consulta — ver comentario en page.tsx.
+      router.refresh();
+    }
+  }
 
   // Al cambiar de módulo (prev/next) se sube al tope de la página: sin esto
   // el cambio de contenido pasaba desapercibido si veías el final de la
@@ -142,15 +175,26 @@ export function OnboardingJourney({
         ) : (
           <span />
         )}
-        {nextStage &&
-          (nextStage.unlocked ? (
-            <Button className="px-4 py-2 text-sm" onClick={() => setIndex(index + 1)}>
-              Siguiente módulo ›
-            </Button>
-          ) : (
-            blockedNextMessage.enabled && <p className="text-xs text-ink-soft">{blockedNextMessage.text}</p>
-          ))}
+        {/* La última etapa no tiene "siguiente" al cual desbloquear — ahí el
+            gate equivalente es que ELLA MISMA ya esté completa (mismo criterio
+            de fondo: "terminaste lo que hacía falta acá"). */}
+        {(nextStage ? nextStage.unlocked : stage.status === "COMPLETE") ? (
+          <Button className="px-4 py-2 text-sm" onClick={() => (quizQuestions ? setQuizGateOpen(true) : advance())}>
+            {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
+          </Button>
+        ) : (
+          blockedNextMessage.enabled && <p className="text-xs text-ink-soft">{blockedNextMessage.text}</p>
+        )}
       </div>
+
+      {quizQuestions && (
+        <Modal open={quizGateOpen} onClose={() => setQuizGateOpen(false)} title={quizItem?.title} maxWidthClassName="max-w-2xl">
+          <QuizBlock questions={quizQuestions} />
+          <Button className="mt-5 w-full justify-center" onClick={advance}>
+            {nextStage ? "Continuar al siguiente módulo ›" : "🎉 Finalizar Onboarding"}
+          </Button>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -198,6 +242,10 @@ function StageSection({
   const [groupIndex, setGroupIndex] = useState(defaultGroupIndex);
   const activeGroup = groups ? (groups[Math.min(groupIndex, groups.length - 1)] ?? null) : null;
   const summary = organizationSummary(stage, groups);
+  // El quiz ("Pon a Prueba lo que Aprendiste") nunca va en este listado: se
+  // dispara en modal desde el botón "Siguiente módulo"/"Terminar Onboarding"
+  // de OnboardingJourney, nunca como una card más acá abajo.
+  const visibleItems = stage.items.filter((item) => !isQuizContent(item.title));
 
   return (
     <section>
@@ -252,9 +300,9 @@ function StageSection({
               (scope ROLE, ver content.service) titulado "Tu rol como <rol>",
               cargado por findVisibleForRole igual que cualquier otro
               contenido: cada usuario ve solo el suyo, sin lógica especial acá. */}
-          {stage.items.length > 0 && (
+          {visibleItems.length > 0 && (
             <div className="flex flex-col gap-5">
-              {stage.items.map((item, itemIndex) => {
+              {visibleItems.map((item, itemIndex) => {
                 const pending = isPendingContentItem(item.title);
                 // Fase 01 (Bloque de historia): "Hitos que nos Definieron",
                 // "Proyectos de Alto Impacto", "Principios No Negociables" y
@@ -279,7 +327,7 @@ function StageSection({
                 // eliminada) — un subtítulo de sección evita que se sientan
                 // como una lista plana sin organización temática.
                 const section = stage.key === FASE_COMO_TRABAJAMOS_STAGE_KEY ? contentItemSection(item.title) : null;
-                const isNewSection = section !== null && (itemIndex === 0 || contentItemSection(stage.items[itemIndex - 1].title) !== section);
+                const isNewSection = section !== null && (itemIndex === 0 || contentItemSection(visibleItems[itemIndex - 1].title) !== section);
                 return (
                   <Fragment key={item.id}>
                     {isNewSection && (
@@ -349,8 +397,8 @@ function StageSection({
           {stage.key === FASE_04_STAGE_KEY && equipoCount > 0 && (
             <TeamTeaser
               href="/onboarding/leaders#equipo"
-              title={`Conocé a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
-              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu área — podés volver cuando quieras.`}
+              title={`Conoce a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
+              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu área — puedes volver cuando quieras.`}
             />
           )}
 

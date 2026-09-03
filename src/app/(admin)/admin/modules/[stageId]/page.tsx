@@ -21,6 +21,7 @@ import { ContentForm } from "@/components/admin/ContentForm";
 import { ContentActions } from "@/components/admin/ContentActions";
 import { ProcessForm } from "@/components/admin/ProcessForm";
 import { ProcessActions } from "@/components/admin/ProcessActions";
+import { ReorderableDataTable } from "@/components/admin/ReorderableDataTable";
 
 export default async function AdminModuleDetailPage({ params }: { params: Promise<{ stageId: string }> }) {
   let identity;
@@ -61,89 +62,109 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   const activeProcesses = processes.filter((item) => item.status !== "ARCHIVED");
   const archivedProcesses = processes.filter((item) => item.status === "ARCHIVED");
 
-  const contentColumns = [
-    { header: "Orden", render: (item: (typeof content)[number]) => item.order },
-    { header: "Título", render: (item: (typeof content)[number]) => item.title },
-    { header: "Tipo", render: (item: (typeof content)[number]) => CONTENT_TYPE_LABELS[item.type] },
-    {
-      header: "Alcance",
-      render: (item: (typeof content)[number]) =>
-        item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
-    },
-    {
-      header: "Estado",
-      render: (item: (typeof content)[number]) => (
-        <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
-      ),
-    },
-    {
-      header: "Acciones",
-      render: (item: (typeof content)[number]) => (
-        <ContentActions
-          item={{
-            id: item._id.toString(),
-            stageId: item.stageId.toString(),
-            status: item.status,
-            title: item.title,
-            body: item.body,
-            type: item.type,
-            mediaId: item.mediaId ? item.mediaId.toString() : null,
-            videoUrl: item.videoUrl,
-            scope: item.scope,
-            roleIds: item.roleIds.map((id) => id.toString()),
-            requirement: item.requirement,
-          }}
-          roles={roleOptions}
-        />
-      ),
-    },
-  ];
+  function buildContentColumns() {
+    return [
+      { header: "Orden", render: (item: (typeof content)[number]) => item.order },
+      { header: "Título", render: (item: (typeof content)[number]) => item.title },
+      { header: "Tipo", render: (item: (typeof content)[number]) => CONTENT_TYPE_LABELS[item.type] },
+      {
+        header: "Alcance",
+        render: (item: (typeof content)[number]) =>
+          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
+      },
+      {
+        header: "Estado",
+        render: (item: (typeof content)[number]) => (
+          <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
+        ),
+      },
+      {
+        header: "Acciones",
+        render: (item: (typeof content)[number]) => (
+          <ContentActions
+            item={{
+              id: item._id.toString(),
+              stageId: item.stageId.toString(),
+              status: item.status,
+              title: item.title,
+              body: item.body,
+              type: item.type,
+              mediaId: item.mediaId ? item.mediaId.toString() : null,
+              videoUrl: item.videoUrl,
+              scope: item.scope,
+              roleIds: item.roleIds.map((id) => id.toString()),
+              requirement: item.requirement,
+            }}
+            roles={roleOptions}
+          />
+        ),
+      },
+    ];
+  }
+  const contentColumns = buildContentColumns();
+  // Celdas ya renderizadas en el servidor — ReorderableDataTable es un
+  // Client Component, no puede recibir los documentos de Mongo (ObjectId)
+  // ni las funciones `render` cruzando ese límite, solo JSX ya resuelto.
+  const contentRows = activeContent.map((item) => ({
+    id: item._id.toString(),
+    order: item.order,
+    cells: contentColumns.map((column) => column.render(item)),
+  }));
 
-  const processColumns = [
-    { header: "Orden", render: (item: (typeof processes)[number]) => item.order },
-    { header: "Título", render: (item: (typeof processes)[number]) => item.title },
-    {
-      header: "Alcance",
-      render: (item: (typeof processes)[number]) =>
-        item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
-    },
-    {
-      header: "Estado",
-      render: (item: (typeof processes)[number]) => (
-        <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
-      ),
-    },
-    {
-      header: "Acciones",
-      render: (item: (typeof processes)[number]) => (
-        <ProcessActions
-          item={{
-            id: item._id.toString(),
-            stageId: item.stageId.toString(),
-            status: item.status,
-            title: item.title,
-            objective: item.objective,
-            context: item.context,
-            expectedResult: item.expectedResult,
-            resources: item.resources,
-            scope: item.scope,
-            roleIds: item.roleIds.map((id) => id.toString()),
-          }}
-          roles={roleOptions}
-        />
-      ),
-    },
-  ];
+  function buildProcessColumns() {
+    return [
+      { header: "Orden", render: (item: (typeof processes)[number]) => item.order },
+      { header: "Título", render: (item: (typeof processes)[number]) => item.title },
+      {
+        header: "Alcance",
+        render: (item: (typeof processes)[number]) =>
+          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
+      },
+      {
+        header: "Estado",
+        render: (item: (typeof processes)[number]) => (
+          <Badge variant={item.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[item.status]}</Badge>
+        ),
+      },
+      {
+        header: "Acciones",
+        render: (item: (typeof processes)[number]) => (
+          <ProcessActions
+            item={{
+              id: item._id.toString(),
+              stageId: item.stageId.toString(),
+              status: item.status,
+              title: item.title,
+              objective: item.objective,
+              context: item.context,
+              expectedResult: item.expectedResult,
+              resources: item.resources,
+              scope: item.scope,
+              roleIds: item.roleIds.map((id) => id.toString()),
+            }}
+            roles={roleOptions}
+          />
+        ),
+      },
+    ];
+  }
+  const processColumns = buildProcessColumns();
+  const processRows = activeProcesses.map((item) => ({
+    id: item._id.toString(),
+    order: item.order,
+    cells: processColumns.map((column) => column.render(item)),
+  }));
 
   return (
     <div>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        {/* El Breadcrumb ya es el "volver a módulos" (click en "Módulos") —
+            antes había además un botón "← Volver a módulos" acá mismo,
+            duplicando esa navegación y dejando 3 botones casi idénticos
+            (mismo variant="secondary") cuando el módulo tenía anterior Y
+            siguiente. Se saca: quedan como máximo 2, solo prev/next. */}
         <Breadcrumb items={[{ label: "Módulos", href: "/admin/modules" }, { label: stage.title }]} />
         <div className="flex flex-wrap items-center gap-2">
-          <LinkButton href="/admin/modules" variant="secondary" className="px-3 py-1.5 text-xs">
-            <Icon name="chevron-left" size="sm" />
-            Volver a módulos
-          </LinkButton>
           {prevStage && (
             <LinkButton href={`/admin/modules/${prevStage._id.toString()}`} variant="secondary" className="px-3 py-1.5 text-xs">
               <Icon name="chevron-left" size="sm" />
@@ -184,11 +205,11 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <h2 className="font-display text-lg font-semibold text-ink">Contenido</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(content)} />
         </div>
-        <DataTable
-          rows={activeContent}
-          rowKey={(item) => item._id.toString()}
+        <ReorderableDataTable
+          headers={contentColumns.map((column) => column.header)}
+          rows={contentRows}
           emptyMessage="Este módulo todavía no tiene contenido de lectura. Si es un módulo solo de procesos, no hace falta agregar nada acá."
-          columns={contentColumns}
+          basePath="/api/content"
         />
         <ArchivedSection count={archivedContent.length}>
           <DataTable rows={archivedContent} rowKey={(item) => item._id.toString()} emptyMessage="Sin contenido archivado." columns={contentColumns} />
@@ -203,11 +224,11 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
           <h2 className="font-display text-lg font-semibold text-ink">Procesos</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(processes)} />
         </div>
-        <DataTable
-          rows={activeProcesses}
-          rowKey={(item) => item._id.toString()}
+        <ReorderableDataTable
+          headers={processColumns.map((column) => column.header)}
+          rows={processRows}
           emptyMessage="Este módulo todavía no tiene procesos operativos. Si es un módulo solo de contenido, no hace falta agregar nada acá."
-          columns={processColumns}
+          basePath="/api/processes"
         />
         <ArchivedSection count={archivedProcesses.length}>
           <DataTable rows={archivedProcesses} rowKey={(item) => item._id.toString()} emptyMessage="Sin procesos archivados." columns={processColumns} />

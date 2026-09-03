@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { FieldShell, type TextareaProps } from "@/components/Field";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { uploadMedia } from "@/lib/admin/upload-media";
@@ -13,9 +13,14 @@ import { cn } from "@/lib/cn";
 // párrafo, tabla).
 const SNIPPETS = {
   checklist: "- [ ] Primer paso\n- [ ] Segundo paso",
-  callout: "> **Dato clave:** completá esto antes de tal fecha, usando tal herramienta.",
+  callout: "> **Dato clave:** completa esto antes de tal fecha, usando tal herramienta.",
   link: "[Abrir herramienta](https://)",
   table: "| Columna 1 | Columna 2 |\n| --- | --- |\n| Dato | Dato |",
+  // Solo tiene efecto especial (QuizBlock, ver institutional-content.ts)
+  // cuando el título del content item es exactamente "Pon a Prueba lo que
+  // Aprendiste" — en cualquier otro content item esto se ve como texto
+  // Markdown normal (una lista numerada), no se rompe nada.
+  quiz: "1. ¿Pregunta divertida?\n- Opción incorrecta\n- **Opción correcta**\n- Opción incorrecta\nDato curioso que se muestra como respuesta, aciertes o no (opcional).",
 } as const;
 
 /**
@@ -29,15 +34,46 @@ const SNIPPETS = {
  * contenido accionable (checklist, dato clave destacado, enlace a
  * herramienta real, tabla) sin tener que memorizar sintaxis Markdown —
  * ver MarkdownContent.tsx, que es quien le da el tratamiento visual
- * especial a cada una de estas 4 formas.
+ * especial a cada una de estas 4 formas. "Pregunta de quiz" es distinto:
+ * SIEMPRE se ve como Markdown normal acá (y en cualquier content item que
+ * no sea el especial de quiz) — solo se renderiza como QuizBlock cuando el
+ * título del content item calza con el que espera institutional-content.ts.
+ * Está acá para que el admin no tenga que memorizar el formato de pregunta
+ * (numerada + opciones `-` + `**negrita**` en la correcta) al editar ESE
+ * content item puntual.
  */
 export function MarkdownTextarea({ id, label, error, className, value, onChange, ...rest }: TextareaProps) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isInsertMenuOpen, setIsInsertMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const insertMenuRef = useRef<HTMLDivElement>(null);
   const text = typeof value === "string" ? value : "";
+
+  // Antes eran 5 botones sueltos ("🖼️ Insertar imagen", "☑️ Checklist", "🔑
+  // Dato clave", "🔗 Enlace", "📊 Tabla", "🎉 Pregunta de quiz") en la misma
+  // fila que Editar/Vista previa — en un modal angosto eso se envolvía en 2-3
+  // líneas y era la principal fuente del "muro de botones". Se juntan en un
+  // solo menú desplegable.
+  useEffect(() => {
+    if (!isInsertMenuOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (insertMenuRef.current && !insertMenuRef.current.contains(event.target as Node)) {
+        setIsInsertMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsInsertMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isInsertMenuOpen]);
 
   function insertSnippet(snippet: string) {
     if (!onChange) return;
@@ -93,43 +129,69 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
         {mode === "edit" && (
           <>
             <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50 disabled:opacity-50"
-            >
-              {isUploading ? "Subiendo…" : "🖼️ Insertar imagen"}
-            </button>
+            <div className="relative" ref={insertMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsInsertMenuOpen((open) => !open)}
+                disabled={isUploading}
+                className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50 disabled:opacity-50"
+              >
+                {isUploading ? "Subiendo…" : "+ Insertar bloque ▾"}
+              </button>
+              {isInsertMenuOpen && (
+                <div className="absolute left-0 top-full z-10 mt-1 flex w-56 flex-col gap-0.5 rounded-md border border-line bg-card p-1 shadow-lg">
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    🖼️ Imagen
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      insertSnippet(SNIPPETS.checklist);
+                    }}
+                  >
+                    ☑️ Checklist
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      insertSnippet(SNIPPETS.callout);
+                    }}
+                  >
+                    🔑 Dato clave
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      insertSnippet(SNIPPETS.link);
+                    }}
+                  >
+                    🔗 Enlace a herramienta
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      insertSnippet(SNIPPETS.table);
+                    }}
+                  >
+                    📊 Tabla
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setIsInsertMenuOpen(false);
+                      insertSnippet(SNIPPETS.quiz);
+                    }}
+                  >
+                    🎉 Pregunta de quiz
+                  </MenuItem>
+                </div>
+              )}
+            </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInsertImage} className="hidden" />
-            <button
-              type="button"
-              onClick={() => insertSnippet(SNIPPETS.checklist)}
-              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
-            >
-              ☑️ Checklist
-            </button>
-            <button
-              type="button"
-              onClick={() => insertSnippet(SNIPPETS.callout)}
-              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
-            >
-              🔑 Dato clave
-            </button>
-            <button
-              type="button"
-              onClick={() => insertSnippet(SNIPPETS.link)}
-              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
-            >
-              🔗 Enlace a herramienta
-            </button>
-            <button
-              type="button"
-              onClick={() => insertSnippet(SNIPPETS.table)}
-              className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50"
-            >
-              📊 Tabla
-            </button>
           </>
         )}
       </div>
@@ -155,7 +217,7 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
           {text.trim() ? <MarkdownContent>{text}</MarkdownContent> : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
         </div>
       )}
-      <p className="mt-1 text-xs text-ink-soft/70">Ubicá el cursor antes de insertar un bloque — se agrega ahí, no al final.</p>
+      <p className="mt-1 text-xs text-ink-soft/70">Ubica el cursor antes de insertar un bloque — se agrega ahí, no al final.</p>
     </FieldShell>
   );
 }
@@ -169,6 +231,18 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
         "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
         active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-brand-tint/50",
       )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MenuItem({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink transition-colors hover:bg-brand-tint/50"
     >
       {children}
     </button>

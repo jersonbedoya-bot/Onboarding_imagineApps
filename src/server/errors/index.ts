@@ -33,13 +33,13 @@ export class NotFoundError extends AppError {
  * usuario no alcanza para la acción solicitada.
  */
 export class ForbiddenError extends AppError {
-  constructor(message = "No tenés permisos para realizar esta acción.") {
+  constructor(message = "No tienes permisos para realizar esta acción.") {
     super("FORBIDDEN", 403, message);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = "Debés iniciar sesión para continuar.") {
+  constructor(message = "Debes iniciar sesión para continuar.") {
     super("UNAUTHORIZED", 401, message);
   }
 }
@@ -54,7 +54,7 @@ export class ValidationError extends AppError {
 }
 
 export class RateLimitedError extends AppError {
-  constructor(message = "Demasiados intentos. Esperá unos minutos y volvé a intentar.") {
+  constructor(message = "Demasiados intentos. Espera unos minutos y vuelve a intentar.") {
     super("RATE_LIMITED", 429, message);
   }
 }

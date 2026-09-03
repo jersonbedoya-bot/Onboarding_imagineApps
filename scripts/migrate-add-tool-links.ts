@@ -51,7 +51,7 @@ const NUEVO_ECOSISTEMA_BODY = `### Herramientas del día a día
 
 ### Contacto de contingencia
 
-> **Dato clave:** guardá ya en tu celular el número de Kelly Yohana Ospina (People): **314 860 0139**. Ante una emergencia operativa, People intentará contactarte por teléfono — si no tenés el número guardado, los filtros de spam pueden bloquear la llamada.`;
+> **Dato clave:** guarda ya en tu celular el número de Kelly Yohana Ospina (People): **314 860 0139**. Ante una emergencia operativa, People intentará contactarte por teléfono — si no tienes el número guardado, los filtros de spam pueden bloquear la llamada.`;
 
 const PROCESS_PATCHES: { id: ObjectId; label: string; patch: Parameters<typeof processService.updateProcess>[2] }[] = [
   {

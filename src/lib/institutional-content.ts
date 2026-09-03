@@ -1,27 +1,31 @@
 /**
- * Layout especial para 4 content items institucionales de Fase 01: "Hitos
+ * Layout especial para 5 content items institucionales de Módulo 1: "Hitos
  * que nos Definieron" se pinta como línea de tiempo (HistoryTimeline),
  * "Proyectos de Alto Impacto" y "Principios No Negociables" como grilla de
- * cards (ImpactProjectsGrid / NonNegotiablesGrid), y los 5 valores dentro de
+ * cards (ImpactProjectsGrid / NonNegotiablesGrid), los 5 valores dentro de
  * "Quiénes Somos y Nuestra Visión" como mini-cards clickeables
- * (CultureValuesGrid) — en vez del render de texto plano de MarkdownContent
- * para esas partes. Mismo patrón de match por título ya usado en
- * pending-content.ts, sin agregar un tipo de content_item nuevo solo para
- * estos 4 (contenido institucional fijo, no operativo, que no necesita su
- * propio esquema).
+ * (CultureValuesGrid), y un quiz de opción múltiple como el de
+ * "Pon a Prueba lo que Aprendiste" (QuizBlock) — en vez del render de texto
+ * plano de MarkdownContent para esas partes. Mismo patrón de match por
+ * título ya usado en pending-content.ts, sin agregar un tipo de
+ * `content_item` nuevo solo para estos 5 (contenido institucional fijo, no
+ * operativo, que no necesita su propio esquema — ver BACKLOG.md, que en su
+ * momento diseñó el quiz asumiendo que hacía falta un tipo nuevo; el patrón
+ * de acá lo resuelve sin tocar `schema.ts`).
  *
  * El body en Mongo sigue siendo Markdown editable desde el admin: una lista
  * con formato fijo (`- **A — B**: C` / `- **A** (B): C` / `- **A:** B` /
- * `1. **A:** B`). Si el admin lo edita y el formato deja de calzar, el
- * parser devuelve `null` y el caller cae al render de MarkdownContent
- * normal — nunca se rompe la vista, en el peor caso se pierde el layout
- * especial.
+ * `1. **A:** B` / preguntas numeradas + opciones `-`, ver QUIZ_QUESTION_LINE
+ * más abajo). Si el admin lo edita y el formato deja de calzar, el parser
+ * devuelve `null` y el caller cae al render de MarkdownContent normal —
+ * nunca se rompe la vista, en el peor caso se pierde el layout especial.
  */
 
 const HISTORY_TIMELINE_TITLE = "Hitos que nos Definieron";
 const IMPACT_PROJECTS_TITLE = "Proyectos de Alto Impacto";
 const NON_NEGOTIABLES_TITLE = "Principios No Negociables";
 const CULTURE_VALUES_TITLE = "Quiénes Somos y Nuestra Visión";
+const QUIZ_TITLE = "Pon a Prueba lo que Aprendiste";
 
 export function isHistoryTimelineContent(title: string): boolean {
   return title.includes(HISTORY_TIMELINE_TITLE);
@@ -33,6 +37,10 @@ export function isImpactProjectsContent(title: string): boolean {
 
 export function isNonNegotiablesContent(title: string): boolean {
   return title.includes(NON_NEGOTIABLES_TITLE);
+}
+
+export function isQuizContent(title: string): boolean {
+  return title.includes(QUIZ_TITLE);
 }
 
 export function isCultureValuesContent(title: string): boolean {
@@ -193,4 +201,64 @@ export function splitCultureValues(body: string): CultureValuesSplit | null {
   if (!values.every((value): value is CultureValue => value !== null)) return null;
 
   return { intro: lines.slice(0, listStart).join("\n").trim(), values };
+}
+
+/**
+ * Quiz de opción múltiple (BACKLOG.md, "retomado" a pedido del usuario):
+ * preguntas divertidas de cultura/historia, no simuladores técnicos de
+ * decisión — ese estilo (imagine-apps-onboarding/paso-1..3, "sim-scenario-box")
+ * se evaluó y se descartó a propósito (ver comentario en phase-groups.ts).
+ * El único que sí se adoptó de la maqueta es el "Micro-Reto: El ADN de
+ * Imagine Apps" de index.html — acá se generaliza a N preguntas por content
+ * item en vez de 1 sola.
+ *
+ * Formato del body (Markdown editable desde el admin): cada pregunta es una
+ * línea `N. texto` seguida de 2+ líneas de opción `- texto`, con la opción
+ * correcta envuelta en `**negrita**`, y opcionalmente una línea de dato
+ * curioso (texto plano, sin `-` ni número) que se muestra como feedback sea
+ * cual sea la respuesta elegida. Igual criterio que el resto del archivo:
+ * si una pregunta no calza el formato, se devuelve `null` completo (no un
+ * subconjunto parcial) y el caller cae a MarkdownContent normal.
+ */
+export type QuizQuestion = { question: string; options: string[]; correctIndex: number; funFact?: string };
+const QUIZ_QUESTION_LINE = /^\d+\.\s*(.+)$/;
+const QUIZ_OPTION_LINE = /^[-*]\s*(.+)$/;
+const QUIZ_CORRECT_OPTION = /^\*\*(.+)\*\*$/;
+
+export function parseQuizQuestions(body: string): QuizQuestion[] | null {
+  const lines = body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (lines.length === 0) return null;
+
+  const questions: QuizQuestion[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const questionMatch = QUIZ_QUESTION_LINE.exec(lines[i]);
+    if (!questionMatch) return null;
+    const question = questionMatch[1];
+    i++;
+
+    const options: string[] = [];
+    let correctIndex = -1;
+    while (i < lines.length && QUIZ_OPTION_LINE.test(lines[i])) {
+      const optionMatch = QUIZ_OPTION_LINE.exec(lines[i])!;
+      const correctMatch = QUIZ_CORRECT_OPTION.exec(optionMatch[1]);
+      if (correctMatch) correctIndex = options.length;
+      options.push(correctMatch ? correctMatch[1] : optionMatch[1]);
+      i++;
+    }
+    if (options.length < 2 || correctIndex === -1) return null;
+
+    let funFact: string | undefined;
+    if (i < lines.length && !QUIZ_QUESTION_LINE.test(lines[i])) {
+      funFact = lines[i];
+      i++;
+    }
+
+    questions.push({ question, options, correctIndex, funFact });
+  }
+
+  return questions.length > 0 ? questions : null;
 }
