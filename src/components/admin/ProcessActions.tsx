@@ -30,10 +30,13 @@ export function ProcessActions({
   item,
   roles,
   showViewSteps = true,
+  canManageLifecycle = true,
 }: {
   item: ProcessActionItem;
   roles: RoleOption[];
   showViewSteps?: boolean;
+  /** false para EDITOR: puede editar/publicar, no archivar/reactivar/borrar. */
+  canManageLifecycle?: boolean;
 }) {
   const { isPending, error, run } = useResourceActions("/api/processes");
   const [isEditing, setIsEditing] = useState(false);
@@ -73,6 +76,7 @@ export function ProcessActions({
         onReactivate={() => run("reactivate", item.id)}
         onDelete={() => setIsConfirmingDelete(true)}
         compact
+        canManageLifecycle={canManageLifecycle}
       />
       {error && (
         <span role="alert" className="text-xs text-danger">

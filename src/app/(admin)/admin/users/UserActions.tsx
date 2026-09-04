@@ -14,9 +14,11 @@ type Props = {
   functionalRoleId: string | null;
   roles: RoleOption[];
   isSelf: boolean;
+  /** false para Admin/Editor en el roster de equipo administrativo — no tienen rol funcional, no aplica el selector. */
+  showFunctionalRoleSelect?: boolean;
 };
 
-export function UserActions({ userId, status, functionalRoleId, roles, isSelf }: Props) {
+export function UserActions({ userId, status, functionalRoleId, roles, isSelf, showFunctionalRoleSelect = true }: Props) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,18 +62,20 @@ export function UserActions({ userId, status, functionalRoleId, roles, isSelf }:
 
   return (
     <div className="flex items-center gap-2">
-      <Select
-        value={functionalRoleId ?? ""}
-        disabled={isPending}
-        onChange={(event) => handleRoleChange(event.target.value)}
-        className="w-auto min-w-[9rem] py-1.5 text-xs"
-      >
-        {roles.map((role) => (
-          <option key={role.id} value={role.id}>
-            {role.label}
-          </option>
-        ))}
-      </Select>
+      {showFunctionalRoleSelect && (
+        <Select
+          value={functionalRoleId ?? ""}
+          disabled={isPending}
+          onChange={(event) => handleRoleChange(event.target.value)}
+          className="w-auto min-w-[9rem] py-1.5 text-xs"
+        >
+          {roles.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.label}
+            </option>
+          ))}
+        </Select>
+      )}
       <Button
         variant={status === "ACTIVE" ? "ghost" : "secondary"}
         className={status === "ACTIVE" ? "px-3 py-1.5 text-xs text-danger hover:bg-danger-soft" : "px-3 py-1.5 text-xs"}

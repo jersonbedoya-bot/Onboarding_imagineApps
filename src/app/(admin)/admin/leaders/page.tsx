@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { listLeadersWithMedia } from "@/server/services/leader.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
@@ -15,10 +15,11 @@ type Leader = Awaited<ReturnType<typeof listLeadersWithMedia>>[number];
 export default async function AdminLeadersPage() {
   let identity;
   try {
-    identity = await requireAdmin();
+    identity = await requireContentEditor();
   } catch {
     redirect("/login");
   }
+  const canManageLifecycle = identity.platformRole === "ADMIN";
 
   const [leaders, roles] = await Promise.all([listLeadersWithMedia(identity), roleRepository.listByTenant(identity.tenantId)]);
   const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
@@ -60,6 +61,7 @@ export default async function AdminLeadersPage() {
             roleIds: leader.roleIds.map((id) => id.toString()),
           }}
           roles={roleOptions}
+          canManageLifecycle={canManageLifecycle}
         />
       ),
     },

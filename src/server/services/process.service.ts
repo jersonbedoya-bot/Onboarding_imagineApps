@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
+import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { ContentScope } from "@/types/enums";
@@ -61,6 +62,7 @@ export async function createProcess(
     action: "PROCESS_CREATED",
     resource: "process",
     resourceId: process._id,
+    metadata: { title: process.title },
   });
 
   return process;
@@ -98,6 +100,7 @@ export async function updateProcess(
     action: "PROCESS_UPDATED",
     resource: "process",
     resourceId: updated._id,
+    metadata: { title: updated.title, changes: diffFields(current, patch) },
   });
 
   return updated;
@@ -117,6 +120,7 @@ export async function publishProcess(actingAdmin: RequestIdentity, id: ObjectId)
     action: "PROCESS_PUBLISHED",
     resource: "process",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -136,6 +140,7 @@ export async function archiveProcess(actingAdmin: RequestIdentity, id: ObjectId)
     action: "PROCESS_ARCHIVED",
     resource: "process",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -156,6 +161,7 @@ export async function reactivateProcess(actingAdmin: RequestIdentity, id: Object
     action: "PROCESS_REACTIVATED",
     resource: "process",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -189,6 +195,7 @@ export async function deleteProcess(actingAdmin: RequestIdentity, id: ObjectId):
     action: "PROCESS_DELETED",
     resource: "process",
     resourceId: id,
+    metadata: { title: current.title },
   });
 }
 

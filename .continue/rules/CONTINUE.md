@@ -121,6 +121,7 @@ src/
 │   │       ├── modules/           # Route + stages + content + processes, per-module
 │   │       ├── processes/[id]/    # Steps of a process
 │   │       ├── leaders/           # Leaders management
+│   │       ├── messages/          # Route headline/subtitle + editable guide messages
 │   │       ├── users/             # Users + invitations
 │   │       └── audit/             # Audit log
 │   ├── (public)/                 # Public routes
@@ -129,8 +130,7 @@ src/
 │   ├── (user)/                   # Onboarding experience
 │   │   └── onboarding/
 │   │       ├── page.tsx          # Complete journey
-│   │       ├── leaders/          # "Conoce a tu equipo"
-│   │       └── resources/        # Resources reference
+│   │       └── leaders/          # "Conoce a tu equipo"
 │   ├── api/                      # Route Handlers (REST) — see §6
 │   └── layout.tsx / globals.css / page.tsx
 ├── components/                   # Reusable components
@@ -196,9 +196,9 @@ src/
 | Term | Meaning |
 |------|---------|
 | Tenant | An organization. All data is isolated per tenant. 1 account = 1 tenant. |
-| Route | The onboarding backbone (singleton per tenant) — e.g. "Bienvenida → Conoce Imagine → ... → Paso a paso operativo". |
+| Route | The onboarding backbone (singleton per tenant), made of ordered stages the user completes one at a time. |
 | Stage | An ordered step in the Route, with optional dependencies (`dependsOnStageId` + `isBlocking`). Contains content items and processes. |
-| Content Item | Readable content of type TEXT/VIDEO/IMAGE/MIXED, with requirement OBLIGATORY (read acknowledgment) or INFORMATIONAL. Scoped COMMON or ROLE. |
+| Content Item | Readable content of type TEXT/VIDEO/IMAGE/MIXED, with requirement OBLIGATORY (read acknowledgment, blocks advance) or INFORMATIONAL (passive scroll-view, never blocks). Scoped COMMON or ROLE. A title matching `isQuizContent` renders as a `QuizBlock` instead and gates "next module" until all its questions are answered (client-side only, not persisted). |
 | Process | An operational workflow (with ordered steps). Scoped COMMON or ROLE (`roleIds[]`). |
 | Step | A single step within a process (title, instruction, completion criteria, optional video). |
 | Leader | A team leader. Scoped COMMON or ROLE (with `roleIds[]`). |
@@ -207,7 +207,7 @@ src/
 | Progress | NOT stored as a percentage — *derived* from `user_progress` records. Existence of the record = the "completed" fact (no intermediate states). |
 
 ### Content Lifecycle
-`DRAFT → PUBLISHED → ARCHIVED` (validated in `src/lib/content-status.ts`). `ARCHIVED` is terminal for singletons. Reactivate returns to `DRAFT`, never directly to `PUBLISHED`. Publishing is always explicit.
+`DRAFT → PUBLISHED → ARCHIVED` (validated in `src/lib/content-status.ts`) for route/stage/content/leader/process/step alike — including the singleton route. `ARCHIVED` is not terminal: each entity's `reactivate*` service (+ `POST .../reactivate`) returns it to `DRAFT`, never directly to `PUBLISHED`. Publishing is always explicit.
 
 ### Visibility Cascade
 Content visibility follows: Route `PUBLISHED` → Stage `PUBLISHED` → Item/Process `PUBLISHED` **with matching scope/role**. If any link is broken, content is hidden (`resolveVisibleContent`, `resolveVisibleProcesses`, `resolveVisibleSteps`).

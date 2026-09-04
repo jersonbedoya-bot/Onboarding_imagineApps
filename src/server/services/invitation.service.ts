@@ -11,7 +11,7 @@ import * as userRepository from "@/server/repositories/user.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as tenantRepository from "@/server/repositories/tenant.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
-import type { PlatformRole } from "@/types/enums";
+import type { PlatformRole, InvitationStatus } from "@/types/enums";
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const BCRYPT_COST = 12;
@@ -24,7 +24,7 @@ export async function createInvitation(
   const email = normalizeEmail(input.email);
   const platformRole = input.platformRole ?? "USER";
 
-  let roleLabel = "Administrador";
+  let roleLabel = platformRole === "ADMIN" ? "Administrador" : "Editor";
   if (platformRole === "USER") {
     if (!input.functionalRoleId) {
       throw new ValidationError("Un usuario necesita un rol funcional.");
@@ -35,7 +35,7 @@ export async function createInvitation(
     }
     roleLabel = role.label;
   } else if (input.functionalRoleId) {
-    throw new ValidationError("Un administrador no tiene rol funcional.");
+    throw new ValidationError("Editores y administradores no tienen rol funcional.");
   }
 
   const existingUser = await userRepository.findByEmail(email);
@@ -77,6 +77,52 @@ export async function createInvitation(
   return { invitation, link, message };
 }
 
+/**
+ * `status` en Mongo solo se mueve PENDING -> ACCEPTED (ver markAccepted);
+ * nada pasa una invitación vencida a EXPIRED, así que a los 7 días sigue
+ * diciendo "PENDING" aunque ya no sirva para nada — se calcula acá en vez
+ * de confiar en el campo guardado (mismo criterio que progress-derivation.ts:
+ * el dato derivado nunca vive como verdad guardada si puede quedar
+ * desactualizado sin que nada lo toque).
+ */
+function effectiveInvitationStatus(invitation: invitationRepository.InvitationDocument): InvitationStatus {
+  if (invitation.status === "PENDING" && invitation.expiresAt.getTime() <= Date.now()) return "EXPIRED";
+  return invitation.status;
+}
+
+export type InvitationListItem = {
+  id: string;
+  email: string;
+  platformRole: PlatformRole;
+  functionalRoleId: string | null;
+  status: InvitationStatus;
+  createdAt: Date;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  invitedBy: string;
+};
+
+/**
+ * Listado de control para /admin/users (ver InvitationsList.tsx) — el
+ * usuario pidió esto después de perder el link de una invitación ya creada
+ * y no tener forma de ver que había quedado pendiente. Solo lectura: no
+ * agrega revocar/reenviar, que sigue diferido en BACKLOG.md.
+ */
+export async function listInvitations(actingAdmin: RequestIdentity): Promise<InvitationListItem[]> {
+  const invitations = await invitationRepository.listByTenant(actingAdmin.tenantId);
+  return invitations.map((invitation) => ({
+    id: invitation._id.toString(),
+    email: invitation.email,
+    platformRole: invitation.platformRole,
+    functionalRoleId: invitation.functionalRoleId?.toString() ?? null,
+    status: effectiveInvitationStatus(invitation),
+    createdAt: invitation.createdAt,
+    expiresAt: invitation.expiresAt,
+    acceptedAt: invitation.acceptedAt,
+    invitedBy: invitation.invitedBy.toString(),
+  }));
+}
+
 export async function previewInvitation(rawToken: string) {
   const invitation = await invitationRepository.findValidByTokenHash(hashToken(rawToken));
   if (!invitation) {
@@ -91,7 +137,7 @@ export async function previewInvitation(rawToken: string) {
   return {
     email: invitation.email,
     tenantName: tenant?.name ?? "",
-    roleLabel: invitation.platformRole === "ADMIN" ? "Administrador" : (role?.label ?? ""),
+    roleLabel: invitation.platformRole === "ADMIN" ? "Administrador" : invitation.platformRole === "EDITOR" ? "Editor" : (role?.label ?? ""),
     expiresAt: invitation.expiresAt,
   };
 }

@@ -82,3 +82,12 @@ export async function findExistingActiveByEmail(tenantId: ObjectId, email: strin
     expiresAt: { $gt: new Date() },
   });
 }
+
+/**
+ * Todas las invitaciones del tenant, más recientes primero — para la
+ * pantalla de control de /admin/users (ver invitation.service.listInvitations).
+ * Solo lectura: no hay acción de revocar/reenviar todavía (ver BACKLOG.md).
+ */
+export async function listByTenant(tenantId: ObjectId): Promise<InvitationDocument[]> {
+  return (await collection()).find({ tenantId }).sort({ createdAt: -1 }).toArray();
+}

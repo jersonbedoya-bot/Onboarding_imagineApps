@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
+import type { PlatformRole } from "@/types/enums";
 import * as userRepository from "@/server/repositories/user.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
@@ -81,6 +82,75 @@ export async function changeFunctionalRole(
       fromRoleId: previous.functionalRoleId?.toString() ?? null,
       toRoleId: functionalRoleId.toString(),
     },
+  });
+
+  return updated;
+}
+
+/**
+ * Cambia el nivel de acceso de un usuario (USER/EDITOR/ADMIN) — acción
+ * nueva, separada a propósito de changeFunctionalRole: son dos ejes
+ * distintos (rol funcional = qué onboarding ve un USER; nivel de acceso =
+ * qué puede hacer en el panel admin) y esta es bastante más sensible
+ * (otorga o quita entrada al panel), por eso vive en su propio audit
+ * action (USER_PLATFORM_ROLE_CHANGED) y su propio endpoint.
+ *
+ * Dos guardas que hoy no existían para ningún otro cambio de usuario:
+ * - No podés cambiarte el nivel a vos mismo (mismo criterio que
+ *   deactivateUser con isSelf).
+ * - No se puede dejar el tenant sin NINGÚN admin activo — si el usuario a
+ *   degradar es el único ADMIN activo, se rechaza. (deactivateUser no
+ *   tiene todavía esta misma protección — no se tocó acá, es una acción
+ *   distinta y ya existente.)
+ */
+export async function changePlatformRole(
+  actingAdmin: RequestIdentity,
+  targetUserId: ObjectId,
+  input: { platformRole: PlatformRole; functionalRoleId?: ObjectId },
+) {
+  if (targetUserId.equals(actingAdmin.userId)) {
+    throw new ValidationError("No puedes cambiar tu propio nivel de acceso.");
+  }
+
+  const previous = await userRepository.findById(actingAdmin.tenantId, targetUserId);
+  if (!previous) {
+    throw new NotFoundError();
+  }
+
+  if (previous.status === "ACTIVE" && previous.platformRole === "ADMIN" && input.platformRole !== "ADMIN") {
+    const activeAdmins = await userRepository.countActiveAdmins(actingAdmin.tenantId);
+    if (activeAdmins <= 1) {
+      throw new ValidationError("No puedes quitarle el rol de administrador al único admin activo del tenant.");
+    }
+  }
+
+  let functionalRoleId: ObjectId | null = null;
+  if (input.platformRole === "USER") {
+    if (!input.functionalRoleId) {
+      throw new ValidationError("Un usuario necesita un rol funcional.");
+    }
+    const role = await roleRepository.findById(actingAdmin.tenantId, input.functionalRoleId);
+    if (!role) {
+      throw new ValidationError("El rol funcional no es válido para este tenant.");
+    }
+    functionalRoleId = input.functionalRoleId;
+  }
+
+  const updated = await userRepository.updatePlatformRole(actingAdmin.tenantId, targetUserId, {
+    platformRole: input.platformRole,
+    functionalRoleId,
+  });
+  if (!updated) {
+    throw new NotFoundError();
+  }
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "USER_PLATFORM_ROLE_CHANGED",
+    resource: "user",
+    resourceId: updated._id,
+    metadata: { from: previous.platformRole, to: input.platformRole },
   });
 
   return updated;

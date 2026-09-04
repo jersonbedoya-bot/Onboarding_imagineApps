@@ -123,7 +123,7 @@ npm run db:seed
 npm run dev
 ```
 
-Abrí [http://localhost:3000](http://localhost:3000). El flujo post-login redirige según el rol: `ADMIN` → `/admin/routes`, `USER` → `/onboarding`.
+Abrí [http://localhost:3000](http://localhost:3000). El flujo post-login redirige según el rol: `ADMIN` → `/admin/modules`, `USER` → `/onboarding`.
 
 ---
 
@@ -187,8 +187,10 @@ src/
 │   │       │   └── [stageId]/     # Detalle: contenido + procesos de esa etapa
 │   │       ├── processes/[id]/    # Pasos de un proceso (se llega desde su módulo)
 │   │       ├── leaders/          # Líderes
-│   │       ├── users/            # Usuarios + invitaciones
-│   │       └── audit/            # Log de auditoría
+│   │       ├── preview/          # Ver el onboarding por rol funcional, solo lectura (Admin y Editor)
+│   │       ├── messages/         # Título/subtítulo del recorrido + mensajes de guía editables (solo Admin)
+│   │       ├── users/            # Usuarios + invitaciones (solo Admin)
+│   │       └── audit/            # Log de auditoría (solo Admin)
 │   ├── (public)/                 # Rutas públicas
 │   │   ├── login/
 │   │   └── accept-invite/[token]/
@@ -231,7 +233,7 @@ Colecciones en MongoDB (ver `src/server/db/schema.ts` para el detalle completo d
 | `users` | Usuarios (email único global; índice `{tenantId, createdAt}`). |
 | `roles` | Roles funcionales (único por `{tenantId, key}`). |
 | `invitations` | Invitaciones; solo se persiste el hash del token (nunca el crudo). |
-| `onboarding_routes` | Ruta de onboarding; **una sola por tenant** (índice único `{tenantId}`). |
+| `onboarding_routes` | Ruta de onboarding; **una sola por tenant** (índice único `{tenantId}`). Incluye título/subtítulo del recorrido y los 2 mensajes de guía toggle-ables, editables desde `/admin/messages`. |
 | `onboarding_stages` | Etapas de la ruta (orden, dependencias, bloqueo). |
 | `content_items` | Contenido común / por rol (`scope` + `roleIds[]`). |
 | `leaders` | Líderes del equipo (`scope` + `roleIds[]`, video/foto). |
@@ -244,7 +246,7 @@ Colecciones en MongoDB (ver `src/server/db/schema.ts` para el detalle completo d
 
 ### Decisiones de diseño clave
 
-- **Ciclo de vida de contenido** `DRAFT → PUBLISHED → ARCHIVED` (PRD §29), validado en `src/lib/content-status.ts`. `ARCHIVED` es terminal (con excepción documentada para la Ruta, ver backlog).
+- **Ciclo de vida de contenido** `DRAFT → PUBLISHED → ARCHIVED` (PRD §29), validado en `src/lib/content-status.ts` para ruta/etapas/content_items/líderes/procesos/pasos por igual. `ARCHIVED` no es terminal: cada entidad tiene un `reactivate*` (servicio + `POST .../reactivate`) que vuelve a `DRAFT` — nunca directo a `PUBLISHED`, hay que republicar a mano.
 - **Referencia polimórfica de progreso** (`user_progress`): la existencia del documento **ES** el hecho de completado. No hay estados intermedios (`PENDING`/`IN_PROGRESS`). Ver `src/server/services/progress-derivation.ts`.
 - **Contenido común vs. por rol**: `scope: COMMON` (todos) o `scope: ROLE` + `roleIds[]`, presente en `content_items`, `leaders` y `processes`.
 - **Una sola ruta por tenant** (no una por rol funcional): lo común/específico vive en `scope`, no en la estructura de la ruta.
@@ -275,10 +277,11 @@ Colecciones en MongoDB (ver `src/server/db/schema.ts` para el detalle completo d
 
 | Rol | Acceso |
 |-----|--------|
-| **USER** | Realizar su onboarding, consultar contenido, completar pasos, consultar progreso. |
-| **ADMIN** | Administrar usuarios/invitaciones, contenido, líderes, procesos, pasos, roles, rutas; publicar/despublicar; ver auditoría. |
+| **USER** (Imaginer) | Realizar su onboarding, consultar contenido, completar pasos, consultar progreso. |
+| **EDITOR** | Entra al panel admin: crea/edita/publica contenido, líderes, procesos y pasos. No archiva/borra/reactiva nada, ni gestiona módulos (stages), usuarios, auditoría o mensajes de guía (ver `requireContentEditor`, `src/server/auth/session.ts`). |
+| **ADMIN** | Todo lo de EDITOR más: archivar/borrar/reactivar cualquier recurso, gestionar módulos, usuarios/invitaciones (incluyendo cambiar el nivel de acceso de otros vía `PATCH /api/users/{id}/platform-role`), mensajes de guía, y ver auditoría. |
 
-Los roles de plataforma están definidos en `src/types/enums.ts` (`PLATFORM_ROLES`).
+Ni EDITOR ni ADMIN hacen el recorrido de onboarding (ninguno tiene `functionalRoleId`). Los roles de plataforma están definidos en `src/types/enums.ts` (`PLATFORM_ROLES`); el nivel de acceso se distingue del **rol funcional** (10.2) — son dos ejes independientes.
 
 ### 10.2 Rol funcional (`functionalRoleId`)
 
@@ -290,15 +293,12 @@ El rol funcional se asigna **siempre desde la invitación** (nunca elegido por e
 
 ## 11. Ruta de onboarding
 
-La ruta es la columna vertebral de la experiencia, con etapas del tipo:
-
-```text
-Bienvenida → Conoce Imagine → Conoce a tu equipo → No negociables → Ruta por rol → Paso a paso operativo
-```
+La ruta es la columna vertebral de la experiencia: una sola por tenant, dividida en **etapas** (módulos) que el usuario recorre una a la vez.
 
 - **Una sola ruta por tenant** (singleton), componible por **etapas** en orden configurable, con **dependencias** (una etapa puede bloquear la siguiente mediante `dependsOnStageId` + `isBlocking`).
 - Cada etapa agrupa **content items** y **procesos** (con sus pasos).
-- Los **content items** pueden ser `TEXT`, `VIDEO`, `IMAGE` o `MIXED`, con requirement `OBLIGATORY` (acuse de lectura) o `INFORMATIONAL`.
+- Los **content items** pueden ser `TEXT`, `VIDEO`, `IMAGE` o `MIXED`, con requirement `OBLIGATORY` (acuse de lectura, bloquea el avance) o `INFORMATIONAL` (se marca visto solo con scroll, nunca bloquea).
+- **Quiz de cierre de módulo (opcional)**: un content item cuyo título matchea `isQuizContent` (`src/lib/institutional-content.ts`) se interpreta como preguntas de opción múltiple en Markdown (`parseQuizQuestions`) y se renderiza vía `QuizBlock` dentro de un modal que se abre al pulsar "Siguiente módulo". El botón para avanzar dentro de ese modal solo se habilita cuando el usuario respondió las N preguntas (la respuesta no necesita ser correcta) — puramente client-side, no persiste en `user_progress`.
 - La visibilidad del contenido sigue una **cascada**: Ruta `PUBLISHED` → Etapa `PUBLISHED` → Item/Proceso `PUBLISHED` con `scope` que matchee el rol del usuario. Si cualquier eslabón de la cadena no está publicado, el contenido no aparece (`resolveVisibleContent`, `resolveVisibleProcesses`, `resolveVisibleSteps`).
 
 ---
@@ -335,16 +335,16 @@ Todas bajo `src/app/api/`. Las rutas administrativas exigen `requireAdmin()`; la
 | Área | Endpoints | Descripción |
 |------|-----------|-------------|
 | **Auth** | `POST /api/auth/...` | NextAuth (login, callback, signout). |
-| **Usuarios** | `GET/POST /api/users`, `GET/PUT/DELETE /api/users/{id}`, `/deactivate`, `/reactivate`, `/role` | Gestión de usuarios por el admin. |
+| **Usuarios** | `GET /api/users`, `POST /api/users/{id}/deactivate`, `/reactivate`, `PATCH /api/users/{id}/role` (rol funcional), `PATCH /api/users/{id}/platform-role` (nivel de acceso USER/EDITOR/ADMIN) | Gestión de usuarios por el admin. No hay creación directa: los usuarios nacen al aceptar una invitación. |
 | **Invitaciones** | `POST /api/invitations`, `GET /api/invitations/{token}`, `POST /api/invitations/{token}/accept` | Crear/previsualizar/aceptar invitaciones. |
-| **Ruta** | `POST /api/route/publish`, `POST /api/route/archive`, `GET /api/route` | Gestión de la ruta (singleton). |
-| **Etapas** | `GET/POST /api/stages`, `GET/PUT/DELETE /api/stages/{id}`, `/publish`, `/archive` | Gestión de etapas. |
-| **Contenido** | `GET/POST /api/content`, `GET/PUT/DELETE /api/content/{id}`, `/publish`, `/archive`, `GET /api/content/resolve` | Gestión y resolución de content items. |
-| **Líderes** | `GET/POST /api/leaders`, `GET/PUT/DELETE /api/leaders/{id}`, `/publish`, `/archive`, `GET /api/leaders/resolve` | Gestión y resolución de líderes. |
-| **Procesos** | `GET/POST /api/processes`, `GET/PUT/DELETE /api/processes/{id}`, `/publish`, `/archive` | Gestión de procesos. |
-| **Pasos** | `GET/POST /api/steps`, `GET/PUT/DELETE /api/steps/{id}`, `/publish`, `/archive`, `GET /api/steps/resolve` | Gestión y resolución de pasos. |
+| **Ruta** | `GET /api/route`, `PATCH /api/route`, `POST /api/route/publish`, `/archive`, `/reactivate` | Gestión de la ruta (singleton) — `PATCH` edita headline/subtitle/mensajes de guía. |
+| **Etapas** | `GET/POST /api/stages`, `PATCH/DELETE /api/stages/{id}`, `POST .../publish`, `/archive`, `/reactivate` | Gestión de etapas. |
+| **Contenido** | `GET/POST /api/content`, `PATCH/DELETE /api/content/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/content/resolve` | Gestión y resolución de content items. |
+| **Líderes** | `GET/POST /api/leaders`, `PATCH/DELETE /api/leaders/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/leaders/resolve` | Gestión y resolución de líderes. |
+| **Procesos** | `GET/POST /api/processes`, `PATCH/DELETE /api/processes/{id}`, `POST .../publish`, `/archive`, `/reactivate` | Gestión de procesos. |
+| **Pasos** | `GET/POST /api/steps`, `PATCH/DELETE /api/steps/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/steps/resolve` | Gestión y resolución de pasos. |
 | **Roles** | `GET /api/roles` | Listado de roles funcionales. |
-| **Progreso** | `GET /api/progress/journey`, `/content/{id}/read`, `/steps/{id}/complete`, `/content/resolve` | "Dónde estoy", acuse de lectura y completar pasos. |
+| **Progreso** | `GET /api/progress/journey`, `POST /api/progress/content/{id}/read`, `/content/{id}/view`, `/steps/{id}/complete`, `/processes/{id}/complete` | "Dónde estoy", acuse de lectura (obligatorio), vista pasiva (informativo) y completar pasos/procesos. |
 | **Media** | `POST /api/media` | Subida de imágenes (Vercel Blob). |
 | **Auditoría** | `GET /api/audit` | Log de auditoría con filtros y paginación. |
 
@@ -397,10 +397,9 @@ El archivo **`MIGRATIONS.md`** registra:
 
 El archivo **`BACKLOG.md`** lista features explícitamente diferidas (decisión de Product Owner, no deuda técnica). Incluye:
 
-- **Fase 6 (visual)**: formulario "conocé al equipo" (el contenido tipo quiz ya se implementó — ver BACKLOG.md).
+- **Fase 6 (visual)**: formulario "conocé al equipo" con notas por líder; variante de quiz "completar la frase".
 - **Fase 2**: revocar/reenviar invitación, promover usuario a admin.
 - **Fase 3B (media)**: client-direct-upload a Vercel Blob; `BLOB_READ_WRITE_TOKEN` no configurado en dev.
-- **Fase 3 (rutas)**: ruta archivada sin retorno (`ARCHIVED` terminal para una ruta singleton).
 - **Plataforma**: rate limiting solo en login/accept-invite; observabilidad externa (Sentry) no configurada.
 
 > No implementar sin aprobación explícita, ya que cada item es un cambio de alcance funcional (PRD §59).

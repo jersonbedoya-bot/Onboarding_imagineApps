@@ -288,6 +288,70 @@ export const resolveJourney = cache(async (identity: RequestIdentity) => {
  * sticky de abajo sigue operando sobre el progreso de ESE usuario, nunca
  * el del admin que mira.
  */
+/**
+ * Vista de SOLO LECTURA del recorrido para un rol, sin usuario real detrás
+ * — usada por /admin/preview (Admin/Editor viendo el onboarding sin
+ * cambiar de cuenta). A diferencia de resolveJourneyFor: no lee ni escribe
+ * user_progress (nada está "completado", todo queda desbloqueado para
+ * poder navegar libremente) — un Admin/Editor nunca tiene functionalRoleId
+ * propio, así que no hay un progreso real de qué marcar acá. La UI
+ * (OnboardingJourney con previewMode=true) oculta los botones que
+ * persistirían algo.
+ */
+export async function resolveJourneyPreview(tenantId: ObjectId, roleId: ObjectId) {
+  const bundles = await loadStageBundles(tenantId, roleId);
+  const role = await roleRepository.findById(tenantId, roleId);
+
+  const mediaIds = bundles.flatMap((bundle) => bundle.items.map((item) => item.mediaId).filter((id): id is ObjectId => id !== null));
+  const mediaDocs = await mediaRepository.findByIds(tenantId, mediaIds);
+  const mediaUrlById = new Map(mediaDocs.map((media) => [media._id.toString(), media.url]));
+
+  return {
+    role: role ? { id: role._id.toString(), key: role.key, label: role.label } : null,
+    stages: bundles.map(({ stage, items, processGroups }) => ({
+      id: stage._id.toString(),
+      key: stage.key,
+      title: stage.title,
+      order: stage.order,
+      isBlocking: stage.isBlocking,
+      status: "COMPLETE" as const,
+      unlocked: true, // todo navegable en preview, sin importar dependencias
+      totalCompletable: 0,
+      completedCount: 0,
+      readOnly: true,
+      items: items.map((item) => ({
+        id: item._id.toString(),
+        title: item.title,
+        type: item.type,
+        body: item.body,
+        videoUrl: item.videoUrl,
+        videoProvider: item.videoProvider,
+        imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
+        requirement: item.requirement,
+        completed: item.requirement === "OBLIGATORY" ? false : null,
+        viewed: item.requirement === "OBLIGATORY" ? null : false,
+      })),
+      processes: processGroups.map(({ process, steps }) => ({
+        id: process._id.toString(),
+        title: process.title,
+        objective: process.objective,
+        context: process.context,
+        expectedResult: process.expectedResult,
+        resources: process.resources,
+        steps: steps.map((step) => ({
+          id: step._id.toString(),
+          title: step.title,
+          description: step.description,
+          instruction: step.instruction,
+          videoUrl: step.videoUrl,
+          videoProvider: step.videoProvider,
+          completed: false,
+        })),
+      })),
+    })),
+  };
+}
+
 export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, roleId: ObjectId) {
   const bundles = await loadStageBundles(tenantId, roleId);
   const rows = await progressRepository.findByUser(tenantId, userId);

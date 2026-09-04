@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
 import { normalizeVideoUrl, getVideoThumbnailUrl } from "@/lib/video-url";
+import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { ContentScope, VideoProvider } from "@/types/enums";
@@ -84,6 +85,7 @@ export async function createLeader(
     action: "LEADER_CREATED",
     resource: "leader",
     resourceId: leader._id,
+    metadata: { name: leader.name },
   });
 
   return leader;
@@ -140,6 +142,7 @@ export async function updateLeader(
     action: "LEADER_UPDATED",
     resource: "leader",
     resourceId: updated._id,
+    metadata: { name: updated.name, changes: diffFields(current, patch) },
   });
 
   return updated;
@@ -159,6 +162,7 @@ export async function publishLeader(actingAdmin: RequestIdentity, id: ObjectId) 
     action: "LEADER_PUBLISHED",
     resource: "leader",
     resourceId: updated._id,
+    metadata: { name: updated.name },
   });
 
   return updated;
@@ -178,6 +182,7 @@ export async function archiveLeader(actingAdmin: RequestIdentity, id: ObjectId) 
     action: "LEADER_ARCHIVED",
     resource: "leader",
     resourceId: updated._id,
+    metadata: { name: updated.name },
   });
 
   return updated;
@@ -198,6 +203,7 @@ export async function reactivateLeader(actingAdmin: RequestIdentity, id: ObjectI
     action: "LEADER_REACTIVATED",
     resource: "leader",
     resourceId: updated._id,
+    metadata: { name: updated.name },
   });
 
   return updated;
@@ -220,6 +226,7 @@ export async function deleteLeader(actingAdmin: RequestIdentity, id: ObjectId): 
     action: "LEADER_DELETED",
     resource: "leader",
     resourceId: id,
+    metadata: { name: current.name },
   });
 }
 

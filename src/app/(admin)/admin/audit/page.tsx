@@ -6,7 +6,9 @@ import { AUDIT_ACTIONS, type AuditAction } from "@/server/repositories/audit.rep
 import { ObjectId } from "mongodb";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { AUDIT_ACTION_LABELS, AUDIT_RESOURCE_LABELS } from "@/lib/audit-labels";
 import { AuditFilters } from "./AuditFilters";
+import { AuditDetails } from "./AuditDetails";
 
 const PAGE_SIZE = 20;
 
@@ -53,10 +55,20 @@ export default async function AdminAuditPage({
         rowKey={(item) => item._id.toString()}
         emptyMessage="No hay eventos de auditoría con estos filtros."
         columns={[
-          { header: "Fecha", render: (item) => item.timestamp.toISOString() },
+          {
+            header: "Fecha",
+            render: (item) => new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(item.timestamp),
+          },
           { header: "Usuario", render: (item) => usersById.get(item.userId.toString()) ?? item.userId.toString() },
-          { header: "Acción", render: (item) => <span className="font-mono text-xs">{item.action}</span> },
-          { header: "Recurso", render: (item) => `${item.resource}:${item.resourceId.toString()}` },
+          { header: "Acción", render: (item) => AUDIT_ACTION_LABELS[item.action] ?? item.action },
+          {
+            header: "Recurso",
+            render: (item) => {
+              const kind = AUDIT_RESOURCE_LABELS[item.resource] ?? item.resource;
+              return item.resourceLabel ? `${kind}: ${item.resourceLabel}` : `${kind} (…${item.resourceId.toString().slice(-6)})`;
+            },
+          },
+          { header: "Detalles", render: (item) => <AuditDetails metadata={item.metadata} /> },
         ]}
       />
 

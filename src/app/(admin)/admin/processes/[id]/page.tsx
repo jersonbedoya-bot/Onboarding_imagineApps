@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { listStepsByProcess } from "@/server/services/step.service";
 import * as processRepository from "@/server/repositories/process.repository";
 import * as stageRepository from "@/server/repositories/stage.repository";
@@ -19,10 +19,11 @@ import { StepActions } from "./StepActions";
 export default async function AdminProcessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   let identity;
   try {
-    identity = await requireAdmin();
+    identity = await requireContentEditor();
   } catch {
     redirect("/login");
   }
+  const canManageLifecycle = identity.platformRole === "ADMIN";
 
   const { id } = await params;
   if (!ObjectId.isValid(id)) notFound();
@@ -68,6 +69,7 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
               videoUrl: step.videoUrl,
               completionCriteria: step.completionCriteria,
             }}
+            canManageLifecycle={canManageLifecycle}
           />
         ),
       },
@@ -116,6 +118,7 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
               }}
               roles={roleOptions}
               showViewSteps={false}
+              canManageLifecycle={canManageLifecycle}
             />
           </div>
         }

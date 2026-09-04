@@ -112,6 +112,7 @@ export function OnboardingJourney({
   gerencia,
   blockedNextMessage,
   pendingContentMessage,
+  previewMode = false,
 }: {
   stages: JourneyStage[];
   currentStageId: string | null;
@@ -122,6 +123,15 @@ export function OnboardingJourney({
   // /admin/messages (ver route.service.getRouteContent).
   blockedNextMessage: GuideMessage;
   pendingContentMessage: GuideMessage;
+  /**
+   * true desde /admin/preview (Admin/Editor viendo el onboarding sin
+   * cambiar de cuenta, ver ese page.tsx): oculta los botones que
+   * persistirían progreso (MarkAsReadButton, ContentViewTracker,
+   * CompleteProcessButton) — un Admin/Editor nunca tiene functionalRoleId,
+   * así que esas escrituras fallarían igual server-side (requireRoleId);
+   * mejor no mostrarlas que mostrar una acción que siempre falla.
+   */
+  previewMode?: boolean;
 }) {
   const router = useRouter();
   const initialIndex = Math.max(
@@ -200,6 +210,7 @@ export function OnboardingJourney({
         roleLabel={roleLabel}
         gerencia={gerencia}
         pendingContentMessage={pendingContentMessage}
+        previewMode={previewMode}
       />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 xl:mt-12 xl:pt-8">
@@ -259,6 +270,7 @@ function StageSection({
   roleLabel,
   gerencia,
   pendingContentMessage,
+  previewMode = false,
 }: {
   stage: JourneyStage;
   index: number;
@@ -268,6 +280,7 @@ function StageSection({
   roleLabel: string | null;
   gerencia: LeaderCardData[];
   pendingContentMessage: GuideMessage;
+  previewMode?: boolean;
 }) {
   const groups = groupProcesses(stage.key, stage.processes);
   // Por defecto abre el primer grupo con trabajo pendiente (si ya
@@ -383,7 +396,7 @@ function StageSection({
                           <p className="font-display text-xl font-semibold leading-snug text-ink xl:text-2xl">{item.title}</p>
                           {pending && <PendingBadge />}
                         </span>
-                        {item.requirement === "OBLIGATORY" && (
+                        {!previewMode && item.requirement === "OBLIGATORY" && (
                           // Confeti chico solo en Fase 01 (index === 0, ver StageSection):
                           // el momento más "humano" del recorrido pide algo de
                           // celebración; el confeti grande queda para el final total.
@@ -393,7 +406,7 @@ function StageSection({
                       <ContentViewTracker
                         contentItemId={item.id}
                         initialViewed={item.viewed ?? false}
-                        enabled={item.requirement !== "OBLIGATORY"}
+                        enabled={!previewMode && item.requirement !== "OBLIGATORY"}
                       >
                         {timelineItems ? (
                           <HistoryTimeline items={timelineItems} />
@@ -446,11 +459,11 @@ function StageSection({
             <>
               <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={setGroupIndex} />
               <div className="flex flex-col gap-4">
-                {activeGroup?.processes.map((process) => <ProcessCard key={process.id} process={process} />)}
+                {activeGroup?.processes.map((process) => <ProcessCard key={process.id} process={process} previewMode={previewMode} />)}
               </div>
             </>
           ) : (
-            stage.processes.map((process) => <ProcessCard key={process.id} process={process} />)
+            stage.processes.map((process) => <ProcessCard key={process.id} process={process} previewMode={previewMode} />)
           )}
         </div>
       )}
@@ -528,7 +541,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function ProcessCard({ process }: { process: JourneyProcess }) {
+function ProcessCard({ process, previewMode = false }: { process: JourneyProcess; previewMode?: boolean }) {
   const pending = isPendingProcess(process.title);
   const hasSteps = process.steps.length > 0;
   const allStepsCompleted = hasSteps && process.steps.every((s) => s.completed);
@@ -547,7 +560,12 @@ function ProcessCard({ process }: { process: JourneyProcess }) {
         </button>
         <span className="flex items-center gap-2">
           {pending && <PendingBadge />}
-          {hasSteps && (allStepsCompleted ? <CompletedCheck label="Proceso completado" /> : <CompleteProcessButton processId={process.id} />)}
+          {hasSteps &&
+            (allStepsCompleted ? (
+              <CompletedCheck label="Proceso completado" />
+            ) : (
+              !previewMode && <CompleteProcessButton processId={process.id} />
+            ))}
         </span>
       </div>
       {pending && (

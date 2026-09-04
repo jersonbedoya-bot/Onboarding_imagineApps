@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
 import { normalizeVideoUrl } from "@/lib/video-url";
+import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { VideoProvider } from "@/types/enums";
@@ -65,6 +66,7 @@ export async function createStep(
     action: "STEP_CREATED",
     resource: "process_step",
     resourceId: step._id,
+    metadata: { title: step.title },
   });
 
   return step;
@@ -111,6 +113,7 @@ export async function updateStep(
     action: "STEP_UPDATED",
     resource: "process_step",
     resourceId: updated._id,
+    metadata: { title: updated.title, changes: diffFields(current, repoPatch) },
   });
 
   return updated;
@@ -130,6 +133,7 @@ export async function publishStep(actingAdmin: RequestIdentity, id: ObjectId) {
     action: "STEP_PUBLISHED",
     resource: "process_step",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -149,6 +153,7 @@ export async function archiveStep(actingAdmin: RequestIdentity, id: ObjectId) {
     action: "STEP_ARCHIVED",
     resource: "process_step",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -169,6 +174,7 @@ export async function reactivateStep(actingAdmin: RequestIdentity, id: ObjectId)
     action: "STEP_REACTIVATED",
     resource: "process_step",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -191,6 +197,7 @@ export async function deleteStep(actingAdmin: RequestIdentity, id: ObjectId): Pr
     action: "STEP_DELETED",
     resource: "process_step",
     resourceId: id,
+    metadata: { title: current.title },
   });
 }
 

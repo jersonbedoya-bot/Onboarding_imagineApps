@@ -1,4 +1,9 @@
-export const PLATFORM_ROLES = ["USER", "ADMIN"] as const;
+// EDITOR entra al panel admin y puede crear/editar/publicar contenido,
+// líderes, procesos y pasos — no puede archivar/borrar/reactivar nada, ni
+// gestionar módulos (stages), usuarios, auditoría o mensajes de guía (ver
+// requireContentEditor en session.ts). Ni EDITOR ni ADMIN hacen el
+// recorrido de onboarding (por eso ninguno de los dos tiene functionalRoleId).
+export const PLATFORM_ROLES = ["USER", "EDITOR", "ADMIN"] as const;
 export type PlatformRole = (typeof PLATFORM_ROLES)[number];
 
 // "INVITED" queda RESERVADO, sin uso: un `users` nunca nace en ese estado.

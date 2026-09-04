@@ -145,6 +145,29 @@ dejado inválidas para cualquier escritura futura sobre ellas (ej.
 validador actual de `schema.ts`, seguido del backfill de arriba, luego
 `db:bootstrap` (agrega el índice si faltara — no cambió en este paso).
 
+### 7. Rol EDITOR — `users`/`invitations`: `collMod` para ensanchar el enum de `platformRole`
+
+Antes: `platformRole: { enum: ["USER", "ADMIN"] }` en ambas colecciones.
+Ahora: `{ enum: ["USER", "EDITOR", "ADMIN"] }`. Sin backfill — se agrega un
+valor permitido, no un campo nuevo, así que todo documento existente ya
+cumple el validador ensanchado.
+
+**Por qué**: pedido explícito del usuario — un nivel intermedio que entra
+al panel admin y puede crear/editar/publicar contenido, líderes, procesos
+y pasos, pero no archivar/borrar/reactivar nada, ni gestionar módulos
+(stages), usuarios, auditoría o mensajes de guía (ver
+`requireContentEditor` en `src/server/auth/session.ts`).
+
+**Aplicado en Atlas de desarrollo el 2026-09-03**, vía
+`scripts/migrate-add-editor-role.ts` (dry-run por defecto, `--apply` para
+escribir de verdad). El validador que aplica sale directo de
+`collections` en `schema.ts` (nunca copiado a mano), así que no hay riesgo
+de desincronización entre el script y la fuente de verdad.
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-add-editor-role.ts --apply` — no depende de ningún ID
+específico del tenant de desarrollo, corre igual contra cualquier base.
+
 ## Migraciones de contenido (no-schema)
 
 A diferencia de todo lo de arriba, esto no toca `schema.ts` — es una

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
 import { createContentItemSchema } from "@/server/validation/content.schema";
@@ -27,7 +27,7 @@ function serialize(item: ContentItemDocument) {
 
 export async function GET(request: Request) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const url = new URL(request.url);
     const stageId = url.searchParams.get("stageId");
     if (!stageId || !ObjectId.isValid(stageId)) {
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const body = await request.json();
     const parsed = createContentItemSchema.safeParse(body);
     if (!parsed.success) {

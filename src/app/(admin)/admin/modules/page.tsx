@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { ensureRoute } from "@/server/services/route.service";
 import { listStages } from "@/server/services/stage.service";
 import { listContentByStage } from "@/server/services/content.service";
@@ -23,10 +23,14 @@ import { StageForm } from "@/components/admin/StageForm";
 export default async function AdminModulesPage() {
   let identity;
   try {
-    identity = await requireAdmin();
+    identity = await requireContentEditor();
   } catch {
     redirect("/login");
   }
+  // EDITOR entra a ver/editar contenido de cada módulo, pero no gestiona la
+  // estructura en sí (crear/editar/publicar/archivar/borrar módulos, ni la
+  // Ruta) — eso queda ADMIN-only (ver requireContentEditor en session.ts).
+  const canManageStages = identity.platformRole === "ADMIN";
 
   const [route, stages] = await Promise.all([ensureRoute(identity), listStages(identity)]);
   const stageOptions = stages.map((stage) => ({ id: stage._id.toString(), title: stage.title }));
@@ -66,6 +70,7 @@ export default async function AdminModulesPage() {
         viewHref={`/admin/modules/${stage._id.toString()}`}
         content={summary?.content ?? emptySummary}
         processes={summary?.processes ?? emptySummary}
+        readOnly={!canManageStages}
       />
     );
   }
@@ -78,7 +83,7 @@ export default async function AdminModulesPage() {
         action={
           <div className="flex items-center gap-3">
             <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[route.status]}</Badge>
-            <RouteActions status={route.status} />
+            {canManageStages && <RouteActions status={route.status} />}
           </div>
         }
       />
@@ -93,9 +98,11 @@ export default async function AdminModulesPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{archivedStages.map(renderCard)}</div>
       </ArchivedSection>
 
-      <div className="mt-8">
-        <StageForm existingStages={stageOptions} variant="modal" />
-      </div>
+      {canManageStages && (
+        <div className="mt-8">
+          <StageForm existingStages={stageOptions} variant="modal" />
+        </div>
+      )}
     </div>
   );
 }

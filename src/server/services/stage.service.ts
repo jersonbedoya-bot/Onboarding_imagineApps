@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
 import { slugify } from "@/lib/slug";
+import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import * as stageRepository from "@/server/repositories/stage.repository";
@@ -56,6 +57,7 @@ export async function createStage(
     action: "STAGE_CREATED",
     resource: "stage",
     resourceId: stage._id,
+    metadata: { title: stage.title },
   });
 
   return stage;
@@ -82,6 +84,7 @@ export async function updateStage(
     action: "STAGE_UPDATED",
     resource: "stage",
     resourceId: updated._id,
+    metadata: { title: updated.title, changes: diffFields(current, patch) },
   });
 
   return updated;
@@ -101,6 +104,7 @@ export async function publishStage(actingAdmin: RequestIdentity, stageId: Object
     action: "STAGE_PUBLISHED",
     resource: "stage",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -120,6 +124,7 @@ export async function archiveStage(actingAdmin: RequestIdentity, stageId: Object
     action: "STAGE_ARCHIVED",
     resource: "stage",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -158,6 +163,7 @@ export async function deleteStage(actingAdmin: RequestIdentity, stageId: ObjectI
     action: "STAGE_DELETED",
     resource: "stage",
     resourceId: stageId,
+    metadata: { title: current.title },
   });
 }
 
@@ -176,6 +182,7 @@ export async function reactivateStage(actingAdmin: RequestIdentity, stageId: Obj
     action: "STAGE_REACTIVATED",
     resource: "stage",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;

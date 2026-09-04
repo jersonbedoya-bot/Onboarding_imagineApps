@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
 import { createLeaderSchema } from "@/server/validation/leader.schema";
@@ -25,7 +25,7 @@ function serialize(leader: LeaderDocument) {
 
 export async function GET() {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const leaders = await listLeaders(actingAdmin);
     return NextResponse.json({ success: true, data: leaders.map(serialize) });
   } catch (error) {
@@ -35,7 +35,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const body = await request.json();
     const parsed = createLeaderSchema.safeParse(body);
     if (!parsed.success) {

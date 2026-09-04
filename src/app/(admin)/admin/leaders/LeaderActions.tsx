@@ -26,7 +26,16 @@ export type LeaderActionItem = {
   roleIds: string[];
 };
 
-export function LeaderActions({ item, roles }: { item: LeaderActionItem; roles: RoleOption[] }) {
+export function LeaderActions({
+  item,
+  roles,
+  canManageLifecycle = true,
+}: {
+  item: LeaderActionItem;
+  roles: RoleOption[];
+  /** false para EDITOR: puede editar/publicar, no archivar/reactivar/borrar. */
+  canManageLifecycle?: boolean;
+}) {
   const { isPending, error, run } = useResourceActions("/api/leaders");
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -61,6 +70,7 @@ export function LeaderActions({ item, roles }: { item: LeaderActionItem; roles: 
         onReactivate={() => run("reactivate", item.id)}
         onDelete={() => setIsConfirmingDelete(true)}
         compact
+        canManageLifecycle={canManageLifecycle}
       />
       {error && (
         <span role="alert" className="text-xs text-danger">

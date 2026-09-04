@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { requireActiveUser } from "@/server/auth/session";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { UserMenu } from "@/components/UserMenu";
 import { Logo } from "@/components/Logo";
@@ -11,8 +12,17 @@ import { Logo } from "@/components/Logo";
 const ADMIN_SECTION_NAME = "Onboarding de Operaciones";
 
 // Chrome compartido por TODO /admin — evita repetir el contenedor, la
-// franja superior y la nav en cada page.tsx.
-export default function AdminLayout({ children }: { children: ReactNode }) {
+// franja superior y la nav en cada page.tsx. Cada page.tsx sigue haciendo
+// su propio guard (requireAdmin/requireContentEditor) + redirect a /login;
+// acá solo se necesita saber el platformRole para filtrar la nav de EDITOR
+// (sin Usuarios/Auditoría/Mensajes) — por eso el catch cae a "USER" en vez
+// de redirigir, dejando que el guard de la page propia sea quien de verdad
+// decide si la request sigue.
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const platformRole = await requireActiveUser()
+    .then((identity) => identity.platformRole)
+    .catch(() => "USER" as const);
+
   return (
     <div className="min-h-screen bg-paper">
       <div className="border-b border-line bg-card">
@@ -26,7 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <UserMenu />
         </div>
         <div className="mx-auto max-w-5xl px-6 pb-2">
-          <AdminNav />
+          <AdminNav platformRole={platformRole} />
         </div>
       </div>
       <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>

@@ -25,6 +25,7 @@ export function StatusActionButtons({
   onDelete,
   compact = false,
   iconOnly = false,
+  canManageLifecycle = true,
 }: {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   isPending: boolean;
@@ -36,14 +37,16 @@ export function StatusActionButtons({
   compact?: boolean;
   /** iconOnly=true usa IconButton (sin texto) — para filas densas como ModuleCard, donde el texto repetido compite con la acción primaria de la card. */
   iconOnly?: boolean;
+  /** false para EDITOR: puede publicar (parte de "editar"), no archivar/reactivar/borrar. Default true = comportamiento de siempre. */
+  canManageLifecycle?: boolean;
 }) {
   if (iconOnly) {
     return (
       <>
         {status === "DRAFT" && <IconButton name="check" label="Publicar" isLoading={isPending} onClick={onPublish} />}
-        {status !== "ARCHIVED" && <IconButton name="archive" label="Archivar" danger isLoading={isPending} onClick={onArchive} />}
-        {status === "ARCHIVED" && <IconButton name="reactivate" label="Reactivar" isLoading={isPending} onClick={onReactivate} />}
-        {status === "ARCHIVED" && <IconButton name="trash" label="Borrar" danger isLoading={isPending} onClick={onDelete} />}
+        {canManageLifecycle && status !== "ARCHIVED" && <IconButton name="archive" label="Archivar" danger isLoading={isPending} onClick={onArchive} />}
+        {canManageLifecycle && status === "ARCHIVED" && <IconButton name="reactivate" label="Reactivar" isLoading={isPending} onClick={onReactivate} />}
+        {canManageLifecycle && status === "ARCHIVED" && <IconButton name="trash" label="Borrar" danger isLoading={isPending} onClick={onDelete} />}
       </>
     );
   }
@@ -57,7 +60,7 @@ export function StatusActionButtons({
           Publicar
         </Button>
       )}
-      {status !== "ARCHIVED" && (
+      {canManageLifecycle && status !== "ARCHIVED" && (
         <Button
           variant="ghost"
           className={`text-danger hover:bg-danger-soft ${btnClass}`}
@@ -68,13 +71,13 @@ export function StatusActionButtons({
           Archivar
         </Button>
       )}
-      {status === "ARCHIVED" && (
+      {canManageLifecycle && status === "ARCHIVED" && (
         <Button variant="secondary" className={btnClass} isLoading={isPending} onClick={onReactivate}>
           <Icon name="reactivate" size="sm" />
           Reactivar
         </Button>
       )}
-      {status === "ARCHIVED" && (
+      {canManageLifecycle && status === "ARCHIVED" && (
         <Button variant="ghost" className={`text-danger hover:bg-danger-soft ${btnClass}`} isLoading={isPending} onClick={onDelete}>
           <Icon name="trash" size="sm" />
           Borrar

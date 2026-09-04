@@ -1,5 +1,7 @@
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/Badge";
+import { LinkButton } from "@/components/Button";
+import { Icon } from "@/components/Icon";
 import { ModuleSummaryBadge, type ModuleSummaryCounts } from "@/components/ModuleSummaryBadge";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { StageActions, type StageActionItem } from "@/components/admin/StageActions";
@@ -18,12 +20,15 @@ export function ModuleCard({
   viewHref,
   content,
   processes,
+  readOnly = false,
 }: {
   stage: StageActionItem;
   allStages: StageOption[];
   viewHref: string;
   content: ModuleSummaryCounts;
   processes: ModuleSummaryCounts;
+  /** EDITOR: solo puede entrar a ver/editar contenido ("Ver módulo"), no gestionar la estructura del módulo en sí. */
+  readOnly?: boolean;
 }) {
   return (
     <Card className="flex flex-col gap-4 p-5">
@@ -40,7 +45,14 @@ export function ModuleCard({
         <ModuleSummaryBadge label="Procesos" counts={processes} />
       </div>
 
-      <StageActions item={stage} allStages={allStages} viewHref={viewHref} variant="card" />
+      {readOnly ? (
+        <LinkButton href={viewHref} variant="primary" className="px-4 py-2 text-xs">
+          Ver módulo
+          <Icon name="chevron-right" size="sm" />
+        </LinkButton>
+      ) : (
+        <StageActions item={stage} allStages={allStages} viewHref={viewHref} variant="card" />
+      )}
     </Card>
   );
 }

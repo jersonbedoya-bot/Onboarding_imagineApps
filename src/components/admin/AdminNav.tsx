@@ -4,23 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Icon, type IconName } from "@/components/Icon";
+import type { PlatformRole } from "@/types/enums";
 
-type NavItem = { href: string; label: string; icon: IconName };
+type NavItem = { href: string; label: string; icon: IconName; adminOnly?: boolean };
 
+// adminOnly: EDITOR no gestiona usuarios/auditoría/mensajes de guía — ver
+// requireContentEditor (session.ts), que tampoco deja pasar esas rutas.
 const ADMIN_NAV_ITEMS: NavItem[] = [
   { href: "/admin/modules", label: "Módulos", icon: "grid" },
-  { href: "/admin/messages", label: "Mensajes", icon: "message" },
+  { href: "/admin/preview", label: "Vista previa", icon: "view" },
+  { href: "/admin/messages", label: "Mensajes", icon: "message", adminOnly: true },
   { href: "/admin/leaders", label: "Líderes", icon: "crown" },
-  { href: "/admin/users", label: "Usuarios", icon: "users" },
-  { href: "/admin/audit", label: "Auditoría", icon: "eye" },
+  { href: "/admin/users", label: "Usuarios", icon: "users", adminOnly: true },
+  { href: "/admin/audit", label: "Auditoría", icon: "eye", adminOnly: true },
 ];
 
-export function AdminNav() {
+export function AdminNav({ platformRole }: { platformRole: PlatformRole }) {
   const pathname = usePathname();
+  const items = ADMIN_NAV_ITEMS.filter((item) => !item.adminOnly || platformRole === "ADMIN");
 
   return (
     <nav aria-label="Secciones de administración" className="flex gap-1 overflow-x-auto">
-      {ADMIN_NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         // Los pasos de un proceso viven en /admin/processes/[id], una página
         // aparte que se llega desde un módulo — sigue siendo parte de
         // "Módulos" para no dejar la nav sin ninguna pestaña resaltada.

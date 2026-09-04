@@ -65,7 +65,7 @@ export const collections: CollectionDef[] = [
           email: { bsonType: "string", pattern: emailPattern },
           name: { bsonType: "string", minLength: 1 },
           passwordHash: { bsonType: ["string", "null"] },
-          platformRole: { enum: ["USER", "ADMIN"] },
+          platformRole: { enum: ["USER", "EDITOR", "ADMIN"] },
           functionalRoleId: { bsonType: ["objectId", "null"] },
           status: { enum: ["INVITED", "ACTIVE", "INACTIVE"] },
           createdAt: date,
@@ -97,7 +97,7 @@ export const collections: CollectionDef[] = [
           email: { bsonType: "string", pattern: emailPattern },
           // ADMIN no tiene rol funcional (functionalRoleId: null) — ver
           // MIGRATIONS.md, invitación de administradores.
-          platformRole: { enum: ["USER", "ADMIN"] },
+          platformRole: { enum: ["USER", "EDITOR", "ADMIN"] },
           functionalRoleId: { bsonType: ["objectId", "null"] },
           tokenHash: { bsonType: "string" },
           status: { enum: ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"] },

@@ -60,3 +60,18 @@ export async function requireAdmin(): Promise<RequestIdentity> {
   }
   return identity;
 }
+
+/**
+ * Igual que requireAdmin pero también deja pasar a EDITOR — para las
+ * páginas/rutas de contenido (content/leaders/processes/steps) donde
+ * EDITOR puede crear/editar/publicar. Los endpoints de archive/delete/
+ * reactivate de esos mismos recursos, y todo lo demás (usuarios, auditoría,
+ * mensajes, módulos), se quedan en requireAdmin sin tocar.
+ */
+export async function requireContentEditor(): Promise<RequestIdentity> {
+  const identity = await requireActiveUser();
+  if (identity.platformRole !== "ADMIN" && identity.platformRole !== "EDITOR") {
+    throw new ForbiddenError();
+  }
+  return identity;
+}

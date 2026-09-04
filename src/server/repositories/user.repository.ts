@@ -110,6 +110,30 @@ export async function updateFunctionalRole(
   );
 }
 
+/**
+ * Cambia el nivel de acceso (USER/EDITOR/ADMIN) y el rol funcional en el
+ * mismo write — no dos updates separados: promover a EDITOR/ADMIN siempre
+ * limpia functionalRoleId a null, y degradar a USER siempre necesita uno
+ * (ver user.service.changePlatformRole, que arma este `functionalRoleId`
+ * antes de llamar acá).
+ */
+export async function updatePlatformRole(
+  tenantId: ObjectId,
+  userId: ObjectId,
+  patch: { platformRole: PlatformRole; functionalRoleId: ObjectId | null },
+): Promise<UserDocument | null> {
+  return (await collection()).findOneAndUpdate(
+    { _id: userId, tenantId },
+    { $set: { platformRole: patch.platformRole, functionalRoleId: patch.functionalRoleId } },
+    { returnDocument: "after" },
+  );
+}
+
+/** Cuántos ADMIN activos tiene el tenant — usado para no dejarlo sin ninguno al degradar el último. */
+export async function countActiveAdmins(tenantId: ObjectId): Promise<number> {
+  return (await collection()).countDocuments({ tenantId, platformRole: "ADMIN", status: "ACTIVE" });
+}
+
 export async function findById(tenantId: ObjectId, userId: ObjectId): Promise<UserDocument | null> {
   return (await collection()).findOne({ _id: userId, tenantId });
 }

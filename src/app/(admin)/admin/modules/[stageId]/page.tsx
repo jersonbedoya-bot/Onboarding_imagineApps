@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { listStages } from "@/server/services/stage.service";
 import * as stageRepository from "@/server/repositories/stage.repository";
 import { listContentByStage } from "@/server/services/content.service";
@@ -26,10 +26,13 @@ import { ReorderableDataTable } from "@/components/admin/ReorderableDataTable";
 export default async function AdminModuleDetailPage({ params }: { params: Promise<{ stageId: string }> }) {
   let identity;
   try {
-    identity = await requireAdmin();
+    identity = await requireContentEditor();
   } catch {
     redirect("/login");
   }
+  // Mismo criterio que /admin/modules: EDITOR edita el contenido/procesos
+  // de este módulo, no la estructura del módulo en sí.
+  const canManageStages = identity.platformRole === "ADMIN";
 
   const { stageId } = await params;
   if (!ObjectId.isValid(stageId)) notFound();
@@ -96,6 +99,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
               requirement: item.requirement,
             }}
             roles={roleOptions}
+            canManageLifecycle={canManageStages}
           />
         ),
       },
@@ -143,6 +147,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
               roleIds: item.roleIds.map((id) => id.toString()),
             }}
             roles={roleOptions}
+            canManageLifecycle={canManageStages}
           />
         ),
       },
@@ -185,17 +190,19 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
         action={
           <div className="flex items-center gap-3">
             <Badge variant={stage.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[stage.status]}</Badge>
-            <StageActions
-              item={{
-                id: stage._id.toString(),
-                title: stage.title,
-                order: stage.order,
-                dependsOnStageId: stage.dependsOnStageId?.toString() ?? "",
-                isBlocking: stage.isBlocking,
-                status: stage.status,
-              }}
-              allStages={stageOptions}
-            />
+            {canManageStages && (
+              <StageActions
+                item={{
+                  id: stage._id.toString(),
+                  title: stage.title,
+                  order: stage.order,
+                  dependsOnStageId: stage.dependsOnStageId?.toString() ?? "",
+                  isBlocking: stage.isBlocking,
+                  status: stage.status,
+                }}
+                allStages={stageOptions}
+              />
+            )}
           </div>
         }
       />

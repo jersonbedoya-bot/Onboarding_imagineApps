@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { assertValidTransition } from "@/lib/content-status";
 import { normalizeVideoUrl } from "@/lib/video-url";
+import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
 import type { ContentItemType, ContentRequirement, ContentScope, VideoProvider } from "@/types/enums";
@@ -88,6 +89,7 @@ export async function createContentItem(
     action: "CONTENT_CREATED",
     resource: "content_item",
     resourceId: item._id,
+    metadata: { title: item.title },
   });
 
   return item;
@@ -147,6 +149,7 @@ export async function updateContentItem(
     action: "CONTENT_UPDATED",
     resource: "content_item",
     resourceId: updated._id,
+    metadata: { title: updated.title, changes: diffFields(current, patch) },
   });
 
   return updated;
@@ -166,6 +169,7 @@ export async function publishContentItem(actingAdmin: RequestIdentity, id: Objec
     action: "CONTENT_PUBLISHED",
     resource: "content_item",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -185,6 +189,7 @@ export async function archiveContentItem(actingAdmin: RequestIdentity, id: Objec
     action: "CONTENT_ARCHIVED",
     resource: "content_item",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -205,6 +210,7 @@ export async function reactivateContentItem(actingAdmin: RequestIdentity, id: Ob
     action: "CONTENT_REACTIVATED",
     resource: "content_item",
     resourceId: updated._id,
+    metadata: { title: updated.title },
   });
 
   return updated;
@@ -234,6 +240,7 @@ export async function deleteContentItem(actingAdmin: RequestIdentity, id: Object
     action: "CONTENT_DELETED",
     resource: "content_item",
     resourceId: id,
+    metadata: { title: current.title },
   });
 }
 

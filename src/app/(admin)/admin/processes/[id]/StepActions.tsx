@@ -20,7 +20,14 @@ export type StepActionItem = {
   completionCriteria: string;
 };
 
-export function StepActions({ item }: { item: StepActionItem }) {
+export function StepActions({
+  item,
+  canManageLifecycle = true,
+}: {
+  item: StepActionItem;
+  /** false para EDITOR: puede editar/publicar, no archivar/reactivar/borrar. */
+  canManageLifecycle?: boolean;
+}) {
   const { isPending, error, run } = useResourceActions("/api/steps");
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -51,6 +58,7 @@ export function StepActions({ item }: { item: StepActionItem }) {
         onReactivate={() => run("reactivate", item.id)}
         onDelete={() => setIsConfirmingDelete(true)}
         compact
+        canManageLifecycle={canManageLifecycle}
       />
       {error && (
         <span role="alert" className="text-xs text-danger">

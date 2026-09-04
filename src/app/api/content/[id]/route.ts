@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireAdmin, requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import { updateContentItemSchema } from "@/server/validation/content.schema";
@@ -8,7 +8,7 @@ import { updateContentItem, deleteContentItem } from "@/server/services/content.
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const { id } = await params;
     if (!ObjectId.isValid(id)) throw new NotFoundError();
 

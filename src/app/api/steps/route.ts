@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAdmin } from "@/server/auth/session";
+import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
 import { createStepSchema } from "@/server/validation/step.schema";
@@ -26,7 +26,7 @@ function serialize(step: StepDocument) {
 
 export async function GET(request: Request) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const url = new URL(request.url);
     const processId = url.searchParams.get("processId");
     if (!processId || !ObjectId.isValid(processId)) {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const actingAdmin = await requireAdmin();
+    const actingAdmin = await requireContentEditor();
     const body = await request.json();
     const parsed = createStepSchema.safeParse(body);
     if (!parsed.success) {

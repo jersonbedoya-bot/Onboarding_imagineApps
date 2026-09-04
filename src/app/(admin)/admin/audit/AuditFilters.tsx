@@ -1,6 +1,8 @@
 import { Card } from "@/components/Card";
 import { Select, Input } from "@/components/Field";
 import { Button } from "@/components/Button";
+import { AUDIT_ACTION_LABELS } from "@/lib/audit-labels";
+import type { AuditAction } from "@/server/repositories/audit.repository";
 
 // Form GET plano — no necesita Client Component: el navegador arma el
 // query string y recarga la página del Server Component con los filtros.
@@ -29,7 +31,7 @@ export function AuditFilters({
           <option value="">Todas</option>
           {actions.map((action) => (
             <option key={action} value={action}>
-              {action}
+              {AUDIT_ACTION_LABELS[action as AuditAction] ?? action}
             </option>
           ))}
         </Select>

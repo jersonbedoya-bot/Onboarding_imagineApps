@@ -8,15 +8,15 @@ const objectIdString = z.string().refine((value) => ObjectId.isValid(value), {
 export const createInvitationSchema = z
   .object({
     email: z.string().trim().email({ message: "Email inválido." }),
-    platformRole: z.enum(["USER", "ADMIN"]).default("USER"),
+    platformRole: z.enum(["USER", "EDITOR", "ADMIN"]).default("USER"),
     functionalRoleId: objectIdString.optional(),
   })
   .superRefine((data, ctx) => {
     if (data.platformRole === "USER" && !data.functionalRoleId) {
       ctx.addIssue({ code: "custom", message: "Un usuario necesita un rol funcional.", path: ["functionalRoleId"] });
     }
-    if (data.platformRole === "ADMIN" && data.functionalRoleId) {
-      ctx.addIssue({ code: "custom", message: "Un administrador no tiene rol funcional.", path: ["functionalRoleId"] });
+    if (data.platformRole !== "USER" && data.functionalRoleId) {
+      ctx.addIssue({ code: "custom", message: "Editores y administradores no tienen rol funcional.", path: ["functionalRoleId"] });
     }
   });
 

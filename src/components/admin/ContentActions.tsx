@@ -26,7 +26,16 @@ export type ContentActionItem = {
   requirement: ContentRequirement | null;
 };
 
-export function ContentActions({ item, roles }: { item: ContentActionItem; roles: RoleOption[] }) {
+export function ContentActions({
+  item,
+  roles,
+  canManageLifecycle = true,
+}: {
+  item: ContentActionItem;
+  roles: RoleOption[];
+  /** false para EDITOR: puede editar/publicar, no archivar/reactivar/borrar. */
+  canManageLifecycle?: boolean;
+}) {
   const { isPending, error, run } = useResourceActions("/api/content");
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -60,6 +69,7 @@ export function ContentActions({ item, roles }: { item: ContentActionItem; roles
         onReactivate={() => run("reactivate", item.id)}
         onDelete={() => setIsConfirmingDelete(true)}
         compact
+        canManageLifecycle={canManageLifecycle}
       />
       {error && (
         <span role="alert" className="text-xs text-danger">
