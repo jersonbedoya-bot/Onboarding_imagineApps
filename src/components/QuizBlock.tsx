@@ -8,39 +8,65 @@ import { cn } from "@/lib/cn";
 const LETTERS = ["A", "B", "C", "D"];
 
 /**
+ * Baraja las opciones de una pregunta (Fisher-Yates) y recalcula
+ * `correctIndex` a su nueva posición. Arregla de raíz el problema real
+ * encontrado en contenido ya publicado: las 15 preguntas de los 3 quizzes
+ * tenían la respuesta correcta siempre en la opción B — el orden en el
+ * body de Markdown (la correcta va "en el medio" al redactar la pregunta)
+ * se traducía 1:1 al orden mostrado. Barajar en el cliente arregla esto
+ * para siempre sin migrar contenido ni depender de que quien escriba una
+ * pregunta nueva se acuerde de variar el orden a mano.
+ */
+function shuffleQuestionOptions(question: QuizQuestion): QuizQuestion {
+  const correctOption = question.options[question.correctIndex];
+  const options = [...question.options];
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return { ...question, options, correctIndex: options.indexOf(correctOption) };
+}
+
+/**
  * Quiz de opción múltiple, divertido y sin evaluación real (ver
  * institutional-content.ts): la respuesta CORRECTA no se exige — cualquier
  * opción cuenta como "respondida" — solo se exige responder las N
  * preguntas (pedido explícito del usuario, ver el gate en
  * OnboardingJourney: "Continuar al siguiente módulo" queda deshabilitado
- * hasta `answeredCount === questions.length`). Nada de esto persiste en
- * `user_progress` ni pasa por el backend — es puramente cliente (useState
- * local por pregunta, se resetea si el modal se cierra y se reabre), mismo
- * criterio que la maqueta de referencia (handleQuizAnswer en app.js): el
- * objetivo sigue siendo el momento lúdico, no un registro de "quién sabe
- * qué" — solo que ahora además hace de "cierre" obligatorio del módulo.
+ * hasta `answeredCount === questions.length`, y una vez respondido una
+ * primera vez no se vuelve a exigir — ver quizAlreadyAnswered ahí mismo).
+ * Nada de esto persiste en `user_progress` ni pasa por el backend acá
+ * adentro — es puramente cliente (useState local por pregunta, se
+ * resetea si el modal se cierra y se reabre), mismo criterio que la
+ * maqueta de referencia (handleQuizAnswer en app.js): el objetivo sigue
+ * siendo el momento lúdico, no un registro de "quién sabe qué" — solo que
+ * ahora además hace de "cierre" obligatorio del módulo (la primera vez).
  */
 export function QuizBlock({ questions, onAllAnsweredChange }: { questions: QuizQuestion[]; onAllAnsweredChange?: (allAnswered: boolean) => void }) {
+  // Se baraja UNA sola vez por montaje (no en cada render, para que no
+  // cambie el orden debajo de las respuestas ya elegidas) — como el modal
+  // desmonta el componente al cerrarse, cada apertura trae un orden fresco.
+  const [shuffled] = useState(() => questions.map(shuffleQuestionOptions));
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const answeredCount = Object.keys(answers).length;
-  const correctCount = questions.filter((q, i) => answers[i] === q.correctIndex).length;
+  const correctCount = shuffled.filter((q, i) => answers[i] === q.correctIndex).length;
 
   useEffect(() => {
     // onAllAnsweredChange no entra en las deps a propósito: es un setState
     // del padre, su identidad cambia en cada render de OnboardingJourney sin
     // que eso deba re-disparar este efecto.
-    onAllAnsweredChange?.(answeredCount === questions.length);
+    onAllAnsweredChange?.(answeredCount === shuffled.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answeredCount, questions.length]);
+  }, [answeredCount, shuffled.length]);
 
   return (
     <div className="flex flex-col gap-4">
       {answeredCount > 0 && (
         <p className="text-xs font-semibold text-ink-soft">
-          {correctCount}/{answeredCount} correctas · {answeredCount}/{questions.length} respondidas
+          {correctCount}/{answeredCount} correctas · {answeredCount}/{shuffled.length} respondidas
         </p>
       )}
-      {questions.map((q, i) => (
+      {shuffled.map((q, i) => (
         <QuizQuestionCard key={i} question={q} selected={answers[i] ?? null} onAnswer={(optionIndex) => setAnswers((prev) => ({ ...prev, [i]: optionIndex }))} />
       ))}
     </div>

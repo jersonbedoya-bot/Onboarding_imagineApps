@@ -158,9 +158,36 @@ export function OnboardingJourney({
   // (answeredCount arranca en 0) — cada apertura del modal es un quiz
   // fresco, así que no hace falta resetear esto a mano al abrir/cerrar.
   const [quizAllAnswered, setQuizAllAnswered] = useState(false);
+  // Quizzes ya respondidos una vez (por este usuario) — pedido explícito:
+  // no volver a exigir responder si ya se pasó ese gate antes. Se semilla
+  // con `item.viewed` de TODAS las etapas (no solo la actual) para que
+  // "Módulo anterior" no vuelva a pedir un quiz ya hecho en esta misma
+  // sesión de navegación; se actualiza también en memoria al pasar el gate
+  // (ver advance) porque `stages` no se vuelve a pedir al servidor hasta
+  // el próximo router.refresh()/reload.
+  const [answeredQuizIds, setAnsweredQuizIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        stages.flatMap((s) => {
+          const q = s.items.find((item) => isQuizContent(item.title));
+          return q?.viewed ? [q.id] : [];
+        }),
+      ),
+  );
+  const quizAlreadyAnswered = quizItem ? answeredQuizIds.has(quizItem.id) : false;
 
   function advance() {
     setQuizGateOpen(false);
+    if (quizItem && quizQuestions && !quizAlreadyAnswered) {
+      // Marca el quiz como respondido — reusa el mismo endpoint de "visto
+      // pasivo" que ya usa ContentViewTracker para contenido INFORMATIONAL
+      // (el quiz es INFORMATIONAL, ver add-quiz-questions.ts): no hace
+      // falta un endpoint nuevo. Best-effort (sin await): si falla, la
+      // próxima carga completa del server vuelve a pedir el quiz — no es
+      // catastrófico, mismo criterio que ContentViewTracker.
+      setAnsweredQuizIds((prev) => new Set(prev).add(quizItem.id));
+      fetch(`/api/progress/content/${quizItem.id}/view`, { method: "POST" }).catch(() => {});
+    }
     if (nextStage) {
       setIndex(index + 1);
     } else {
@@ -225,7 +252,10 @@ export function OnboardingJourney({
             gate equivalente es que ELLA MISMA ya esté completa (mismo criterio
             de fondo: "terminaste lo que hacía falta acá"). */}
         {(nextStage ? nextStage.unlocked : stage.status === "COMPLETE") ? (
-          <Button className="px-4 py-2 text-sm" onClick={() => (quizQuestions ? setQuizGateOpen(true) : advance())}>
+          <Button
+            className="px-4 py-2 text-sm"
+            onClick={() => (quizQuestions && !quizAlreadyAnswered ? setQuizGateOpen(true) : advance())}
+          >
             {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
           </Button>
         ) : (
