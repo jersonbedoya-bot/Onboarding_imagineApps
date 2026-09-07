@@ -55,6 +55,12 @@ export async function findByUser(tenantId: ObjectId, userId: ObjectId): Promise<
   return (await collection()).find({ tenantId, userId }).toArray();
 }
 
+/** Reinicio de onboarding: borra TODO el progreso de un usuario (STEP/CONTENT_ITEM/STAGE) — vuelve a derivarse de cero desde la próxima resolución. */
+export async function deleteAllForUser(tenantId: ObjectId, userId: ObjectId): Promise<number> {
+  const result = await (await collection()).deleteMany({ tenantId, userId });
+  return result.deletedCount;
+}
+
 export async function findOne(
   tenantId: ObjectId,
   userId: ObjectId,

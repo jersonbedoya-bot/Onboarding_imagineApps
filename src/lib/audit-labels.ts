@@ -10,6 +10,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   USER_ROLE_CHANGED: "Rol funcional cambiado",
   USER_PLATFORM_ROLE_CHANGED: "Nivel de acceso cambiado",
   USER_DELETED: "Usuario eliminado",
+  USER_PASSWORD_RESET: "Contraseña restablecida",
+  USER_ONBOARDING_RESET: "Onboarding reiniciado",
   ROUTE_CREATED: "Ruta creada",
   ROUTE_UPDATED: "Ruta editada",
   ROUTE_PUBLISHED: "Ruta publicada",

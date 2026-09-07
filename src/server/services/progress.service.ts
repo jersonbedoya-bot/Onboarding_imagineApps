@@ -5,6 +5,8 @@ import type { RequestIdentity } from "@/server/auth/session";
 import * as progressRepository from "@/server/repositories/progress.repository";
 import * as mediaRepository from "@/server/repositories/media.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
+import * as userRepository from "@/server/repositories/user.repository";
+import * as auditRepository from "@/server/repositories/audit.repository";
 import type { ProgressDocument } from "@/server/repositories/progress.repository";
 import { resolveVisibleContent } from "@/server/services/content.service";
 import { resolveVisibleSteps } from "@/server/services/step.service";
@@ -443,4 +445,31 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
       })),
     })),
   };
+}
+
+/**
+ * Reinicio de onboarding (acción de admin) — borra TODO el progreso
+ * guardado de un usuario. `resolveJourneyFor` vuelve a derivar de cero en
+ * la próxima carga: currentStageId cae en la primera etapa desbloqueada,
+ * como si el usuario nunca hubiera empezado. No toca al usuario en sí (rol,
+ * estado, contraseña) — solo user_progress.
+ */
+export async function resetOnboarding(actingAdmin: RequestIdentity, targetUserId: ObjectId) {
+  const target = await userRepository.findById(actingAdmin.tenantId, targetUserId);
+  if (!target) {
+    throw new NotFoundError();
+  }
+
+  const deletedCount = await progressRepository.deleteAllForUser(actingAdmin.tenantId, targetUserId);
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "USER_ONBOARDING_RESET",
+    resource: "user",
+    resourceId: targetUserId,
+    metadata: { deletedCount },
+  });
+
+  return { deletedCount };
 }

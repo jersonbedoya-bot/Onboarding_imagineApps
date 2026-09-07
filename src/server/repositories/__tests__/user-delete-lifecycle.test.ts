@@ -22,24 +22,69 @@ async function makeTenantWithUser(suffix: string) {
   return { tenant, role, user };
 }
 
+async function makeTenantWithAdmin(suffix: string) {
+  const tenant = await tenantRepository.create({ name: `Tenant ${suffix}`, slug: `tenant-del-${suffix}` });
+  const admin = await userRepository.create({
+    tenantId: tenant._id,
+    email: `admin-del-${suffix}@example.com`,
+    name: `Admin ${suffix}`,
+    passwordHash: null,
+    platformRole: "ADMIN",
+    functionalRoleId: null,
+    status: "ACTIVE",
+  });
+  return { tenant, admin };
+}
+
 function actingAdminFor(tenantId: ObjectId, userId?: ObjectId): RequestIdentity {
   return { userId: userId ?? new ObjectId(), tenantId, status: "ACTIVE", platformRole: "ADMIN", functionalRoleId: null };
 }
 
 /**
- * user.service.deleteUser sigue el mismo flujo de 2 pasos que
- * content.service.deleteContentItem (archivar/desactivar -> borrar, nunca
- * de un tirón) — ver comentario en deleteUser.
+ * user.service.deleteUser ya no exige desactivar primero (el usuario pidió
+ * poder borrar directo a un user ACTIVE) — la guarda que reemplaza esa
+ * protección implícita es "no dejar el tenant sin ningún admin activo",
+ * mismo criterio que changePlatformRole. El flujo de 2 pasos (desactivar
+ * -> borrar) sigue funcionando, solo dejó de ser obligatorio.
  */
-describe("user.service.deleteUser — flujo de 2 pasos y guardas", () => {
-  it("rechaza borrar un user todavía ACTIVE (falta desactivar primero) -> ValidationError", async () => {
+describe("user.service.deleteUser — borrado directo y guardas", () => {
+  it("permite borrar un user ACTIVE directamente, sin desactivar primero", async () => {
     const { tenant, user } = await makeTenantWithUser("active");
     const admin = actingAdminFor(tenant._id);
 
-    await expect(userService.deleteUser(admin, user._id)).rejects.toBeInstanceOf(ValidationError);
+    await userService.deleteUser(admin, user._id);
 
-    const stillThere = await userRepository.findById(tenant._id, user._id);
+    const gone = await userRepository.findById(tenant._id, user._id);
+    expect(gone).toBeNull();
+  });
+
+  it("rechaza borrar al único admin ACTIVE del tenant -> ValidationError", async () => {
+    const { tenant, admin: targetAdmin } = await makeTenantWithAdmin("only-admin");
+    const actingAdmin = actingAdminFor(tenant._id);
+
+    await expect(userService.deleteUser(actingAdmin, targetAdmin._id)).rejects.toBeInstanceOf(ValidationError);
+
+    const stillThere = await userRepository.findById(tenant._id, targetAdmin._id);
     expect(stillThere).not.toBeNull();
+  });
+
+  it("permite borrar a un admin ACTIVE si hay otro admin activo en el tenant", async () => {
+    const { tenant, admin: firstAdmin } = await makeTenantWithAdmin("multi-admin");
+    const secondAdmin = await userRepository.create({
+      tenantId: tenant._id,
+      email: "admin-del-multi-admin-2@example.com",
+      name: "Admin multi-admin 2",
+      passwordHash: null,
+      platformRole: "ADMIN",
+      functionalRoleId: null,
+      status: "ACTIVE",
+    });
+    const actingAdmin = actingAdminFor(tenant._id, secondAdmin._id);
+
+    await userService.deleteUser(actingAdmin, firstAdmin._id);
+
+    const gone = await userRepository.findById(tenant._id, firstAdmin._id);
+    expect(gone).toBeNull();
   });
 
   it("rechaza que un admin se borre a sí mismo -> ValidationError", async () => {

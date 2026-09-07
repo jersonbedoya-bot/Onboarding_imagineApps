@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import type { ObjectId } from "mongodb";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
@@ -5,6 +6,11 @@ import type { PlatformRole } from "@/types/enums";
 import * as userRepository from "@/server/repositories/user.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
+
+// Mismo costo que invitation.service (acceptInvitation) — un solo lugar
+// donde se fija el hash de un usuario ya existente, el otro es al aceptar
+// la invitación.
+const BCRYPT_COST = 12;
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -53,20 +59,19 @@ export async function reactivateUser(actingAdmin: RequestIdentity, targetUserId:
 }
 
 /**
- * Borrado permanente — mismo criterio de 2 pasos que
- * content.service.deleteContentItem (archivar->borrar, nunca de un tirón):
- * acá el paso previo obligatorio es desactivar, así que solo se puede
- * borrar un user ya INACTIVE. El historial de progreso (`user_progress`) y
- * los registros de auditoría de este usuario NO se borran (mismo
- * comportamiento que borrar contenido) — el audit log de ESTA acción guarda
- * email/name en metadata porque, a diferencia de content/stage/leader/
- * process/step, no hay un finder que lo resuelva en vivo una vez borrado
- * (ver audit.service.RESOURCE_FINDERS).
+ * Borrado permanente. El historial de progreso (`user_progress`) y los
+ * registros de auditoría de este usuario NO se borran (mismo comportamiento
+ * que borrar contenido) — el audit log de ESTA acción guarda email/name en
+ * metadata porque, a diferencia de content/stage/leader/process/step, no
+ * hay un finder que lo resuelva en vivo una vez borrado (ver
+ * audit.service.RESOURCE_FINDERS).
  *
- * No hace falta la guarda de "no dejar el tenant sin admin" que sí tiene
- * changePlatformRole: para llegar acá el target ya tiene que estar INACTIVE,
- * y nadie puede desactivarse a sí mismo (ver deactivateUser) — así que un
- * admin activo nunca puede ser el target de este borrado.
+ * Antes exigía desactivar primero (mismo criterio de 2 pasos que
+ * content.service.deleteContentItem) — eso hacía innecesaria la guarda de
+ * "no dejar el tenant sin admin" (nadie puede desactivarse a sí mismo, así
+ * que un admin activo nunca llegaba a ser target). Ahora que se puede
+ * borrar directo estando ACTIVE, esa guarda hace falta acá — mismo criterio
+ * que changePlatformRole.
  */
 export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: ObjectId) {
   if (targetUserId.equals(actingAdmin.userId)) {
@@ -77,8 +82,11 @@ export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: Obj
   if (!target) {
     throw new NotFoundError();
   }
-  if (target.status !== "INACTIVE") {
-    throw new ValidationError("Solo puedes borrar usuarios que ya estén desactivados.");
+  if (target.status === "ACTIVE" && target.platformRole === "ADMIN") {
+    const activeAdmins = await userRepository.countActiveAdmins(actingAdmin.tenantId);
+    if (activeAdmins <= 1) {
+      throw new ValidationError("No puedes borrar al único administrador activo del tenant.");
+    }
   }
 
   const deleted = await userRepository.remove(actingAdmin.tenantId, targetUserId);
@@ -94,6 +102,31 @@ export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: Obj
     resourceId: targetUserId,
     metadata: { email: target.email, name: target.name },
   });
+}
+
+/**
+ * Restablecer contraseña — no hay envío de correo en esta plataforma (ver
+ * BACKLOG.md), así que si un usuario la olvida, el admin es el único
+ * mecanismo de recuperación: la fija a mano y se la comunica al usuario por
+ * el canal que use (Slack/WhatsApp/en persona). Misma política de fuerza
+ * que acceptInvitation (ver resetPasswordSchema).
+ */
+export async function resetPassword(actingAdmin: RequestIdentity, targetUserId: ObjectId, newPassword: string) {
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+  const updated = await userRepository.updatePasswordHash(actingAdmin.tenantId, targetUserId, passwordHash);
+  if (!updated) {
+    throw new NotFoundError();
+  }
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "USER_PASSWORD_RESET",
+    resource: "user",
+    resourceId: updated._id,
+  });
+
+  return updated;
 }
 
 export async function changeFunctionalRole(

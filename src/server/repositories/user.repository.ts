@@ -129,6 +129,14 @@ export async function updatePlatformRole(
   );
 }
 
+export async function updatePasswordHash(tenantId: ObjectId, userId: ObjectId, passwordHash: string): Promise<UserDocument | null> {
+  return (await collection()).findOneAndUpdate(
+    { _id: userId, tenantId },
+    { $set: { passwordHash } },
+    { returnDocument: "after" },
+  );
+}
+
 /**
  * Borrado permanente — scoping por tenantId en el propio filtro de delete,
  * mismo criterio que updateStatus: si el user es de otro tenant, no matchea
