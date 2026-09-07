@@ -107,6 +107,7 @@ export function OnboardingJourney({
   equipoCount,
   roleLabel,
   gerencia,
+  equipo,
   blockedNextMessage,
   pendingContentMessage,
   previewMode = false,
@@ -116,6 +117,10 @@ export function OnboardingJourney({
   equipoCount: number;
   roleLabel: string | null;
   gerencia: LeaderCardData[];
+  // Solo se usa en previewMode (ver más abajo) — en uso real, "Conoce a tu
+  // equipo" sigue siendo un link a /onboarding/leaders, que no necesita los
+  // datos acá.
+  equipo: LeaderCardData[];
   // Antes quemados acá — ahora editables/desactivables desde
   // /admin/messages (ver route.service.getRouteContent).
   blockedNextMessage: GuideMessage;
@@ -127,6 +132,13 @@ export function OnboardingJourney({
    * CompleteProcessButton) — un Admin/Editor nunca tiene functionalRoleId,
    * así que esas escrituras fallarían igual server-side (requireRoleId);
    * mejor no mostrarlas que mostrar una acción que siempre falla.
+   *
+   * También cambia cómo se muestra "Conoce a tu equipo" (Fase 04): el link
+   * normal a /onboarding/leaders vive bajo el layout de (user)/onboarding,
+   * que redirige a /admin/modules apenas ve un identity sin functionalRoleId
+   * (todo Admin/Editor) — un Admin/Editor haciendo clic ahí terminaba
+   * expulsado de la vista previa de un salto. Acá se embebe el mismo
+   * LeadersBoard en la propia card, igual que ya se hace con la gerencia.
    */
   previewMode?: boolean;
 }) {
@@ -233,6 +245,7 @@ export function OnboardingJourney({
         equipoCount={equipoCount}
         roleLabel={roleLabel}
         gerencia={gerencia}
+        equipo={equipo}
         pendingContentMessage={pendingContentMessage}
         previewMode={previewMode}
       />
@@ -285,6 +298,7 @@ function StageSection({
   equipoCount,
   roleLabel,
   gerencia,
+  equipo,
   pendingContentMessage,
   previewMode = false,
 }: {
@@ -295,6 +309,7 @@ function StageSection({
   equipoCount: number;
   roleLabel: string | null;
   gerencia: LeaderCardData[];
+  equipo: LeaderCardData[];
   pendingContentMessage: GuideMessage;
   previewMode?: boolean;
 }) {
@@ -484,11 +499,23 @@ function StageSection({
           )}
 
           {stage.key === FASE_04_STAGE_KEY && equipoCount > 0 && (
-            <TeamTeaser
-              href="/onboarding/leaders#equipo"
-              title={`Conoce a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
-              description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu equipo — puedes volver cuando quieras.`}
-            />
+            previewMode ? (
+              // El link normal (abajo) apunta a /onboarding/leaders, que vive
+              // bajo el layout de (user)/onboarding — ese layout redirige a
+              // /admin/modules apenas ve un identity sin functionalRoleId
+              // (todo Admin/Editor, ver layout.tsx). Acá se embebe el mismo
+              // LeadersBoard en la card en vez de linkear ahí, para no
+              // expulsar a quien está usando /admin/preview.
+              <Card>
+                <LeadersBoard gerencia={[]} equipo={equipo} equipoLabel={roleLabel} variant="card" />
+              </Card>
+            ) : (
+              <TeamTeaser
+                href="/onboarding/leaders#equipo"
+                title={`Conoce a tu equipo${roleLabel ? ` de ${roleLabel}` : ""}`}
+                description={`${equipoCount} ${equipoCount === 1 ? "persona" : "personas"} de tu equipo — puedes volver cuando quieras.`}
+              />
+            )
           )}
 
           {groups ? (

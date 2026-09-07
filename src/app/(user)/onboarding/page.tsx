@@ -72,6 +72,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         equipoCount={equipo.length}
         roleLabel={journey.role?.label ?? null}
         gerencia={gerencia}
+        equipo={equipo}
         blockedNextMessage={routeContent.blockedNextMessage}
         pendingContentMessage={routeContent.pendingContentMessage}
       />
