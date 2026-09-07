@@ -3,11 +3,13 @@ import type { AuditAction } from "@/server/repositories/audit.repository";
 /** Para que la tabla de /admin/audit no muestre el enum crudo (CONTENT_UPDATED) tal cual. */
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   INVITATION_CREATED: "Invitación creada",
+  INVITATION_REVOKED: "Invitación revocada",
   USER_CREATED: "Usuario creado",
   USER_DEACTIVATED: "Usuario desactivado",
   USER_REACTIVATED: "Usuario reactivado",
   USER_ROLE_CHANGED: "Rol funcional cambiado",
   USER_PLATFORM_ROLE_CHANGED: "Nivel de acceso cambiado",
+  USER_DELETED: "Usuario eliminado",
   ROUTE_CREATED: "Ruta creada",
   ROUTE_UPDATED: "Ruta editada",
   ROUTE_PUBLISHED: "Ruta publicada",

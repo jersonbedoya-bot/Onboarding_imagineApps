@@ -2,6 +2,7 @@ import type { InvitationListItem } from "@/server/services/invitation.service";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { INVITATION_STATUS_LABELS } from "@/lib/status-labels";
+import { RevokeInvitationAction } from "./RevokeInvitationAction";
 
 const STATUS_BADGE_VARIANT: Record<InvitationListItem["status"], BadgeVariant> = {
   PENDING: "brand",
@@ -17,10 +18,9 @@ function formatDate(date: Date): string {
 /**
  * Control de invitaciones: el usuario pidió esto después de crear una
  * invitación, perder el mensaje con el link antes de copiarlo, y no tener
- * dónde volver a ver que esa invitación había quedado pendiente. Es solo
- * visibilidad — no hay columna de acciones porque no existe revocar/reenviar
- * todavía (ver BACKLOG.md); si una invitación expira sin aceptarse, hoy la
- * única salida es esperar los 7 días para poder invitar de nuevo ese email.
+ * dónde volver a ver que esa invitación había quedado pendiente. La columna
+ * "Acciones" solo tiene algo para las PENDING — una invitación ya aceptada,
+ * expirada o revocada no tiene ninguna acción admin posible sobre ella.
  */
 export function InvitationsList({
   invitations,
@@ -52,6 +52,10 @@ export function InvitationsList({
       render: (inv) => (inv.status === "PENDING" ? formatDate(inv.expiresAt) : "—"),
     },
     { header: "Invitada por", render: (inv) => users.find((u) => u.id === inv.invitedBy)?.name ?? "—" },
+    {
+      header: "Acciones",
+      render: (inv) => (inv.status === "PENDING" ? <RevokeInvitationAction id={inv.id} email={inv.email} /> : "—"),
+    },
   ];
 
   return (

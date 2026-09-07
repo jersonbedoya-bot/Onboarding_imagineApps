@@ -86,6 +86,7 @@ export default async function AdminUsersPage() {
                     )}
                     <UserActions
                       userId={user._id.toString()}
+                      userName={user.name}
                       status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
                       functionalRoleId={null}
                       roles={roleOptions}
@@ -149,6 +150,7 @@ export default async function AdminUsersPage() {
                   />
                   <UserActions
                     userId={user._id.toString()}
+                    userName={user.name}
                     status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
                     functionalRoleId={user.functionalRoleId?.toString() ?? null}
                     roles={roleOptions}
@@ -168,8 +170,8 @@ export default async function AdminUsersPage() {
       <div className="mt-10">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Invitaciones</h2>
         <p className="mb-4 text-sm text-ink-soft">
-          Control de las invitaciones enviadas. Si perdiste el link de una pendiente, todavía no hay forma de reenviarlo — hay
-          que esperar a que expire (7 días) para poder volver a invitar ese email.
+          Control de las invitaciones enviadas. Si perdiste el link de una pendiente o te equivocaste de rol, revócala y
+          volvé a invitar a ese mismo email desde &quot;+ Invitar usuario&quot; — no hace falta esperar a que expire (7 días).
         </p>
         <InvitationsList
           invitations={invitations}

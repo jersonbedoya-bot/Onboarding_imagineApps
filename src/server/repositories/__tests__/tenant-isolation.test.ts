@@ -65,6 +65,17 @@ describe("aislamiento de tenant — user.repository", () => {
     const result = await userRepository.findById(tenantB._id, userA._id);
     expect(result).toBeNull();
   });
+
+  it("remove no afecta a un user de otro tenant (devuelve false)", async () => {
+    const { tenant: tenantA, user: userA } = await makeTenantWithUser("remove-a");
+    const { tenant: tenantB } = await makeTenantWithUser("remove-b");
+
+    const result = await userRepository.remove(tenantB._id, userA._id);
+    expect(result).toBe(false);
+
+    const stillThere = await userRepository.findById(tenantA._id, userA._id);
+    expect(stillThere).not.toBeNull();
+  });
 });
 
 describe("aislamiento de tenant — user.service (admin de un tenant contra recurso de otro)", () => {
@@ -95,5 +106,30 @@ describe("aislamiento de tenant — user.service (admin de un tenant contra recu
 
     const updated = await userService.deactivateUser(admin, user._id);
     expect(updated.status).toBe("INACTIVE");
+  });
+
+  it("deleteUser: admin de tenant B no puede borrar un user (ya INACTIVE) de tenant A -> NotFoundError", async () => {
+    const { tenant: tenantA, user: userA } = await makeTenantWithUser("del-a");
+    const { tenant: tenantB } = await makeTenantWithUser("del-b");
+    const adminOfA = actingAdminFor(tenantA._id);
+    const adminOfB = actingAdminFor(tenantB._id);
+
+    await userService.deactivateUser(adminOfA, userA._id);
+
+    await expect(userService.deleteUser(adminOfB, userA._id)).rejects.toBeInstanceOf(NotFoundError);
+
+    const stillThere = await userRepository.findById(tenantA._id, userA._id);
+    expect(stillThere).not.toBeNull();
+  });
+
+  it("deleteUser: admin SÍ puede borrar un user ya INACTIVE de su propio tenant (control positivo)", async () => {
+    const { tenant, user } = await makeTenantWithUser("del-ok");
+    const admin = actingAdminFor(tenant._id);
+
+    await userService.deactivateUser(admin, user._id);
+    await userService.deleteUser(admin, user._id);
+
+    const gone = await userRepository.findById(tenant._id, user._id);
+    expect(gone).toBeNull();
   });
 });

@@ -9,8 +9,11 @@ import { assertAcceptInviteNotRateLimited, recordFailedAcceptInvite } from "@/se
 // invitación (ver invitation.service), nunca del body de este request.
 // Rate limit por token: un token válido no debería fallar, varios fallos
 // contra el mismo token son un patrón de abuso/fuzzing del endpoint.
-export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+//
+// Carpeta [id] (no [token]) — ver comentario en ../route.ts: es solo el
+// nombre del segmento de ruteo, acá igual sigue siendo el token crudo.
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: token } = await params;
 
   try {
     await assertAcceptInviteNotRateLimited(token);

@@ -52,6 +52,50 @@ export async function reactivateUser(actingAdmin: RequestIdentity, targetUserId:
   return updated;
 }
 
+/**
+ * Borrado permanente — mismo criterio de 2 pasos que
+ * content.service.deleteContentItem (archivar->borrar, nunca de un tirón):
+ * acá el paso previo obligatorio es desactivar, así que solo se puede
+ * borrar un user ya INACTIVE. El historial de progreso (`user_progress`) y
+ * los registros de auditoría de este usuario NO se borran (mismo
+ * comportamiento que borrar contenido) — el audit log de ESTA acción guarda
+ * email/name en metadata porque, a diferencia de content/stage/leader/
+ * process/step, no hay un finder que lo resuelva en vivo una vez borrado
+ * (ver audit.service.RESOURCE_FINDERS).
+ *
+ * No hace falta la guarda de "no dejar el tenant sin admin" que sí tiene
+ * changePlatformRole: para llegar acá el target ya tiene que estar INACTIVE,
+ * y nadie puede desactivarse a sí mismo (ver deactivateUser) — así que un
+ * admin activo nunca puede ser el target de este borrado.
+ */
+export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: ObjectId) {
+  if (targetUserId.equals(actingAdmin.userId)) {
+    throw new ValidationError("No puedes borrar tu propia cuenta.");
+  }
+
+  const target = await userRepository.findById(actingAdmin.tenantId, targetUserId);
+  if (!target) {
+    throw new NotFoundError();
+  }
+  if (target.status !== "INACTIVE") {
+    throw new ValidationError("Solo puedes borrar usuarios que ya estén desactivados.");
+  }
+
+  const deleted = await userRepository.remove(actingAdmin.tenantId, targetUserId);
+  if (!deleted) {
+    throw new NotFoundError();
+  }
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "USER_DELETED",
+    resource: "user",
+    resourceId: targetUserId,
+    metadata: { email: target.email, name: target.name },
+  });
+}
+
 export async function changeFunctionalRole(
   actingAdmin: RequestIdentity,
   targetUserId: ObjectId,

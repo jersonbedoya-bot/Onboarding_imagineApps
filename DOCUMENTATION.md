@@ -267,7 +267,7 @@ Colecciones en MongoDB (ver `src/server/db/schema.ts` para el detalle completo d
 - `/` — redirige según rol.
 - `/login`.
 - `/accept-invite/*` — con token en el path.
-- `POST /api/invitations` (sin segmento extra) está protegida; las rutas con token (`/api/invitations/{token}`, `/api/invitations/{token}/accept`) son públicas.
+- `POST /api/invitations` (sin segmento extra) está protegida; las rutas con token (`/api/invitations/{token}`, `/api/invitations/{token}/accept`) son públicas. `POST /api/invitations/{id}/revoke` vive en la misma carpeta de ruteo (Next.js no permite dos nombres de segmento dinámico distintos en la misma posición) pero exige `requireAdmin()` — el `id` ahí es el `_id` de Mongo, no el token crudo.
 
 ---
 
@@ -324,7 +324,7 @@ La lógica central vive en `src/server/services/progress-derivation.ts` y `progr
 - **Tokens de invitación**: el token crudo (256 bits) solo se muestra una vez; en la base solo vive su hash SHA-256 (`src/lib/token.ts`).
 - **Video embebido con allowlist**: las URLs de video se validan/normalizan contra YouTube/Vimeo/Loom únicamente (`src/lib/video-url.ts`), nunca se renderiza una URL cruda en `<iframe>` (mitiga XSS).
 - **Rate limiting** (`src/server/services/rate-limit.service.ts`) en `/login` (por email e IP) y `/accept-invite` (por token).
-- **Auditoría** de acciones administrativas en `audit_logs` (28 acciones, ver `src/server/repositories/audit.repository.ts`).
+- **Auditoría** de acciones administrativas en `audit_logs` (44 acciones, ver `src/server/repositories/audit.repository.ts`).
 - **Invitación de administradores**: un ADMIN no tiene rol funcional; el flujo valida que un `USER` tenga rol y que un `ADMIN` no lo tenga (`createInvitationSchema`).
 
 ---
@@ -336,8 +336,8 @@ Todas bajo `src/app/api/`. Las rutas administrativas exigen `requireAdmin()`, sa
 | Área | Endpoints | Descripción |
 |------|-----------|-------------|
 | **Auth** | `POST /api/auth/...` | NextAuth (login, callback, signout). |
-| **Usuarios** | `GET /api/users`, `POST /api/users/{id}/deactivate`, `/reactivate`, `PATCH /api/users/{id}/role` (rol funcional), `PATCH /api/users/{id}/platform-role` (nivel de acceso USER/EDITOR/ADMIN) | Gestión de usuarios por el admin. No hay creación directa: los usuarios nacen al aceptar una invitación. |
-| **Invitaciones** | `POST /api/invitations`, `GET /api/invitations/{token}`, `POST /api/invitations/{token}/accept` | Crear/previsualizar/aceptar invitaciones. |
+| **Usuarios** | `GET /api/users`, `POST /api/users/{id}/deactivate`, `/reactivate`, `PATCH /api/users/{id}/role` (rol funcional), `PATCH /api/users/{id}/platform-role` (nivel de acceso USER/EDITOR/ADMIN), `DELETE /api/users/{id}` (borrado permanente, solo si ya está INACTIVE) | Gestión de usuarios por el admin. No hay creación directa: los usuarios nacen al aceptar una invitación. |
+| **Invitaciones** | `POST /api/invitations`, `GET /api/invitations/{token}`, `POST /api/invitations/{token}/accept`, `POST /api/invitations/{id}/revoke` (PENDING→REVOKED) | Crear/previsualizar/aceptar/revocar invitaciones. |
 | **Ruta** | `GET /api/route`, `PATCH /api/route`, `POST /api/route/publish`, `/archive`, `/reactivate` | Gestión de la ruta (singleton) — `PATCH` edita headline/subtitle/mensajes de guía. |
 | **Etapas** | `GET/POST /api/stages`, `PATCH/DELETE /api/stages/{id}`, `POST .../publish`, `/archive`, `/reactivate` | Gestión de etapas. |
 | **Contenido** | `GET/POST /api/content`, `PATCH/DELETE /api/content/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/content/resolve` | Gestión y resolución de content items. |

@@ -129,6 +129,16 @@ export async function updatePlatformRole(
   );
 }
 
+/**
+ * Borrado permanente — scoping por tenantId en el propio filtro de delete,
+ * mismo criterio que updateStatus: si el user es de otro tenant, no matchea
+ * y devuelve false (404 en el service, nunca 403).
+ */
+export async function remove(tenantId: ObjectId, userId: ObjectId): Promise<boolean> {
+  const result = await (await collection()).deleteOne({ _id: userId, tenantId });
+  return result.deletedCount === 1;
+}
+
 /** Cuántos ADMIN activos tiene el tenant — usado para no dejarlo sin ninguno al degradar el último. */
 export async function countActiveAdmins(tenantId: ObjectId): Promise<number> {
   return (await collection()).countDocuments({ tenantId, platformRole: "ADMIN", status: "ACTIVE" });

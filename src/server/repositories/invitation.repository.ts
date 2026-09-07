@@ -74,6 +74,21 @@ export async function markAccepted(invitationId: ObjectId): Promise<InvitationDo
   return result;
 }
 
+/**
+ * PENDING -> REVOKED, para liberar el email antes de que la invitación
+ * expire sola (ver invitation.service.revokeInvitation). Filtro
+ * `status: "PENDING"` en el propio update (no un read previo): si ya fue
+ * aceptada/revocada, o es de otro tenant, no matchea y devuelve null —
+ * mismo criterio de scoping que markAccepted/updateStatus.
+ */
+export async function revoke(tenantId: ObjectId, invitationId: ObjectId): Promise<InvitationDocument | null> {
+  return (await collection()).findOneAndUpdate(
+    { _id: invitationId, tenantId, status: "PENDING" },
+    { $set: { status: "REVOKED" } },
+    { returnDocument: "after" },
+  );
+}
+
 export async function findExistingActiveByEmail(tenantId: ObjectId, email: string): Promise<InvitationDocument | null> {
   return (await collection()).findOne({
     tenantId,
@@ -86,7 +101,6 @@ export async function findExistingActiveByEmail(tenantId: ObjectId, email: strin
 /**
  * Todas las invitaciones del tenant, más recientes primero — para la
  * pantalla de control de /admin/users (ver invitation.service.listInvitations).
- * Solo lectura: no hay acción de revocar/reenviar todavía (ver BACKLOG.md).
  */
 export async function listByTenant(tenantId: ObjectId): Promise<InvitationDocument[]> {
   return (await collection()).find({ tenantId }).sort({ createdAt: -1 }).toArray();

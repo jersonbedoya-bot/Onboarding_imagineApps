@@ -5,11 +5,13 @@ import { getDb } from "@/server/db/client";
 // que llega por query param en GET /api/audit — ver audit.schema.ts.
 export const AUDIT_ACTIONS = [
   "INVITATION_CREATED",
+  "INVITATION_REVOKED",
   "USER_CREATED",
   "USER_DEACTIVATED",
   "USER_REACTIVATED",
   "USER_ROLE_CHANGED",
   "USER_PLATFORM_ROLE_CHANGED",
+  "USER_DELETED",
   "ROUTE_CREATED",
   "ROUTE_UPDATED",
   "ROUTE_PUBLISHED",

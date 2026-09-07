@@ -105,8 +105,7 @@ export type InvitationListItem = {
 /**
  * Listado de control para /admin/users (ver InvitationsList.tsx) — el
  * usuario pidió esto después de perder el link de una invitación ya creada
- * y no tener forma de ver que había quedado pendiente. Solo lectura: no
- * agrega revocar/reenviar, que sigue diferido en BACKLOG.md.
+ * y no tener forma de ver que había quedado pendiente.
  */
 export async function listInvitations(actingAdmin: RequestIdentity): Promise<InvitationListItem[]> {
   const invitations = await invitationRepository.listByTenant(actingAdmin.tenantId);
@@ -121,6 +120,32 @@ export async function listInvitations(actingAdmin: RequestIdentity): Promise<Inv
     acceptedAt: invitation.acceptedAt,
     invitedBy: invitation.invitedBy.toString(),
   }));
+}
+
+/**
+ * Revoca una invitación PENDING antes de que expire sola (7 días) — hasta
+ * ahora, si un admin perdía el link o se equivocaba de rol/email, la única
+ * salida era esperar. No hace falta un endpoint de "reenviar": una vez
+ * REVOKED, createInvitation ya no la ve como activa (findExistingActiveByEmail
+ * solo bloquea por email si hay una PENDING no vencida), así que el mismo
+ * "+ Invitar usuario" sirve para mandar una invitación nueva a ese email.
+ */
+export async function revokeInvitation(actingAdmin: RequestIdentity, invitationId: ObjectId) {
+  const revoked = await invitationRepository.revoke(actingAdmin.tenantId, invitationId);
+  if (!revoked) {
+    throw new NotFoundError("La invitación no existe o ya no está pendiente.");
+  }
+
+  await auditRepository.record({
+    tenantId: actingAdmin.tenantId,
+    userId: actingAdmin.userId,
+    action: "INVITATION_REVOKED",
+    resource: "invitation",
+    resourceId: revoked._id,
+    metadata: { email: revoked.email },
+  });
+
+  return revoked;
 }
 
 export async function previewInvitation(rawToken: string) {
