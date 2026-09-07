@@ -454,6 +454,43 @@ migraciones anteriores: los IDs de proceso/paso están hardcodeados para el
 tenant de desarrollo. Si el reparto de responsabilidades real difiere para
 otro tenant, ajustar el texto de `STEP_PATCHES` antes de correr.
 
+### 7. Reemplazo de checklists Markdown estáticos por listas numeradas (tenant imagine-apps)
+
+Misma naturaleza que #3/#4/#5/#6: edición de contenido normal vía
+`content.service.updateContentItem`, sin tocar estructura — acá el único
+cambio es el marcador de lista, ningún texto de instrucción se reescribió.
+
+**Antes**: "🌴 Política de Vacaciones", "🩺 Política de Citas Médicas" y
+"⏱️ Uso del Calendario (Timeboxing)" escribían sus pasos como checklist
+Markdown (`- [ ] paso`). El usuario notó el problema real: `MarkdownContent.tsx`
+renderiza esa casilla como un cuadrito de solo lectura (`<span>`, no
+`<input>`) — no hay progreso por-usuario para pasos de un content item
+informativo (eso solo existe para `process_steps` y para el quiz, vía
+`user_progress`), así que la casilla queda para siempre sin marcar. Se veía
+como una lista de tareas interactiva que en realidad no hacía nada.
+
+**Después**: los mismos pasos, como lista numerada (`1.`/`2.`/...) — los 3
+casos son instrucciones estrictamente secuenciales ("primero esto, después
+esto"), así que numerarlas comunica el orden sin la falsa promesa de un
+checklist tildable.
+
+**Por qué**: pedido explícito del usuario ("veo una parte que dice pasos
+para solicitar... pero se ve una lista y a su vez es estático, no le veo
+sentido a esa parte"). Se auditó toda la base (`content_items.body`,
+`processes.objective/context/expectedResult`, `process_steps.description/
+instruction`) buscando el mismo patrón `- [ ]` antes de aplicar, para no
+dejar otro caso igual sin corregir.
+
+**Aplicado en Atlas de desarrollo el 2026-09-07**, vía
+`scripts/migrate-remove-static-checklists.ts` (mismo patrón dry-run/`--apply`).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-remove-static-checklists.ts --apply` — mismo aviso de las
+migraciones anteriores: los IDs de content_item están hardcodeados para el
+tenant de desarrollo. Si otra base tiene más contenido con `- [ ]`, buscarlo
+primero (`$regex: /- \[ ?[xX]? ?\]/` sobre los mismos 6 campos) antes de
+decidir si también aplica ahí.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

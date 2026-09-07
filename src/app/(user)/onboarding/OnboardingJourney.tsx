@@ -22,6 +22,7 @@ import { ProcessStepsTimeline } from "@/components/ProcessStepsTimeline";
 import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
 import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
 import { CultureValuesGrid } from "@/components/CultureValuesGrid";
+import { IconCardGrid } from "@/components/IconCardGrid";
 import { QuizBlock } from "@/components/QuizBlock";
 import { LeadersBoard } from "./leaders/LeadersBoard";
 import type { LeaderCardData } from "./leaders/LeaderCard";
@@ -39,6 +40,7 @@ import {
   splitCultureValues,
   parseQuizQuestions,
 } from "@/lib/institutional-content";
+import { isDigitalEcosystemContent, isTimeboxingContent, splitToolsList, toolIcon, splitNumberedSteps, stepNumberIcon } from "@/lib/daily-life-content";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
@@ -392,6 +394,15 @@ function StageSection({
                 const nonNegotiableItems = isNonNegotiables && item.body ? parseNonNegotiables(item.body) : null;
                 const isCultureValues = isCultureValuesContent(item.title);
                 const cultureSplit = isCultureValues && item.body ? splitCultureValues(item.body) : null;
+                // "Ecosistema Digital de Trabajo" y "Timeboxing" viven en la
+                // sección "Reglas y Herramientas" junto a "Principios No
+                // Negociables" (arriba) — antes solo esta última tenía grid
+                // de tarjetas y las otras 2 eran texto plano, inconsistente
+                // dentro de la misma sección visual (ver daily-life-content.ts).
+                const isDigitalEcosystem = isDigitalEcosystemContent(item.title);
+                const toolsSplit = isDigitalEcosystem && item.body ? splitToolsList(item.body) : null;
+                const isTimeboxing = isTimeboxingContent(item.title);
+                const stepsSplit = isTimeboxing && item.body ? splitNumberedSteps(item.body) : null;
                 // "Tu Día a Día en Imagine Apps" (ver phase-groups.ts) junta 6
                 // cards de temas distintos (reglas/herramientas + políticas de
                 // bienestar que antes vivían en la etapa Recursos, ya
@@ -436,6 +447,30 @@ function StageSection({
                           <>
                             {cultureSplit.intro && <MarkdownContent>{cultureSplit.intro}</MarkdownContent>}
                             <CultureValuesGrid values={cultureSplit.values} />
+                          </>
+                        ) : toolsSplit ? (
+                          <>
+                            {toolsSplit.intro && <MarkdownContent>{toolsSplit.intro}</MarkdownContent>}
+                            <IconCardGrid
+                              items={toolsSplit.items.map((tool) => ({
+                                icon: toolIcon(tool.title),
+                                title: tool.title,
+                                href: tool.href,
+                                description: tool.description,
+                              }))}
+                            />
+                            {toolsSplit.outro && <MarkdownContent className="mt-3">{toolsSplit.outro}</MarkdownContent>}
+                          </>
+                        ) : stepsSplit ? (
+                          <>
+                            {stepsSplit.intro && <MarkdownContent>{stepsSplit.intro}</MarkdownContent>}
+                            <IconCardGrid
+                              items={stepsSplit.steps.map((description, stepIndex) => ({
+                                icon: stepNumberIcon(stepIndex),
+                                description,
+                              }))}
+                            />
+                            {stepsSplit.outro && <MarkdownContent className="mt-3">{stepsSplit.outro}</MarkdownContent>}
                           </>
                         ) : (
                           item.body && <MarkdownContent>{item.body}</MarkdownContent>
