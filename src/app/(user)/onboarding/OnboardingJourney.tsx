@@ -578,12 +578,12 @@ function ProcessCard({ process, previewMode = false }: { process: JourneyProcess
         </button>
         <span className="flex items-center gap-2">
           {pending && <PendingBadge />}
-          {hasSteps &&
-            (allStepsCompleted ? (
-              <CompletedCheck label="Proceso completado" />
-            ) : (
-              !previewMode && <CompleteProcessButton processId={process.id} />
-            ))}
+          {/* El check de "ya revisado" se queda arriba (permite ver de un
+              vistazo qué procesos ya están hechos sin expandir cada uno,
+              incluso colapsada) — el BOTÓN de acción se movió al final de
+              la card, ver más abajo (feedback de usuario: pedía completar
+              algo que todavía no habías leído). */}
+          {hasSteps && allStepsCompleted && <CompletedCheck label="Revisado" />}
         </span>
       </div>
       {pending && (
@@ -610,6 +610,11 @@ function ProcessCard({ process, previewMode = false }: { process: JourneyProcess
               allCompleted={allStepsCompleted}
               isStepPending={(title) => !pending && isPendingStep(title)}
             />
+          )}
+          {hasSteps && !allStepsCompleted && !previewMode && (
+            <div className="mt-2">
+              <CompleteProcessButton processId={process.id} />
+            </div>
           )}
         </>
       )}

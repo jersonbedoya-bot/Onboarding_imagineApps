@@ -29,14 +29,14 @@ export function CompleteProcessButton({ processId }: { processId: string }) {
       setError(body?.error?.message ?? "No se pudo completar el proceso.");
       return;
     }
-    showToast("Proceso completado");
+    showToast("Proceso revisado");
     router.refresh();
   }
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <Button variant="secondary" onClick={complete} isLoading={isPending} className="px-4 py-1.5 text-xs">
-        Marcar proceso como completado
+      <Button variant="primary" onClick={complete} isLoading={isPending} className="px-4 py-1.5 text-xs">
+        Marcar como revisado
       </Button>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
