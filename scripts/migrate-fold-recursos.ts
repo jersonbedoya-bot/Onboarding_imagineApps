@@ -1,6 +1,6 @@
 /**
  * Segunda migración de contenido (tenant imagine-apps) — pliega "Recursos"
- * dentro de "Cómo Trabajamos" (ver MIGRATIONS.md #7 para la primera). El
+ * dentro de "Cómo Trabajamos" (ver MIGRATIONS.md #1 para la primera). El
  * usuario decidió que las 3 políticas de Recursos (Vacaciones, Citas
  * Médicas, Cumpleaños) pasen a ser contenido real del módulo en vez de un
  * link de salida — y que ese módulo deje de decir "Fase 02" en el título,

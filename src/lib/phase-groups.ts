@@ -95,8 +95,9 @@ const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
 export const FASE_04_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps";
 
 // Misma idea: key opaca heredada del módulo original de "Ecosistema de
-// Herramientas y Bienestar". Tras dos migraciones (ver MIGRATIONS.md #7 y
-// #8) hoy es "🧭 Tu Día a Día en Imagine Apps": Principios No Negociables +
+// Herramientas y Bienestar". Tras dos migraciones (ver MIGRATIONS.md #1 y
+// #2 de "Migraciones de contenido") hoy es "🧭 Tu Día a Día en Imagine
+// Apps": Principios No Negociables +
 // Entorno de Trabajo + las 3 políticas que antes vivían en la etapa
 // "Recursos" (Vacaciones/Citas Médicas/Cumpleaños, ahora eliminada — esas
 // políticas dejaron de estar "siempre disponibles" y pasaron a ser

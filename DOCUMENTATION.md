@@ -123,7 +123,7 @@ npm run db:seed
 npm run dev
 ```
 
-Abrí [http://localhost:3000](http://localhost:3000). El flujo post-login redirige según el rol: `ADMIN` → `/admin/modules`, `USER` → `/onboarding`.
+Abrí [http://localhost:3000](http://localhost:3000). El flujo post-login redirige según el rol: `ADMIN`/`EDITOR` → `/admin/modules`, `USER` → `/onboarding`.
 
 ---
 
@@ -259,7 +259,7 @@ Colecciones en MongoDB (ver `src/server/db/schema.ts` para el detalle completo d
 
 1. **Login** (NextAuth Credentials): verifica email + password, con rate limiting.
 2. **JWT de sesión**: NextAuth persiste **solo identidad firmada** (`userId`, `tenantId`), vigente hasta 8h.
-3. **Guards de autoridad**: `requireActiveUser()` / `requireAdmin()` (`src/server/auth/session.ts`) se llaman en **cada request protegida**. Leen el estado real (`status`, `platformRole`, `functionalRoleId`) desde MongoDB en cada request, de modo que una desactivación o cambio de rol del admin tiene efecto **inmediato** (no depende de la expiración del token).
+3. **Guards de autoridad**: `requireActiveUser()` / `requireAdmin()` / `requireContentEditor()` (`src/server/auth/session.ts`) se llaman en **cada request protegida**. Leen el estado real (`status`, `platformRole`, `functionalRoleId`) desde MongoDB en cada request, de modo que una desactivación o cambio de rol del admin tiene efecto **inmediato** (no depende de la expiración del token). `requireContentEditor()` deja pasar tanto a `ADMIN` como a `EDITOR` (ver §10.1).
 4. **Proxy**: `src/proxy.ts` hace un chequeo **optimista** (solo valida que exista un JWT, sin tocar Mongo) para redirecciones de UX. No es la línea de defensa real.
 
 ### Rutas públicas (`proxy.ts`)
@@ -298,7 +298,7 @@ La ruta es la columna vertebral de la experiencia: una sola por tenant, dividida
 - **Una sola ruta por tenant** (singleton), componible por **etapas** en orden configurable, con **dependencias** (una etapa puede bloquear la siguiente mediante `dependsOnStageId` + `isBlocking`).
 - Cada etapa agrupa **content items** y **procesos** (con sus pasos).
 - Los **content items** pueden ser `TEXT`, `VIDEO`, `IMAGE` o `MIXED`, con requirement `OBLIGATORY` (acuse de lectura, bloquea el avance) o `INFORMATIONAL` (se marca visto solo con scroll, nunca bloquea).
-- **Quiz de cierre de módulo (opcional)**: un content item cuyo título matchea `isQuizContent` (`src/lib/institutional-content.ts`) se interpreta como preguntas de opción múltiple en Markdown (`parseQuizQuestions`) y se renderiza vía `QuizBlock` dentro de un modal que se abre al pulsar "Siguiente módulo". El botón para avanzar dentro de ese modal solo se habilita cuando el usuario respondió las N preguntas (la respuesta no necesita ser correcta) — puramente client-side, no persiste en `user_progress`.
+- **Quiz de cierre de módulo (opcional)**: un content item cuyo título matchea `isQuizContent` (`src/lib/institutional-content.ts`) se interpreta como preguntas de opción múltiple en Markdown (`parseQuizQuestions`) y se renderiza vía `QuizBlock` (opciones barajadas client-side en cada montaje) dentro de un modal que se abre al pulsar "Siguiente módulo". El botón para avanzar dentro de ese modal solo se habilita cuando el usuario respondió las N preguntas (la respuesta no necesita ser correcta). Al pasar el gate por primera vez se marca el item como visto (`POST /api/progress/content/{id}/view`, mismo endpoint que usa `ContentViewTracker`) para no volver a pedirle el quiz en visitas futuras — las respuestas en sí (y si fueron correctas) nunca se persisten.
 - La visibilidad del contenido sigue una **cascada**: Ruta `PUBLISHED` → Etapa `PUBLISHED` → Item/Proceso `PUBLISHED` con `scope` que matchee el rol del usuario. Si cualquier eslabón de la cadena no está publicado, el contenido no aparece (`resolveVisibleContent`, `resolveVisibleProcesses`, `resolveVisibleSteps`).
 
 ---
@@ -330,7 +330,7 @@ La lógica central vive en `src/server/services/progress-derivation.ts` y `progr
 
 ## 14. API Routes
 
-Todas bajo `src/app/api/`. Las rutas administrativas exigen `requireAdmin()`; las de progreso/lectura exigen `requireActiveUser()`; las de invitación con token son públicas.
+Todas bajo `src/app/api/`. Las rutas administrativas exigen `requireAdmin()`, salvo las no-destructivas de contenido/líderes/procesos/pasos (GET/POST/PATCH/publish) que aceptan también `EDITOR` vía `requireContentEditor()` — archivar/borrar/reactivar de esos mismos recursos, y todo el resto del panel (etapas, ruta, usuarios, auditoría), sigue exigiendo `requireAdmin()`. Las de progreso/lectura exigen `requireActiveUser()`; las de invitación con token son públicas.
 
 | Área | Endpoints | Descripción |
 |------|-----------|-------------|
@@ -398,7 +398,7 @@ El archivo **`MIGRATIONS.md`** registra:
 El archivo **`BACKLOG.md`** lista features explícitamente diferidas (decisión de Product Owner, no deuda técnica). Incluye:
 
 - **Fase 6 (visual)**: formulario "conocé al equipo" con notas por líder; variante de quiz "completar la frase".
-- **Fase 2**: revocar/reenviar invitación, promover usuario a admin.
+- **Fase 2**: revocar/reenviar invitación.
 - **Fase 3B (media)**: client-direct-upload a Vercel Blob; `BLOB_READ_WRITE_TOKEN` no configurado en dev.
 - **Plataforma**: rate limiting solo en login/accept-invite; observabilidad externa (Sentry) no configurada.
 

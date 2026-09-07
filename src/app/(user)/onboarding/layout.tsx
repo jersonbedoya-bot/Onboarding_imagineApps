@@ -9,7 +9,8 @@ import { UserMenu } from "@/components/UserMenu";
 /**
  * Chrome compartido de todo /onboarding/* (recorrido, equipo). Antes había
  * una tercera sección, Recursos, con su propia etapa siempre desbloqueada
- * fuera del recorrido secuencial — se eliminó (ver MIGRATIONS.md #8): sus
+ * fuera del recorrido secuencial — se eliminó (ver MIGRATIONS.md #2 de
+ * "Migraciones de contenido"): sus
  * políticas pasaron a ser contenido real de "Tu Día a Día en Imagine Apps".
  * Antes cada página repetía el guard de identidad/rol y su propio topbar;
  * ahora vive acá una sola vez, y el layout decide si hay algo que mostrar
@@ -31,7 +32,11 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
   }
 
   if (!identity.functionalRoleId) {
-    if (identity.platformRole === "ADMIN") {
+    // ADMIN y EDITOR nunca tienen rol funcional (ver PLATFORM_ROLES) — si
+    // alguno llega acá igual (ej. navegación directa a /onboarding), se
+    // manda al panel en vez de mostrarle el mensaje de "pedile un rol a un
+    // admin", que no aplica para ninguno de los dos.
+    if (identity.platformRole !== "USER") {
       redirect("/admin/modules");
     }
     return (

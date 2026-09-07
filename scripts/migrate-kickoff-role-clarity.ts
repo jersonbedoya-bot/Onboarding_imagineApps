@@ -1,6 +1,6 @@
 /**
  * Aclara quién hace qué (PDM vs UX/UI Designer) en los pasos de los 2
- * procesos de Kickoff (COMMON, ver MIGRATIONS.md #9) — pedido explícito
+ * procesos de Kickoff (COMMON, ver MIGRATIONS.md #3) — pedido explícito
  * del usuario: compartir la misma card entre ambos roles sin decir qué
  * corresponde a cada uno era confuso, sobre todo porque `process_steps`
  * no tiene `scope`/`roleIds` propio (a diferencia de content_items/

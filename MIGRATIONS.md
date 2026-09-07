@@ -177,7 +177,10 @@ hoy (`ProcessForm` solo setea `stageId` al crear un proceso, nunca al
 editarlo). Se documenta acá por el mismo motivo que las migraciones de
 schema: no es reproducible corriendo `db:bootstrap`/`db:seed`.
 
-### 7. Fusión de fases del recorrido de onboarding (tenant imagine-apps)
+> Numeración independiente de la sección de arriba: los `#N` de acá para
+> abajo (y en los comentarios de `scripts/`) refieren siempre a esta lista.
+
+### 1. Fusión de fases del recorrido de onboarding (tenant imagine-apps)
 
 **Antes** (4 fases numeradas + Recursos, decidido en conversación con el
 usuario tras notar que la navegación se sentía corta): Fase 01 · Bienvenida
@@ -205,8 +208,9 @@ temas inconexos.
 De paso se encontró (no relacionado a la fusión) que el content item con
 los 5 valores de cultura estaba `ARCHIVED` — reemplazado por "🎯 Nuestra
 Historia", que no los tenía. Se fusionó ese texto dentro de "Nuestra
-Historia" para no perderlo (el `ARCHIVED` no se reactiva, es transición
-terminal — ver `assertValidTransition`).
+Historia" para no perderlo (aunque `ARCHIVED` sí admite reactivarse a
+`DRAFT` — ver `assertValidTransition` — fusionar el texto directo era más
+simple que reactivar/editar/re-archivar solo para conservarlo).
 
 **Aplicado en Atlas de desarrollo el 2026-09-02**, vía
 `scripts/migrate-merge-fases.ts` (dry-run por defecto, `--apply` para
@@ -237,7 +241,7 @@ estado real con una consulta de solo lectura antes de tocar nada — el
 `matchTitle` de `scripts/data/onboarding-content.ts` ya está desactualizado
 respecto al título real de las etapas, no usarlo como fuente de verdad).
 
-### 8. Pliegue de "Recursos" dentro de "Cómo Trabajamos" (tenant imagine-apps)
+### 2. Pliegue de "Recursos" dentro de "Cómo Trabajamos" (tenant imagine-apps)
 
 **Antes**: Recursos era una etapa aparte (`key: "recursos"`), siempre
 desbloqueada y fuera del recorrido secuencial (ver el comentario que tenía
@@ -246,7 +250,7 @@ Contenía 3 content items informativos: Política de Vacaciones, Política de
 Citas Médicas, Política de Cumpleaños.
 
 **Después**: esas 3 políticas pasaron a ser content items reales de "🧭 Tu
-Día a Día en Imagine Apps" (el módulo de la migración #7, antes titulado
+Día a Día en Imagine Apps" (el módulo de la migración #1, antes titulado
 "🔄 Fase 02 · Cómo Trabajamos" — se le sacó el "Fase 02" del título porque
 ya no describía todo lo que contiene). El módulo quedó con 6 content items
 en 2 secciones visuales (`contentItemSection` en `phase-groups.ts`):
@@ -266,24 +270,24 @@ contaron para `totalCompletableOf` (ver `progress.service.ts`).
 
 **Aplicado en Atlas de desarrollo el 2026-09-02**, vía
 `scripts/migrate-fold-recursos.ts` (mismo patrón dry-run/`--apply`/backup
-JSON que la migración #7). Mueve el `stageId` de las 3 políticas, renombra
+JSON que la migración #1). Mueve el `stageId` de las 3 políticas, renombra
 el módulo destino, y archiva+borra el stage `recursos` ya vacío vía
 `stage.service` real.
 
 **Cómo migrar otra base existente**: correr
-`scripts/migrate-fold-recursos.ts --apply` después de la #7 (depende de que
+`scripts/migrate-fold-recursos.ts --apply` después de la #1 (depende de que
 el stage de Cómo Trabajamos ya exista con ese `_id`) — mismo aviso: IDs
 hardcodeados para el tenant de desarrollo, adaptar para otro tenant.
 
-### 9. Links reales de herramientas + remoción de "Agents Hub" (tenant imagine-apps)
+### 3. Links reales de herramientas + remoción de "Agents Hub" (tenant imagine-apps)
 
-A diferencia de #7/#8, esta no toca `stageId` ni estructura de etapas — son
+A diferencia de #1/#2, esta no toca `stageId` ni estructura de etapas — son
 ediciones de contenido normales (body/objective/context/expectedResult/
 resources de content_items, processes y process_steps), así que
 `scripts/migrate-add-tool-links.ts` corre por los `*.service.ts` reales
 (`updateContentItem`/`updateProcess`/`updateStep`), no por `getDb()`
 directo — cada cambio quedó en `audit_logs` como una edición normal desde
-el admin panel. A diferencia de #7/#8, el clasificador de auto-mode de
+el admin panel. A diferencia de #1/#2, el clasificador de auto-mode de
 Claude Code **no bloqueó** este `--apply` — parece tratar distinto una
 escritura vía service (edición de contenido reconocible) que una
 reasignación de `stageId`/archivado de stage.
@@ -335,18 +339,18 @@ UI y migrar estos links al campo `links` real.
 `scripts/migrate-add-tool-links.ts` (mismo patrón dry-run/backup/`--apply`).
 
 **Cómo migrar otra base existente**: correr
-`scripts/migrate-add-tool-links.ts --apply` — mismo aviso que #7/#8: IDs
+`scripts/migrate-add-tool-links.ts --apply` — mismo aviso que #1/#2: IDs
 hardcodeados para el tenant de desarrollo, adaptar para otro tenant. Si
 las URLs de Basecamp/Magi/Drive cambian, actualizar las constantes al
 principio del script.
 
-### 10. Quiz de Fase 1 al mismo tono que Fase 2/3 (tenant imagine-apps)
+### 4. Quiz de Fase 1 al mismo tono que Fase 2/3 (tenant imagine-apps)
 
-Igual que #9, esta es una edición de contenido normal (`body` de un solo
+Igual que #3, esta es una edición de contenido normal (`body` de un solo
 content_item) vía `content.service.updateContentItem` — no toca `stageId`
 ni estructura, queda en `audit_logs` como cualquier edición desde el admin
 panel. El `--apply` **no fue bloqueado** por el clasificador de auto-mode
-(mismo comportamiento que #9).
+(mismo comportamiento que #3).
 
 **Antes**: el quiz "🎉 Pon a Prueba lo que Aprendiste" de "🚀 Quiénes Somos"
 (creado junto con los otros 2 quizzes de `scripts/add-quiz-questions.ts`,
@@ -371,12 +375,12 @@ antes de aplicar se verificó con `parseQuizQuestions` en un one-off que el
 nuevo body parsea a 6 preguntas con el `correctIndex` esperado).
 
 **Cómo migrar otra base existente**: correr
-`scripts/migrate-fase1-quiz.ts --apply` — mismo aviso que #7/#8/#9: el ID
+`scripts/migrate-fase1-quiz.ts --apply` — mismo aviso que #1/#2/#3: el ID
 del content_item está hardcodeado para el tenant de desarrollo.
 
-### 11. Simplificar la intro de "Tu rol como PDM/UX-UI" (tenant imagine-apps)
+### 5. Simplificar la intro de "Tu rol como PDM/UX-UI" (tenant imagine-apps)
 
-Misma naturaleza que #9/#10: edición de contenido normal vía
+Misma naturaleza que #3/#4: edición de contenido normal vía
 `content.service.updateContentItem`, sin tocar estructura.
 
 **Antes**: el segundo párrafo de ambos content items (scope ROLE, stage
@@ -404,15 +408,15 @@ así como está").
 migraciones anteriores: los IDs de content_item están hardcodeados para el
 tenant de desarrollo.
 
-### 12. Claridad de rol (PDM vs UX/UI) en los pasos de Kickoff Interno/Cliente
+### 6. Claridad de rol (PDM vs UX/UI) en los pasos de Kickoff Interno/Cliente
 
-Misma naturaleza que #9/#10/#11: edición de contenido normal vía
+Misma naturaleza que #3/#4/#5: edición de contenido normal vía
 `process.service.updateProcess`/`step.service.updateStep`, sin tocar
 estructura.
 
 **Antes**: "🤝 Kickoff Interno (Prekickoff)" y "🎬 Kickoff del Proyecto con
 Cliente" son procesos `scope: COMMON` (los ve PDM y UX/UI por igual, ver
-MIGRATIONS.md #9) cuyos 16 pasos estaban escritos en voz neutra, sin decir
+MIGRATIONS.md #3) cuyos 16 pasos estaban escritos en voz neutra, sin decir
 qué corresponde a cada rol — el `context` de ambos decía "Owner: PDM" sin
 mencionar en ningún lado el aporte de UX/UI. El usuario señaló que
 compartir la misma card entre dos roles con funciones distintas, sin
@@ -457,6 +461,6 @@ Fase 5: se comparó, colección por colección, el resultado de
 desarrollo) contra el estado real del Atlas de desarrollo — mismos nombres
 de colección, mismos índices (spec + `unique`/`expireAfterSeconds`), mismo
 `$jsonSchema` validator. **Idéntico en las 14 colecciones, sin diferencias.**
-Confirma que las 5 migraciones de arriba ya quedaron reflejadas en
+Confirma que las migraciones de schema de arriba ya quedaron reflejadas en
 `schema.ts` y que una base nueva no necesita ninguna de ellas — solo hacen
 falta al migrar una base con historia previa.

@@ -121,9 +121,10 @@ src/
 │   │       ├── modules/           # Route + stages + content + processes, per-module
 │   │       ├── processes/[id]/    # Steps of a process
 │   │       ├── leaders/           # Leaders management
-│   │       ├── messages/          # Route headline/subtitle + editable guide messages
-│   │       ├── users/             # Users + invitations
-│   │       └── audit/             # Audit log
+│   │       ├── preview/           # Read-only "view as role" onboarding preview (Admin & Editor)
+│   │       ├── messages/          # Route headline/subtitle + editable guide messages (Admin only)
+│   │       ├── users/             # Users + invitations (Admin only)
+│   │       └── audit/             # Audit log (Admin only)
 │   ├── (public)/                 # Public routes
 │   │   ├── login/
 │   │   └── accept-invite/[token]/
@@ -198,12 +199,12 @@ src/
 | Tenant | An organization. All data is isolated per tenant. 1 account = 1 tenant. |
 | Route | The onboarding backbone (singleton per tenant), made of ordered stages the user completes one at a time. |
 | Stage | An ordered step in the Route, with optional dependencies (`dependsOnStageId` + `isBlocking`). Contains content items and processes. |
-| Content Item | Readable content of type TEXT/VIDEO/IMAGE/MIXED, with requirement OBLIGATORY (read acknowledgment, blocks advance) or INFORMATIONAL (passive scroll-view, never blocks). Scoped COMMON or ROLE. A title matching `isQuizContent` renders as a `QuizBlock` instead and gates "next module" until all its questions are answered (client-side only, not persisted). |
+| Content Item | Readable content of type TEXT/VIDEO/IMAGE/MIXED, with requirement OBLIGATORY (read acknowledgment, blocks advance) or INFORMATIONAL (passive scroll-view, never blocks). Scoped COMMON or ROLE. A title matching `isQuizContent` renders as a `QuizBlock` instead (options shuffled per mount) and gates "next module" until all its questions are answered; once passed, the item is marked viewed (`POST /api/progress/content/{id}/view`) so the user isn't asked again — answers themselves are never persisted. |
 | Process | An operational workflow (with ordered steps). Scoped COMMON or ROLE (`roleIds[]`). |
 | Step | A single step within a process (title, instruction, completion criteria, optional video). |
 | Leader | A team leader. Scoped COMMON or ROLE (with `roleIds[]`). |
 | Functional Role | Determines onboarding type (initial: `PDM`, `UX_UI_DESIGNER`). Assigned ALWAYS from invitation, never chosen by user. |
-| Platform Role | `USER` or `ADMIN`. `ADMIN` has no functional role. |
+| Platform Role | `USER`, `EDITOR`, or `ADMIN`. `EDITOR` can create/edit/publish content/leaders/processes/steps but not archive/delete/reactivate or manage stages/users/audit. Neither `EDITOR` nor `ADMIN` has a functional role. |
 | Progress | NOT stored as a percentage — *derived* from `user_progress` records. Existence of the record = the "completed" fact (no intermediate states). |
 
 ### Content Lifecycle
@@ -223,7 +224,7 @@ Content visibility follows: Route `PUBLISHED` → Stage `PUBLISHED` → Item/Pro
 
 ### Auth & Session
 - JWT only stores identity (`userId`, `tenantId`) — signed and trustworthy but potentially stale over its 8h life.
-- **Authority (status/role) ALWAYS comes from a real Mongo read** via `requireActiveUser()`/`requireAdmin()` per request, so deactivation/role-changes take effect immediately.
+- **Authority (status/role) ALWAYS comes from a real Mongo read** via `requireActiveUser()`/`requireAdmin()`/`requireContentEditor()` per request, so deactivation/role-changes take effect immediately.
 - `src/proxy.ts` does an **optimistic** JWT-existence check only for UX redirects — NOT the real security boundary.
 - **Audit logging**: 28 administrative actions recorded to `audit_logs` (see `src/server/repositories/audit.repository.ts`).
 - **Rate limiting** on `/login` (by email + IP) and `/accept-invite` (by token).
@@ -238,7 +239,7 @@ Content visibility follows: Route `PUBLISHED` → Stage `PUBLISHED` → Item/Pro
 4. **Service**: orchestrate business rules in `src/server/services/<entity>.service.ts` (validate ownership, audit).
 5. **Route Handler**: add `src/app/api/<entity>/route.ts` + `[id]/route.ts` (+ lifecycle actions like `/publish`, `/archive`, `/reactivate`). Validate with Zod at the edge.
 6. **UI**: build Server Component page (or client component with `'use client'`) in `src/app`.
-7. Connect to existing views; ensure `requireAdmin()`/`requireActiveUser()` guards are used.
+7. Connect to existing views; ensure `requireAdmin()`/`requireActiveUser()`/`requireContentEditor()` guards are used (the latter allows `ADMIN` or `EDITOR` — only for non-destructive content/leaders/processes/steps routes).
 
 ### Managing Content Lifecycle (publish/archive/reactivate) in Admin
 Each manageable resource (route, stage, content, process, step, leader) has a consistent action pattern:
