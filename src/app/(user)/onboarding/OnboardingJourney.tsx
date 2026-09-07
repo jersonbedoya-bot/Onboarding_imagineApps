@@ -612,7 +612,10 @@ function ProcessCard({ process, previewMode = false }: { process: JourneyProcess
             />
           )}
           {hasSteps && !allStepsCompleted && !previewMode && (
-            <div className="mt-2">
+            // Alineado a la derecha: consistente con MarkAsReadButton (ya a
+            // la derecha, arriba de cada contenido) y con el patrón usual de
+            // "acción principal al final de la card, lado derecho".
+            <div className="mt-2 flex justify-end">
               <CompleteProcessButton processId={process.id} />
             </div>
           )}
