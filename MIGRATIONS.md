@@ -374,6 +374,82 @@ nuevo body parsea a 6 preguntas con el `correctIndex` esperado).
 `scripts/migrate-fase1-quiz.ts --apply` — mismo aviso que #7/#8/#9: el ID
 del content_item está hardcodeado para el tenant de desarrollo.
 
+### 11. Simplificar la intro de "Tu rol como PDM/UX-UI" (tenant imagine-apps)
+
+Misma naturaleza que #9/#10: edición de contenido normal vía
+`content.service.updateContentItem`, sin tocar estructura.
+
+**Antes**: el segundo párrafo de ambos content items (scope ROLE, stage
+"Los Proyectos y Tu Rol en Ellos") enumeraba los 7 nombres de grupo de
+`phase-groups.ts` en una sola oración con paréntesis anidados ("3 comunes
+a todo proyecto (Inicio del proyecto, Planificación, Ritmo operativo), 3
+propias de tu rol (...) y Gestión de equipo, compartida con...") —
+redundante con las pastillas de `ProcessGroupNav` que muestran esos mismos
+7 nombres justo debajo. La versión de PDM además categorizaba mal
+"Gestión de equipo" como una de "4 propias de tu rol" cuando ese grupo es
+compartido con UX/UI (mismos procesos — "Empalme de Duplas").
+
+**Después**: se saca la enumeración de nombres, queda solo la estructura
+(3 comunes + 3 propias + 1 compartida = 7) — simétrica para los dos roles
+y consistente con lo que ya se ve en las pastillas.
+
+**Por qué**: pedido explícito del usuario ("si lees esto es muy confuso
+así como está").
+
+**Aplicado en Atlas de desarrollo el 2026-09-07**, vía
+`scripts/migrate-simplify-role-intro.ts` (mismo patrón dry-run/`--apply`).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-simplify-role-intro.ts --apply` — mismo aviso de las
+migraciones anteriores: los IDs de content_item están hardcodeados para el
+tenant de desarrollo.
+
+### 12. Claridad de rol (PDM vs UX/UI) en los pasos de Kickoff Interno/Cliente
+
+Misma naturaleza que #9/#10/#11: edición de contenido normal vía
+`process.service.updateProcess`/`step.service.updateStep`, sin tocar
+estructura.
+
+**Antes**: "🤝 Kickoff Interno (Prekickoff)" y "🎬 Kickoff del Proyecto con
+Cliente" son procesos `scope: COMMON` (los ve PDM y UX/UI por igual, ver
+MIGRATIONS.md #9) cuyos 16 pasos estaban escritos en voz neutra, sin decir
+qué corresponde a cada rol — el `context` de ambos decía "Owner: PDM" sin
+mencionar en ningún lado el aporte de UX/UI. El usuario señaló que
+compartir la misma card entre dos roles con funciones distintas, sin
+aclarar quién hace qué, era confuso.
+
+**Restricción técnica**: `process_steps` no tiene `scope`/`roleIds` propio
+(a diferencia de `content_items`/`processes`/`leaders`) — no se puede
+mostrarle a cada rol pasos distintos del mismo proceso sin una migración
+de schema nueva. Se optó por la solución de contenido (más simple, sin
+tocar `schema.ts`): un prefijo en negrita consistente al inicio de cada
+`instruction` (`**PDM:**` / `**PDM y UX/UI:**`, con un `**UX/UI:**`
+adicional en los pasos donde PDM lidera pero UX/UI aporta algo puntual).
+
+**Después**: de los 16 pasos, 10 quedan PDM-only (logística de contrato,
+accesos, cronograma, protocolo de aprobación, seguimientos), 6 quedan
+compartidos (presentación al cliente, contextualización del negocio,
+alineación interna, alcance técnico, hitos, riesgos) con la parte
+específica de UX/UI aclarada donde aplica (research, wireframes,
+validación con usuarios, riesgos de UX). El `context` de Kickoff Interno
+se ajustó para aclarar que UX/UI se suma recién en el último paso, no
+desde el inicio.
+
+**El reparto es contenido operativo real, no inventado por mí sin
+chequear**: se presentó como borrador al usuario (basado en el patrón
+típico PDM=alcance/cronograma/riesgos/comms, UX/UI=research/necesidades de
+usuario/alcance de diseño) y se aplicó recién tras su confirmación
+explícita ("Adelante").
+
+**Aplicado en Atlas de desarrollo el 2026-09-07**, vía
+`scripts/migrate-kickoff-role-clarity.ts` (mismo patrón dry-run/`--apply`).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-kickoff-role-clarity.ts --apply` — mismo aviso de las
+migraciones anteriores: los IDs de proceso/paso están hardcodeados para el
+tenant de desarrollo. Si el reparto de responsabilidades real difiere para
+otro tenant, ajustar el texto de `STEP_PATCHES` antes de correr.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de
