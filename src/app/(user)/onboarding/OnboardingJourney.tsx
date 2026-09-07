@@ -280,17 +280,6 @@ export function OnboardingJourney({
   );
 }
 
-/**
- * Orientación breve (Bloque 3): "dónde estoy" ya lo dan el número + título;
- * esta línea contesta "cómo está organizado" en un solo renglón, sin
- * inventar contenido de rol — solo cuenta lo que ya existe en los datos.
- */
-function organizationSummary(stage: JourneyStage, groups: GroupedProcesses<JourneyProcess>[] | null): string | null {
-  if (!groups) return null;
-  const totalProcesses = stage.processes.length;
-  return `${totalProcesses} ${totalProcesses === 1 ? "proceso" : "procesos"} organizados en ${groups.length} grupos por tema.`;
-}
-
 function StageSection({
   stage,
   index,
@@ -324,7 +313,6 @@ function StageSection({
     : 0;
   const [groupIndex, setGroupIndex] = useState(defaultGroupIndex);
   const activeGroup = groups ? (groups[Math.min(groupIndex, groups.length - 1)] ?? null) : null;
-  const summary = organizationSummary(stage, groups);
   // El quiz ("Pon a Prueba lo que Aprendiste") nunca va en este listado: se
   // dispara en modal desde el botón "Siguiente módulo"/"Terminar Onboarding"
   // de OnboardingJourney, nunca como una card más acá abajo.
@@ -362,7 +350,6 @@ function StageSection({
         <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl xl:text-5xl">
           <TitleIcon title={stage.title} size="text-3xl xl:text-4xl" />
         </h2>
-        {summary && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{summary}</p>}
       </div>
 
       {/* readOnly ya lo dice el badge "Consulta disponible" de arriba — este

@@ -24,9 +24,13 @@ type JourneyStage = Awaited<ReturnType<typeof resolveJourney>>["stages"][number]
  */
 export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneyStage[]; currentStageId: string | null }) {
   const pathname = usePathname();
+  // Antes sumaba +1 a totalPhases/completedPhases (una fase "fantasma" para
+  // representar el cierre) — eso hacía que acá dijera "Fase 3 de 4" mientras
+  // StageSection, con el total real de etapas, decía "Fase 3 de 3" (ver
+  // feedback de usuario). Mismo total en los dos lados: stages.length.
   const allPhasesComplete = stages.every((stage) => stage.status === "COMPLETE");
-  const completedPhases = stages.filter((stage) => stage.status === "COMPLETE").length + (allPhasesComplete ? 1 : 0);
-  const totalPhases = stages.length + 1;
+  const completedPhases = stages.filter((stage) => stage.status === "COMPLETE").length;
+  const totalPhases = stages.length;
   const currentIndex = stages.findIndex((stage) => stage.id === currentStageId);
   const phaseLabel = allPhasesComplete
     ? "Recorrido completo"
