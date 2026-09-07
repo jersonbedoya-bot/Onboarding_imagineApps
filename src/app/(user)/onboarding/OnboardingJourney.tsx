@@ -365,9 +365,10 @@ function StageSection({
         {summary && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{summary}</p>}
       </div>
 
-      {stage.readOnly ? (
-        <p className="mb-6 text-sm text-ink-soft">Contenido de consulta — no requiere acciones.</p>
-      ) : (
+      {/* readOnly ya lo dice el badge "Consulta disponible" de arriba — este
+          párrafo repetía el mismo mensaje en prosa justo debajo, sentía
+          redundante (ver feedback de usuario). */}
+      {!stage.readOnly && (
         <div className="mb-6 max-w-xs xl:max-w-sm">
           <ProgressBar
             value={stage.totalCompletable > 0 ? (stage.completedCount / stage.totalCompletable) * 100 : 100}

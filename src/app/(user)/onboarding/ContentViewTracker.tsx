@@ -46,17 +46,13 @@ export function ContentViewTracker({
     return () => observer.disconnect();
   }, [enabled, viewed, contentItemId]);
 
+  // El registro de "visto" se sigue persistiendo igual (por si sirve a
+  // futuro para seguimiento/analítica) — solo se dejó de mostrar el pill
+  // "✓ Visto" bajo cada card: no era accionable para el usuario, solo
+  // ruido visual (ver feedback de usuario).
   return (
     <div ref={ref} className="flex flex-col gap-2">
       {children}
-      {enabled && viewed && (
-        <span className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-ink-soft">
-          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
-            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Visto
-        </span>
-      )}
     </div>
   );
 }
