@@ -32,7 +32,7 @@ export function IconCardGrid({ items }: { items: IconCardItem[] }) {
                 {item.icon}
               </span>
               {item.title && (
-                <h4 className="font-display text-base font-semibold text-brand-strong xl:text-lg">
+                <h4 className="font-display text-base font-semibold text-ink xl:text-lg">
                   {item.href ? (
                     <a href={item.href} target="_blank" rel="noopener noreferrer" className="hover:underline">
                       {item.title}
