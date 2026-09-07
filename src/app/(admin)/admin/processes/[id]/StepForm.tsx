@@ -6,6 +6,8 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { fieldsThatLostFormatting } from "@/lib/markdown-guard";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 export type StepFormInitial = {
@@ -44,10 +46,30 @@ export function StepForm({
   const [completionCriteria, setCompletionCriteria] = useState(initial?.completionCriteria ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Campos en riesgo de haber perdido negrita/link al editar (ver
+  // markdown-guard.ts) — no-null abre el segundo aviso antes de guardar.
+  const [lossWarningFields, setLossWarningFields] = useState<string[] | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (mode === "edit" && initial) {
+      const atRisk = fieldsThatLostFormatting([
+        { label: "Descripción", before: initial.description, after: description },
+        { label: "Instrucción", before: initial.instruction, after: instruction },
+      ]);
+      if (atRisk.length > 0) {
+        setLossWarningFields(atRisk);
+        return;
+      }
+    }
+
+    await performSave();
+  }
+
+  async function performSave() {
+    setLossWarningFields(null);
     setIsSubmitting(true);
 
     const endpoint = mode === "edit" ? `/api/steps/${stepId}` : "/api/steps";
@@ -116,6 +138,16 @@ export function StepForm({
       <Button type="submit" isLoading={isSubmitting} className="self-start">
         {mode === "edit" ? "Guardar cambios" : "Crear paso"}
       </Button>
+      <ConfirmModal
+        open={lossWarningFields !== null}
+        title="¿Guardar de todos modos?"
+        description={`El campo "${lossWarningFields?.join(", ")}" parece haber perdido una negrita o un enlace que tenía antes — revisa el panel "Vista previa" antes de continuar.`}
+        confirmLabel="Guardar igual"
+        tone="neutral"
+        isLoading={isSubmitting}
+        onConfirm={performSave}
+        onClose={() => setLossWarningFields(null)}
+      />
     </div>
   );
 

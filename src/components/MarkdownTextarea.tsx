@@ -24,10 +24,16 @@ const SNIPPETS = {
 } as const;
 
 /**
- * Textarea con toggle "Editar / Vista previa" para campos que se guardan
+ * Textarea + vista previa en vivo, lado a lado, para campos que se guardan
  * como Markdown (body de contenido, objective/context/expectedResult de
- * procesos, description/instruction de pasos) — el equivalente a
- * Ctrl+Shift+V de VS Code, para ver cómo va a quedar antes de publicar.
+ * procesos, description/instruction de pasos). Antes la vista previa vivía
+ * detrás de un toggle "Editar / Vista previa" que arrancaba siempre en
+ * "Editar" — un admin sin acceso al código podía borrar sin querer un `**`
+ * o un `[`/`]`/`(`/`)` al corregir una frase y guardar sin darse cuenta,
+ * porque nada la obligaba a mirar el otro lado. Mostrar ambos siempre,
+ * actualizándose mientras se escribe, hace visible al instante si un
+ * cambio rompió una negrita o un link (ver también markdown-guard.ts, el
+ * aviso al guardar que cubre el caso de que igual no se note).
  *
  * Los botones "Insertar…" pegan una plantilla en la posición del cursor
  * (mismo mecanismo que ya existía para imágenes): así el admin arma
@@ -43,7 +49,6 @@ const SNIPPETS = {
  * content item puntual.
  */
 export function MarkdownTextarea({ id, label, error, className, value, onChange, ...rest }: TextareaProps) {
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isInsertMenuOpen, setIsInsertMenuOpen] = useState(false);
@@ -120,120 +125,102 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
   return (
     <FieldShell id={id} label={label} error={error}>
       <div className="mb-1.5 flex flex-wrap items-center gap-1">
-        <TabButton active={mode === "edit"} onClick={() => setMode("edit")}>
-          Editar
-        </TabButton>
-        <TabButton active={mode === "preview"} onClick={() => setMode("preview")}>
-          Vista previa
-        </TabButton>
-        {mode === "edit" && (
-          <>
-            <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
-            <div className="relative" ref={insertMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsInsertMenuOpen((open) => !open)}
-                disabled={isUploading}
-                className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50 disabled:opacity-50"
+        <div className="relative" ref={insertMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsInsertMenuOpen((open) => !open)}
+            disabled={isUploading}
+            className="rounded-md px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-tint/50 disabled:opacity-50"
+          >
+            {isUploading ? "Subiendo…" : "+ Insertar bloque ▾"}
+          </button>
+          {isInsertMenuOpen && (
+            <div className="absolute left-0 top-full z-10 mt-1 flex w-56 flex-col gap-0.5 rounded-md border border-line bg-card p-1 shadow-lg">
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  fileInputRef.current?.click();
+                }}
               >
-                {isUploading ? "Subiendo…" : "+ Insertar bloque ▾"}
-              </button>
-              {isInsertMenuOpen && (
-                <div className="absolute left-0 top-full z-10 mt-1 flex w-56 flex-col gap-0.5 rounded-md border border-line bg-card p-1 shadow-lg">
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      fileInputRef.current?.click();
-                    }}
-                  >
-                    🖼️ Imagen
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      insertSnippet(SNIPPETS.checklist);
-                    }}
-                  >
-                    ☑️ Checklist
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      insertSnippet(SNIPPETS.callout);
-                    }}
-                  >
-                    🔑 Dato clave
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      insertSnippet(SNIPPETS.link);
-                    }}
-                  >
-                    🔗 Enlace a herramienta
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      insertSnippet(SNIPPETS.table);
-                    }}
-                  >
-                    📊 Tabla
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setIsInsertMenuOpen(false);
-                      insertSnippet(SNIPPETS.quiz);
-                    }}
-                  >
-                    🎉 Pregunta de quiz
-                  </MenuItem>
-                </div>
-              )}
+                🖼️ Imagen
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.checklist);
+                }}
+              >
+                ☑️ Checklist
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.callout);
+                }}
+              >
+                🔑 Dato clave
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.link);
+                }}
+              >
+                🔗 Enlace a herramienta
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.table);
+                }}
+              >
+                📊 Tabla
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.quiz);
+                }}
+              >
+                🎉 Pregunta de quiz
+              </MenuItem>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInsertImage} className="hidden" />
-          </>
-        )}
+          )}
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInsertImage} className="hidden" />
       </div>
       {uploadError && (
         <p role="alert" className="mb-1.5 text-xs text-danger">
           {uploadError}
         </p>
       )}
-      {mode === "edit" ? (
-        <textarea
-          ref={textareaRef}
-          id={id}
-          value={value}
-          onChange={onChange}
-          className={cn(
-            "w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand min-h-[88px] resize-y",
-            className,
-          )}
-          {...rest}
-        />
-      ) : (
-        <div className="min-h-[88px] rounded-md border border-line bg-paper px-3 py-2">
-          {text.trim() ? <MarkdownContent>{text}</MarkdownContent> : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
+      {/* Lado a lado en pantallas medianas+ (apilado en mobile) — ambos
+          paneles siempre visibles y la vista previa se actualiza en cada
+          tecla, no hace falta acordarse de tocar nada para verla. */}
+      <div className="flex flex-col gap-3 md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/70">Editar</span>
+          <textarea
+            ref={textareaRef}
+            id={id}
+            value={value}
+            onChange={onChange}
+            className={cn(
+              "w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand min-h-[88px] resize-y",
+              className,
+            )}
+            {...rest}
+          />
         </div>
-      )}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/70">Vista previa</span>
+          <div className="min-h-[88px] rounded-md border border-line bg-paper px-3 py-2">
+            {text.trim() ? <MarkdownContent>{text}</MarkdownContent> : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
+          </div>
+        </div>
+      </div>
       <p className="mt-1 text-xs text-ink-soft/70">Ubica el cursor antes de insertar un bloque — se agrega ahí, no al final.</p>
     </FieldShell>
-  );
-}
-
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-        active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-brand-tint/50",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

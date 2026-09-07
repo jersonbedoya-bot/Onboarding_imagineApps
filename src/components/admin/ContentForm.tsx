@@ -8,7 +8,9 @@ import { Button } from "@/components/Button";
 import { Input, Select, Checkbox } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
 import { MediaUploader } from "@/components/MediaUploader";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { CONTENT_TYPE_LABELS, CONTENT_REQUIREMENT_LABELS } from "@/lib/content-labels";
+import { fieldsThatLostFormatting } from "@/lib/markdown-guard";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
@@ -61,6 +63,9 @@ export function ContentForm({
   // forma de limpiar su preview/estado interno, que vive fuera de este
   // form (ver src/components/MediaUploader.tsx).
   const [mediaUploaderKey, setMediaUploaderKey] = useState(0);
+  // Campos en riesgo de haber perdido negrita/link al editar (ver
+  // markdown-guard.ts) — no-null abre el segundo aviso antes de guardar.
+  const [lossWarningFields, setLossWarningFields] = useState<string[] | null>(null);
 
   const needsMedia = type === "IMAGE" || type === "MIXED";
   const needsVideo = type === "VIDEO" || type === "MIXED";
@@ -82,6 +87,19 @@ export function ContentForm({
       return;
     }
 
+    if (mode === "edit" && initial) {
+      const atRisk = fieldsThatLostFormatting([{ label: "Cuerpo", before: initial.body, after: body }]);
+      if (atRisk.length > 0) {
+        setLossWarningFields(atRisk);
+        return;
+      }
+    }
+
+    await performSave();
+  }
+
+  async function performSave() {
+    setLossWarningFields(null);
     setIsSubmitting(true);
 
     const endpoint = mode === "edit" ? `/api/content/${contentItemId}` : "/api/content";
@@ -239,6 +257,16 @@ export function ContentForm({
       <Button type="submit" isLoading={isSubmitting} className="self-start">
         {mode === "edit" ? "Guardar cambios" : "Crear contenido"}
       </Button>
+      <ConfirmModal
+        open={lossWarningFields !== null}
+        title="¿Guardar de todos modos?"
+        description={`El campo "${lossWarningFields?.join(", ")}" parece haber perdido una negrita o un enlace que tenía antes — revisa el panel "Vista previa" antes de continuar.`}
+        confirmLabel="Guardar igual"
+        tone="neutral"
+        isLoading={isSubmitting}
+        onConfirm={performSave}
+        onClose={() => setLossWarningFields(null)}
+      />
     </div>
   );
 

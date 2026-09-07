@@ -6,6 +6,8 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Checkbox } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { fieldsThatLostFormatting } from "@/lib/markdown-guard";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
@@ -56,6 +58,9 @@ export function ProcessForm({
   const [roleIds, setRoleIds] = useState<string[]>(initial?.roleIds ?? []);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Campos en riesgo de haber perdido negrita/link al editar (ver
+  // markdown-guard.ts) — no-null abre el segundo aviso antes de guardar.
+  const [lossWarningFields, setLossWarningFields] = useState<string[] | null>(null);
 
   function toggleRole(roleId: string) {
     setRoleIds((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]));
@@ -64,6 +69,24 @@ export function ProcessForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (mode === "edit" && initial) {
+      const atRisk = fieldsThatLostFormatting([
+        { label: "Objetivo", before: initial.objective, after: objective },
+        { label: "Contexto", before: initial.context, after: context },
+        { label: "Resultado esperado", before: initial.expectedResult, after: expectedResult },
+      ]);
+      if (atRisk.length > 0) {
+        setLossWarningFields(atRisk);
+        return;
+      }
+    }
+
+    await performSave();
+  }
+
+  async function performSave() {
+    setLossWarningFields(null);
     setIsSubmitting(true);
 
     const endpoint = mode === "edit" ? `/api/processes/${processId}` : "/api/processes";
@@ -180,6 +203,16 @@ export function ProcessForm({
       <Button type="submit" isLoading={isSubmitting} className="self-start">
         {mode === "edit" ? "Guardar cambios" : "Crear proceso"}
       </Button>
+      <ConfirmModal
+        open={lossWarningFields !== null}
+        title="¿Guardar de todos modos?"
+        description={`El campo "${lossWarningFields?.join(", ")}" parece haber perdido una negrita o un enlace que tenía antes — revisa el panel "Vista previa" antes de continuar.`}
+        confirmLabel="Guardar igual"
+        tone="neutral"
+        isLoading={isSubmitting}
+        onConfirm={performSave}
+        onClose={() => setLossWarningFields(null)}
+      />
     </div>
   );
 
