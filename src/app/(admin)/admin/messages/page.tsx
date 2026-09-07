@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
 import { getRouteContent } from "@/server/services/route.service";
+import { pendingContentSummary } from "@/lib/pending-content";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { LinkButton } from "@/components/Button";
 import { RouteContentForm } from "@/components/admin/RouteContentForm";
 
 /**
@@ -26,12 +28,18 @@ export default async function AdminMessagesPage() {
       <PageHeader
         title="Mensajes de guía"
         description="El encabezado y los textos de orientación que ve cualquier usuario a lo largo de su recorrido."
+        action={
+          <LinkButton href="/admin/preview" variant="secondary" className="px-4 py-2 text-sm">
+            👁️ Ver el recorrido real
+          </LinkButton>
+        }
       />
       <RouteContentForm
         headline={routeContent.headline}
         subtitle={routeContent.subtitle}
         blockedNextMessage={routeContent.blockedNextMessage}
         pendingContentMessage={routeContent.pendingContentMessage}
+        pendingSummary={pendingContentSummary()}
       />
     </div>
   );

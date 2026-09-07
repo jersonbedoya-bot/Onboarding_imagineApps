@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
 import { omitUndefined } from "@/lib/mongo-patch";
-import type { ContentItemType, ContentRequirement, ContentScope, ContentStatus, VideoProvider } from "@/types/enums";
+import type { ContentDisplayFormat, ContentItemType, ContentRequirement, ContentScope, ContentStatus, VideoProvider } from "@/types/enums";
 
 export type ContentItemDocument = {
   _id: ObjectId;
@@ -16,6 +16,7 @@ export type ContentItemDocument = {
   videoUrl: string | null; // embed canónico (type === "VIDEO" o "MIXED")
   videoProvider: VideoProvider | null;
   requirement: ContentRequirement | null;
+  displayFormat: ContentDisplayFormat; // "PROSE" = texto plano (default), ver content-display.ts
   order: number;
   status: ContentStatus;
   createdAt: Date;
@@ -38,6 +39,11 @@ export async function create(input: {
   videoUrl: string | null;
   videoProvider: VideoProvider | null;
   requirement: ContentRequirement | null;
+  // Opcional acá (a diferencia del Service, que siempre lo recibe explícito
+  // vía Zod): los tests de integración crean fixtures directo por este
+  // repositorio y no les incumbe el formato de visualización — "PROSE" es
+  // un default razonable, mismo criterio que `status`/`createdAt` abajo.
+  displayFormat?: ContentDisplayFormat;
   order: number;
 }): Promise<ContentItemDocument> {
   const doc: ContentItemDocument = {
@@ -53,6 +59,7 @@ export async function create(input: {
     videoUrl: input.videoUrl,
     videoProvider: input.videoProvider,
     requirement: input.requirement,
+    displayFormat: input.displayFormat ?? "PROSE",
     order: input.order,
     status: "DRAFT",
     createdAt: new Date(),
@@ -81,7 +88,17 @@ export async function update(
   patch: Partial<
     Pick<
       ContentItemDocument,
-      "type" | "scope" | "roleIds" | "title" | "body" | "mediaId" | "videoUrl" | "videoProvider" | "requirement" | "order"
+      | "type"
+      | "scope"
+      | "roleIds"
+      | "title"
+      | "body"
+      | "mediaId"
+      | "videoUrl"
+      | "videoProvider"
+      | "requirement"
+      | "displayFormat"
+      | "order"
     >
   >,
 ): Promise<ContentItemDocument | null> {

@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { cultureValueIcon, type CultureValue } from "@/lib/institutional-content";
+import { valueIcon, type ValueItem } from "@/lib/content-display";
 import { cn } from "@/lib/cn";
 
 /**
- * Mini-cards clickeables para los 5 valores de "Quiénes Somos y Nuestra
- * Visión" (ver institutional-content.ts): arrancan colapsadas (ícono +
- * título) y se expanden al click/tap para revelar la descripción — mismo
- * mecanismo de "click para descubrir" que HistoryTimeline, para que Fase 01
- * se sienta como una sola experiencia y no como piezas sueltas.
+ * Mini-cards clickeables para contenido `displayFormat: "VALUES_GRID"`
+ * (hoy solo "Nuestra Visión", ver content-display.ts): arrancan colapsadas
+ * (ícono + título) y se expanden al click/tap para revelar la descripción —
+ * única excepción deliberada al resto de los grids (FACT_GRID/STEPS,
+ * IconCardGrid), pensada para contenido de cultura/valores que se lee de a
+ * uno con calma, no para escanear como referencia rápida.
  */
-export function CultureValuesGrid({ values }: { values: CultureValue[] }) {
+export function CultureValuesGrid({ values }: { values: ValueItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
@@ -31,7 +32,7 @@ export function CultureValuesGrid({ values }: { values: CultureValue[] }) {
           >
             <span className="flex items-center gap-2">
               <span aria-hidden className="text-xl leading-none">
-                {cultureValueIcon(value.title)}
+                {valueIcon(value.title)}
               </span>
               <h4 className="font-display text-base font-semibold text-ink">{value.title}</h4>
             </span>

@@ -38,6 +38,18 @@ export type ContentScope = (typeof CONTENT_SCOPES)[number];
 export const CONTENT_REQUIREMENTS = ["OBLIGATORY", "INFORMATIONAL"] as const;
 export type ContentRequirement = (typeof CONTENT_REQUIREMENTS)[number];
 
+// Cómo se renderiza `content_items.body` en /onboarding — reemplaza el
+// mecanismo anterior de "adivinar por título" (ver historial de
+// institutional-content.ts): la admin elige el formato explícitamente
+// desde el desplegable de ContentForm.tsx, en vez de que dependa de que el
+// título siga conteniendo cierto texto. "PROSE" (texto plano) es el
+// default — no hay un estado "sin formato", todo content item se muestra
+// de alguna manera. Cada formato espera un patrón de texto específico
+// dentro del body Markdown (ver src/lib/content-display.ts); si no calza,
+// cae a "PROSE" sin romper la vista.
+export const CONTENT_DISPLAY_FORMATS = ["PROSE", "FACT_GRID", "VALUES_GRID", "TIMELINE", "STEPS", "QUIZ"] as const;
+export type ContentDisplayFormat = (typeof CONTENT_DISPLAY_FORMATS)[number];
+
 // Video = URL embebida (YouTube/Vimeo/Loom/Google Drive), nunca archivo
 // subido — evita el límite de tamaño de las funciones serverless. Ver
 // src/lib/video-url.ts.

@@ -4,7 +4,7 @@ import { normalizeVideoUrl } from "@/lib/video-url";
 import { diffFields } from "@/lib/audit-diff";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import type { RequestIdentity } from "@/server/auth/session";
-import type { ContentItemType, ContentRequirement, ContentScope, VideoProvider } from "@/types/enums";
+import type { ContentDisplayFormat, ContentItemType, ContentRequirement, ContentScope, VideoProvider } from "@/types/enums";
 import * as contentRepository from "@/server/repositories/content.repository";
 import * as stageRepository from "@/server/repositories/stage.repository";
 import * as mediaRepository from "@/server/repositories/media.repository";
@@ -47,6 +47,12 @@ export async function createContentItem(
     mediaId?: ObjectId;
     videoUrl?: string;
     requirement: ContentRequirement | null;
+    // Opcional, mismo criterio que `order` (unas líneas más abajo): tiene
+    // un default sensato ("PROSE", vía Zod en el route handler o acá mismo
+    // si no viene) que no hace falta que cada caller (tests/scripts)
+    // conozca — a diferencia de `requirement`, que sí varía de verdad
+    // según el tipo de contenido y no tiene un default único razonable.
+    displayFormat?: ContentDisplayFormat;
     order?: number;
   },
 ) {
@@ -80,6 +86,7 @@ export async function createContentItem(
     videoUrl,
     videoProvider,
     requirement: input.requirement,
+    displayFormat: input.displayFormat ?? "PROSE",
     order,
   });
 
@@ -107,6 +114,7 @@ export async function updateContentItem(
     mediaId?: ObjectId | null;
     videoUrl?: string | null;
     requirement?: ContentRequirement | null;
+    displayFormat?: ContentDisplayFormat;
     order?: number;
   },
 ) {
@@ -131,6 +139,7 @@ export async function updateContentItem(
     body: patch.body,
     mediaId: patch.mediaId,
     requirement: patch.requirement,
+    displayFormat: patch.displayFormat,
     order: patch.order,
   };
   if (patch.videoUrl !== undefined) {

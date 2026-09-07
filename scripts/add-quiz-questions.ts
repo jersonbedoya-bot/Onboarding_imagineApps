@@ -176,6 +176,7 @@ async function main() {
       title: quiz.title,
       body: quiz.body,
       requirement: "INFORMATIONAL",
+      displayFormat: "QUIZ",
     });
     await contentService.publishContentItem(actingAdmin, item._id);
     console.log(`✓ Creado y publicado (${item._id})`);

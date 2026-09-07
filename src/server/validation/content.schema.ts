@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
-import { CONTENT_ITEM_TYPES, CONTENT_REQUIREMENTS, CONTENT_SCOPES } from "@/types/enums";
+import { CONTENT_ITEM_TYPES, CONTENT_REQUIREMENTS, CONTENT_SCOPES, CONTENT_DISPLAY_FORMATS } from "@/types/enums";
 
 const objectIdString = z.string().refine((value) => ObjectId.isValid(value), { message: "Id inválido." });
 
@@ -15,6 +15,8 @@ const baseFields = {
   // el Service — acá solo se descarta lo que ni siquiera es una URL.
   videoUrl: z.string().trim().url({ message: "URL de video inválida." }).optional(),
   requirement: z.enum(CONTENT_REQUIREMENTS).nullable().default(null),
+  // Sin .nullable(): no hay un estado "sin formato", "PROSE" ES el default.
+  displayFormat: z.enum(CONTENT_DISPLAY_FORMATS).default("PROSE"),
   order: z.number().int().positive().optional(),
 };
 
@@ -45,6 +47,10 @@ export const updateContentItemSchema = z
     // pisaría el requirement existente con null en cualquier PATCH que no
     // lo mencione (bug real encontrado en dev — ver BACKLOG/commit).
     requirement: z.enum(CONTENT_REQUIREMENTS).nullable().optional(),
+    // Fresco (sin .default), mismo motivo que requirement — pero sin
+    // .nullable(): no hay "borrar el formato", solo cambiarlo a otro valor
+    // (incluido "PROSE" explícito, si se quiere volver a texto plano).
+    displayFormat: z.enum(CONTENT_DISPLAY_FORMATS).optional(),
     order: baseFields.order,
   })
   .superRefine((data, ctx) => {

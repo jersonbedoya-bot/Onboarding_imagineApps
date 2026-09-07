@@ -8,7 +8,7 @@ import { useResourceActions } from "@/lib/admin/useResourceActions";
 import { ContentForm, type ContentFormInitial } from "./ContentForm";
 import { StatusActionButtons } from "./StatusActionButtons";
 import { Icon } from "@/components/Icon";
-import type { ContentItemType, ContentRequirement } from "@/types/enums";
+import type { ContentDisplayFormat, ContentItemType, ContentRequirement } from "@/types/enums";
 
 type RoleOption = { id: string; label: string };
 
@@ -24,6 +24,7 @@ export type ContentActionItem = {
   scope: "COMMON" | "ROLE";
   roleIds: string[];
   requirement: ContentRequirement | null;
+  displayFormat: ContentDisplayFormat | null;
 };
 
 export function ContentActions({
@@ -53,6 +54,7 @@ export function ContentActions({
     scope: item.scope,
     roleIds: item.roleIds,
     requirement: item.requirement ?? "",
+    displayFormat: item.displayFormat ?? "PROSE",
   };
 
     return (

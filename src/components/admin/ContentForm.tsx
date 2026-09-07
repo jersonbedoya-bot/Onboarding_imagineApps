@@ -2,15 +2,38 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CONTENT_ITEM_TYPES, CONTENT_REQUIREMENTS, type ContentItemType, type ContentRequirement } from "@/types/enums";
+import {
+  CONTENT_ITEM_TYPES,
+  CONTENT_REQUIREMENTS,
+  CONTENT_DISPLAY_FORMATS,
+  type ContentItemType,
+  type ContentRequirement,
+  type ContentDisplayFormat,
+} from "@/types/enums";
+import type { ReactNode } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Select, Checkbox } from "@/components/Field";
 import { MarkdownTextarea } from "@/components/MarkdownTextarea";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { MediaUploader } from "@/components/MediaUploader";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { CONTENT_TYPE_LABELS, CONTENT_REQUIREMENT_LABELS } from "@/lib/content-labels";
+import { IconCardGrid } from "@/components/IconCardGrid";
+import { CultureValuesGrid } from "@/components/CultureValuesGrid";
+import { HistoryTimeline } from "@/components/HistoryTimeline";
+import { QuizBlock } from "@/components/QuizBlock";
+import { CONTENT_TYPE_LABELS, CONTENT_REQUIREMENT_LABELS, CONTENT_DISPLAY_FORMAT_LABELS, CONTENT_DISPLAY_FORMAT_HINTS } from "@/lib/content-labels";
 import { fieldsThatLostFormatting } from "@/lib/markdown-guard";
+import {
+  splitFactGrid,
+  factIcon,
+  factBadgeIcon,
+  splitValuesGrid,
+  splitTimeline,
+  splitSteps,
+  stepNumberIcon,
+  parseQuizQuestions,
+} from "@/lib/content-display";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
@@ -24,6 +47,7 @@ export type ContentFormInitial = {
   scope: "COMMON" | "ROLE";
   roleIds: string[];
   requirement: ContentRequirement | "";
+  displayFormat: ContentDisplayFormat;
 };
 
 export function ContentForm({
@@ -57,6 +81,7 @@ export function ContentForm({
   const [scope, setScope] = useState<"COMMON" | "ROLE">(initial?.scope ?? "COMMON");
   const [roleIds, setRoleIds] = useState<string[]>(initial?.roleIds ?? []);
   const [requirement, setRequirement] = useState<ContentRequirement | "">(initial?.requirement ?? "");
+  const [displayFormat, setDisplayFormat] = useState<ContentDisplayFormat>(initial?.displayFormat ?? "PROSE");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Cambiar esta key remonta <MediaUploader/> desde cero — es la única
@@ -69,6 +94,102 @@ export function ContentForm({
 
   const needsMedia = type === "IMAGE" || type === "MIXED";
   const needsVideo = type === "VIDEO" || type === "MIXED";
+
+  // Vista previa REAL del formato elegido (no solo Markdown genérico) —
+  // así la admin ve de inmediato si su texto arma el grid/timeline/quiz
+  // esperado, en vez de enterarse recién en /onboarding. Si el body no
+  // calza con el patrón del formato, se cae al mismo MarkdownContent
+  // normal que usaría la vista real (nunca se rompe la vista previa) y se
+  // avisa aparte (ver formatMismatch más abajo) — sin esto, "el formato no
+  // se aplicó" pasaba desapercibido: se veía como texto plano sin ninguna
+  // pista de por qué.
+  function renderContentPreview(text: string): ReactNode {
+    switch (displayFormat) {
+      case "FACT_GRID": {
+        const split = splitFactGrid(text);
+        if (!split) break;
+        return (
+          <>
+            {split.intro && <MarkdownContent>{split.intro}</MarkdownContent>}
+            <IconCardGrid
+              items={split.items.map((fact) => ({
+                icon: fact.badge ? factBadgeIcon(fact.badge) : factIcon(fact.title),
+                title: fact.title,
+                href: fact.href,
+                badge: fact.badge,
+                description: fact.description,
+              }))}
+            />
+            {split.outro && <MarkdownContent className="mt-3">{split.outro}</MarkdownContent>}
+          </>
+        );
+      }
+      case "VALUES_GRID": {
+        const split = splitValuesGrid(text);
+        if (!split) break;
+        return (
+          <>
+            {split.intro && <MarkdownContent>{split.intro}</MarkdownContent>}
+            <CultureValuesGrid values={split.values} />
+          </>
+        );
+      }
+      case "TIMELINE": {
+        const split = splitTimeline(text);
+        if (!split) break;
+        return (
+          <>
+            {split.intro && <MarkdownContent>{split.intro}</MarkdownContent>}
+            <HistoryTimeline items={split.items} />
+            {split.outro && <MarkdownContent className="mt-3">{split.outro}</MarkdownContent>}
+          </>
+        );
+      }
+      case "STEPS": {
+        const split = splitSteps(text);
+        if (!split) break;
+        return (
+          <>
+            {split.intro && <MarkdownContent>{split.intro}</MarkdownContent>}
+            <IconCardGrid items={split.steps.map((description, i) => ({ icon: stepNumberIcon(i), description }))} />
+            {split.outro && <MarkdownContent className="mt-3">{split.outro}</MarkdownContent>}
+          </>
+        );
+      }
+      case "QUIZ": {
+        const questions = parseQuizQuestions(text);
+        // key={text}: sin esto React reusa la misma instancia de QuizBlock
+        // mientras se edita (mismo lugar en el árbol) y su estado interno
+        // (barajado + respuestas) queda pegado al primer montaje — remonta
+        // en cada cambio para que la vista previa siempre refleje el texto
+        // actual, no el de cuando se abrió el formulario.
+        if (!questions) break;
+        return <QuizBlock key={text} questions={questions} />;
+      }
+    }
+    return <MarkdownContent>{text}</MarkdownContent>;
+  }
+
+  // Recalcula si el formato elegido realmente calza con el body actual —
+  // barato (regex sobre un texto corto), y mucho más claro que inspeccionar
+  // el resultado de renderContentPreview para adivinarlo.
+  function formatAppliesTo(text: string): boolean {
+    switch (displayFormat) {
+      case "FACT_GRID":
+        return splitFactGrid(text) !== null;
+      case "VALUES_GRID":
+        return splitValuesGrid(text) !== null;
+      case "TIMELINE":
+        return splitTimeline(text) !== null;
+      case "STEPS":
+        return splitSteps(text) !== null;
+      case "QUIZ":
+        return parseQuizQuestions(text) !== null;
+      default:
+        return true;
+    }
+  }
+  const formatMismatch = displayFormat !== "PROSE" && body.trim().length > 0 && !formatAppliesTo(body);
 
   function toggleRole(roleId: string) {
     setRoleIds((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]));
@@ -116,6 +237,7 @@ export function ContentForm({
         mediaId: mediaId || (mode === "edit" ? null : undefined),
         videoUrl: videoUrl || (mode === "edit" ? null : undefined),
         requirement: requirement || null,
+        displayFormat,
       }),
     });
     const result = await response.json();
@@ -137,6 +259,7 @@ export function ContentForm({
       setScope("COMMON");
       setRoleIds([]);
       setRequirement("");
+      setDisplayFormat("PROSE");
       setMediaUploaderKey((key) => key + 1);
       setIsModalOpen(false);
     }
@@ -153,7 +276,33 @@ export function ContentForm({
       <div className="flex flex-col gap-4">
         <h4 className="text-xs font-bold uppercase tracking-wide text-ink-soft">Contenido</h4>
         <Input id="content-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-        <MarkdownTextarea id="content-body" label="Cuerpo (admite Markdown)" required value={body} onChange={(event) => setBody(event.target.value)} />
+        <MarkdownTextarea
+          id="content-body"
+          label="Cuerpo (admite Markdown)"
+          required
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          renderPreview={renderContentPreview}
+        />
+        <Select
+          id="content-display-format"
+          label="Formato de visualización"
+          value={displayFormat}
+          onChange={(event) => setDisplayFormat(event.target.value as ContentDisplayFormat)}
+        >
+          {CONTENT_DISPLAY_FORMATS.map((option) => (
+            <option key={option} value={option}>
+              {CONTENT_DISPLAY_FORMAT_LABELS[option]}
+            </option>
+          ))}
+        </Select>
+        <p className="-mt-2 text-xs text-ink-soft">{CONTENT_DISPLAY_FORMAT_HINTS[displayFormat]}</p>
+        {formatMismatch && (
+          <p className="-mt-2 flex items-start gap-1.5 text-xs font-semibold text-danger">
+            <span aria-hidden>⚠</span>
+            Todavía no calza con &quot;{CONTENT_DISPLAY_FORMAT_LABELS[displayFormat]}&quot; — por ahora se muestra como texto normal (ver Vista previa arriba). Ajusta el Cuerpo para que siga el patrón de arriba.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 border-t border-line pt-6">

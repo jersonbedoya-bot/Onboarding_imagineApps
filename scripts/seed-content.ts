@@ -124,6 +124,10 @@ async function ensureContentItems(actingAdmin: RequestIdentity, stageId: ObjectI
       title: item.title,
       body: item.body,
       requirement: item.requirement,
+      // Este seeder es contenido de demo genérico (ver nota en
+      // onboarding-content.ts: ya desactualizado respecto a las etapas
+      // reales) — no vale la pena mantenerle un displayFormat por ítem acá.
+      displayFormat: "PROSE",
     });
     logger.info("seed_content_item_created", { title: item.title, stage: seed.title });
   }

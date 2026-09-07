@@ -491,6 +491,68 @@ tenant de desarrollo. Si otra base tiene más contenido con `- [ ]`, buscarlo
 primero (`$regex: /- \[ ?[xX]? ?\]/` sobre los mismos 6 campos) antes de
 decidir si también aplica ahí.
 
+### 8. Campo `content_items.displayFormat` — reemplaza el layout adivinado por título
+
+A diferencia de #1-#7, esto sí es un cambio estructural (campo nuevo,
+enum nuevo en `src/types/enums.ts`, tipos de repositorio/service/Zod) —
+pero no toca `schema.ts`: `content_items` no tiene validador `$jsonSchema`
+(a diferencia de la mayoría de las colecciones), así que no hizo falta
+ningún `collMod`. Se documenta acá (no en "Migraciones manuales sobre
+Atlas") porque el mecanismo de escritura es el mismo que el resto de esta
+sección: `content.service.updateContentItem`, vía script con audit log.
+
+**Antes**: 2 mecanismos separados (`institutional-content.ts` para 5 items
+de Módulo 1, `daily-life-content.ts` para 2 items más agregados después)
+decidían el layout especial ADIVINANDO por el título del content item
+(`title.includes("Principios No Negociables")`, etc.) y luego intentando
+parsear el body con una regex exacta. Auditando el contenido completo a
+pedido del usuario ("todas
+manejan un formato diferente... ¿cómo debería mostrarse la información en
+un Onboarding?"), se encontró que dentro de un mismo módulo (Fase 01) las
+5 cards usaban 5 tratamientos visuales distintos sin ninguna regla común —
+y, más grave, 2 de ellas (Hitos que nos Definieron, Proyectos de Alto
+Impacto) perdían en silencio su encabezado (`### Origen y trayectoria` /
+`### Proyectos de alto impacto`) porque el parser solo conservaba las
+líneas de viñeta, descartando cualquier otra sin mostrarla en ningún lado.
+
+**Después**: campo explícito `displayFormat` (`PROSE` default / `FACT_GRID`
+/ `VALUES_GRID` / `TIMELINE` / `STEPS` / `QUIZ`), elegido por la admin
+desde un desplegable en `ContentForm.tsx` (con hint del patrón de texto
+esperado + vista previa en vivo, reusa `MarkdownTextarea`). Los parsers
+(ahora unificados en `src/lib/content-display.ts`, reemplazando los 2
+archivos anteriores) devuelven `intro`/`items`/`outro` para poder mostrar
+encabezados y notas alrededor del grid en vez de perderlos — así se
+arreglaron de paso los 2 encabezados silenciados. 3 componentes de grid
+casi-duplicados (`NonNegotiablesGrid`, `ImpactProjectsGrid`, y el grid de
+herramientas agregado la sesión pasada) se consolidaron en uno solo
+(`IconCardGrid`, con soporte para badge/link opcional).
+
+**Regla de interacción, confirmada explícitamente por el usuario** (no
+decidida unilateralmente, dado que ya había 2 modelos conviviendo sin
+regla): `FACT_GRID`/`STEPS` siempre visibles (referencia rápida — así
+quedan Principios No Negociables, Ecosistema Digital, Proyectos de Alto
+Impacto, Timeboxing); `VALUES_GRID` es la única excepción con clic para
+descubrir (`CultureValuesGrid`, contenido de cultura/valores pensado para
+leerse de a uno con calma — hoy solo "Nuestra Visión"); `TIMELINE` solo
+para contenido genuinamente cronológico (hoy solo "Hitos que nos
+Definieron").
+
+**Aplicado en Atlas de desarrollo el 2026-09-07**: los 15 content items
+reales del tenant quedaron con su `displayFormat` explícito (antes
+ausente en los 15 — el campo es nuevo), vía
+`scripts/migrate-add-content-display-format.ts` (mismo patrón
+dry-run/`--apply`; resuelve cada item por título, no por _id hardcodeado).
+Verificado corriendo cada parser contra el body real de los 15 — los 15
+calzan con el formato asignado (ninguno cae a PROSE por accidente).
+
+**Cómo migrar otra base existente**: correr
+`scripts/migrate-add-content-display-format.ts --apply` — busca cada item
+por título (no depende de IDs), así que corre igual contra cualquier
+tenant que tenga los mismos títulos de contenido institucional. Si los
+títulos difieren, ajustar `PATCHES` antes de correr; cualquier item no
+listado queda con `displayFormat: "PROSE"` (el default), que es el
+comportamiento de siempre.
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

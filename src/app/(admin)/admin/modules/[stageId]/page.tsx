@@ -97,6 +97,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
               scope: item.scope,
               roleIds: item.roleIds.map((id) => id.toString()),
               requirement: item.requirement,
+              displayFormat: item.displayFormat,
             }}
             roles={roleOptions}
             canManageLifecycle={canManageStages}

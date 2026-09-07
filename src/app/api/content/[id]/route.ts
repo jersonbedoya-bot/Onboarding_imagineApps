@@ -27,6 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       mediaId: parsed.data.mediaId === undefined ? undefined : parsed.data.mediaId ? new ObjectId(parsed.data.mediaId) : null,
       videoUrl: parsed.data.videoUrl,
       requirement: parsed.data.requirement,
+      displayFormat: parsed.data.displayFormat,
       order: parsed.data.order,
     });
 

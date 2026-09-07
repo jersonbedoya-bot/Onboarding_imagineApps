@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import type { QuizQuestion } from "@/lib/institutional-content";
+import type { QuizQuestion } from "@/lib/content-display";
 import { cn } from "@/lib/cn";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -28,8 +28,8 @@ function shuffleQuestionOptions(question: QuizQuestion): QuizQuestion {
 }
 
 /**
- * Quiz de opción múltiple, divertido y sin evaluación real (ver
- * institutional-content.ts): la respuesta CORRECTA no se exige — cualquier
+ * Quiz de opción múltiple, divertido y sin evaluación real (contenido con
+ * `displayFormat: "QUIZ"`, ver content-display.ts): la respuesta CORRECTA no se exige — cualquier
  * opción cuenta como "respondida" — solo se exige responder las N
  * preguntas (pedido explícito del usuario, ver el gate en
  * OnboardingJourney: "Continuar al siguiente módulo" queda deshabilitado

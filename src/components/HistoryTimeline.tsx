@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { TimelineItem } from "@/lib/institutional-content";
+import type { TimelineItem } from "@/lib/content-display";
 import { cn } from "@/lib/cn";
 
 /**
- * Línea de tiempo vertical para los hitos institucionales de Fase 01 (ver
- * institutional-content.ts). Cada hito arranca colapsado (año + título) y
+ * Línea de tiempo vertical para contenido `displayFormat: "TIMELINE"` (hoy
+ * solo "Hitos que nos Definieron", ver content-display.ts) — el único
+ * formato donde el orden temporal es el punto, a diferencia de los grids
+ * de hechos paralelos (FACT_GRID). Cada hito arranca colapsado (año + título) y
  * se expande al click/tap para revelar la descripción — mismo mecanismo de
  * "click para descubrir" que CultureValuesGrid.
  */

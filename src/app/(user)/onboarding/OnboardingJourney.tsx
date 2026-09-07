@@ -19,8 +19,6 @@ import { TeamTeaser } from "@/components/TeamTeaser";
 import { HistoryTimeline } from "@/components/HistoryTimeline";
 import { TitleIcon } from "@/components/TitleIcon";
 import { ProcessStepsTimeline } from "@/components/ProcessStepsTimeline";
-import { ImpactProjectsGrid } from "@/components/ImpactProjectsGrid";
-import { NonNegotiablesGrid } from "@/components/NonNegotiablesGrid";
 import { CultureValuesGrid } from "@/components/CultureValuesGrid";
 import { IconCardGrid } from "@/components/IconCardGrid";
 import { QuizBlock } from "@/components/QuizBlock";
@@ -29,18 +27,15 @@ import type { LeaderCardData } from "./leaders/LeaderCard";
 import { groupProcesses, FASE_04_STAGE_KEY, FASE_COMO_TRABAJAMOS_STAGE_KEY, contentItemSection, type GroupedProcesses } from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
 import {
-  isHistoryTimelineContent,
-  isImpactProjectsContent,
-  isNonNegotiablesContent,
-  isCultureValuesContent,
-  isQuizContent,
-  parseTimelineItems,
-  parseImpactProjects,
-  parseNonNegotiables,
-  splitCultureValues,
+  splitFactGrid,
+  factIcon,
+  factBadgeIcon,
+  splitValuesGrid,
+  splitTimeline,
+  splitSteps,
+  stepNumberIcon,
   parseQuizQuestions,
-} from "@/lib/institutional-content";
-import { isDigitalEcosystemContent, isTimeboxingContent, splitToolsList, toolIcon, splitNumberedSteps, stepNumberIcon } from "@/lib/daily-life-content";
+} from "@/lib/content-display";
 import { cn } from "@/lib/cn";
 
 type Journey = Awaited<ReturnType<typeof resolveJourney>>;
@@ -153,7 +148,7 @@ export function OnboardingJourney({
   // Onboarding") — un cierre con gracia antes de avanzar/terminar. Por eso
   // StageSection ya no lo muestra nunca inline: siempre hay una acción acá
   // abajo que lo dispara.
-  const quizItem = stage.items.find((item) => isQuizContent(item.title));
+  const quizItem = stage.items.find((item) => item.displayFormat === "QUIZ");
   const quizQuestions = quizItem?.body ? parseQuizQuestions(quizItem.body) : null;
   const [quizGateOpen, setQuizGateOpen] = useState(false);
   // Arranca en false y QuizBlock lo vuelve a poner en false apenas se monta
@@ -171,7 +166,7 @@ export function OnboardingJourney({
     () =>
       new Set(
         stages.flatMap((s) => {
-          const q = s.items.find((item) => isQuizContent(item.title));
+          const q = s.items.find((item) => item.displayFormat === "QUIZ");
           return q?.viewed ? [q.id] : [];
         }),
       ),
@@ -318,7 +313,7 @@ function StageSection({
   // El quiz ("Pon a Prueba lo que Aprendiste") nunca va en este listado: se
   // dispara en modal desde el botón "Siguiente módulo"/"Terminar Onboarding"
   // de OnboardingJourney, nunca como una card más acá abajo.
-  const visibleItems = stage.items.filter((item) => !isQuizContent(item.title));
+  const visibleItems = stage.items.filter((item) => item.displayFormat !== "QUIZ");
 
   return (
     <section>
@@ -377,32 +372,19 @@ function StageSection({
             <div className="flex flex-col gap-5">
               {visibleItems.map((item, itemIndex) => {
                 const pending = isPendingContentItem(item.title);
-                // Fase 01 (Bloque de historia): "Hitos que nos Definieron",
-                // "Proyectos de Alto Impacto", "Principios No Negociables" y
-                // los valores dentro de "Nuestra Visión" son
-                // 4 content items fijos con layout propio (timeline / grilla
-                // / mini-cards clickeables) en vez de texto plano — ver
-                // institutional-content.ts. La gerencia (scope COMMON) se
-                // embebe justo después de los hitos, como pidió el usuario
-                // ("origen y trayectoria... ahí las cards de la gerencia"),
-                // reusando el mismo LeadersBoard de /leaders.
-                const isTimeline = isHistoryTimelineContent(item.title);
-                const timelineItems = isTimeline && item.body ? parseTimelineItems(item.body) : null;
-                const isProjects = isImpactProjectsContent(item.title);
-                const projectItems = isProjects && item.body ? parseImpactProjects(item.body) : null;
-                const isNonNegotiables = isNonNegotiablesContent(item.title);
-                const nonNegotiableItems = isNonNegotiables && item.body ? parseNonNegotiables(item.body) : null;
-                const isCultureValues = isCultureValuesContent(item.title);
-                const cultureSplit = isCultureValues && item.body ? splitCultureValues(item.body) : null;
-                // "Ecosistema Digital de Trabajo" y "Timeboxing" viven en la
-                // sección "Reglas y Herramientas" junto a "Principios No
-                // Negociables" (arriba) — antes solo esta última tenía grid
-                // de tarjetas y las otras 2 eran texto plano, inconsistente
-                // dentro de la misma sección visual (ver daily-life-content.ts).
-                const isDigitalEcosystem = isDigitalEcosystemContent(item.title);
-                const toolsSplit = isDigitalEcosystem && item.body ? splitToolsList(item.body) : null;
-                const isTimeboxing = isTimeboxingContent(item.title);
-                const stepsSplit = isTimeboxing && item.body ? splitNumberedSteps(item.body) : null;
+                // La gerencia (scope COMMON) se embebe justo después de los
+                // hitos, como pidió el usuario ("origen y trayectoria... ahí
+                // las cards de la gerencia"), reusando el mismo LeadersBoard
+                // de /leaders — ver el `index === 0` puntual más abajo.
+                //
+                // `item.displayFormat` (ver content-display.ts) reemplaza el
+                // mecanismo anterior de adivinar el layout por el título:
+                // cada formato intenta parsear `body`, y si no calza cae a
+                // MarkdownContent normal — nunca se rompe la vista.
+                const factSplit = item.displayFormat === "FACT_GRID" && item.body ? splitFactGrid(item.body) : null;
+                const valuesSplit = item.displayFormat === "VALUES_GRID" && item.body ? splitValuesGrid(item.body) : null;
+                const timelineSplit = item.displayFormat === "TIMELINE" && item.body ? splitTimeline(item.body) : null;
+                const stepsSplit = item.displayFormat === "STEPS" && item.body ? splitSteps(item.body) : null;
                 // "Tu Día a Día en Imagine Apps" (ver phase-groups.ts) junta 6
                 // cards de temas distintos (reglas/herramientas + políticas de
                 // bienestar que antes vivían en la etapa Recursos, ya
@@ -437,29 +419,30 @@ function StageSection({
                         initialViewed={item.viewed ?? false}
                         enabled={!previewMode && item.requirement !== "OBLIGATORY"}
                       >
-                        {timelineItems ? (
-                          <HistoryTimeline items={timelineItems} />
-                        ) : projectItems ? (
-                          <ImpactProjectsGrid projects={projectItems} />
-                        ) : nonNegotiableItems ? (
-                          <NonNegotiablesGrid items={nonNegotiableItems} />
-                        ) : cultureSplit ? (
+                        {factSplit ? (
                           <>
-                            {cultureSplit.intro && <MarkdownContent>{cultureSplit.intro}</MarkdownContent>}
-                            <CultureValuesGrid values={cultureSplit.values} />
-                          </>
-                        ) : toolsSplit ? (
-                          <>
-                            {toolsSplit.intro && <MarkdownContent>{toolsSplit.intro}</MarkdownContent>}
+                            {factSplit.intro && <MarkdownContent>{factSplit.intro}</MarkdownContent>}
                             <IconCardGrid
-                              items={toolsSplit.items.map((tool) => ({
-                                icon: toolIcon(tool.title),
-                                title: tool.title,
-                                href: tool.href,
-                                description: tool.description,
+                              items={factSplit.items.map((fact) => ({
+                                icon: fact.badge ? factBadgeIcon(fact.badge) : factIcon(fact.title),
+                                title: fact.title,
+                                href: fact.href,
+                                badge: fact.badge,
+                                description: fact.description,
                               }))}
                             />
-                            {toolsSplit.outro && <MarkdownContent className="mt-3">{toolsSplit.outro}</MarkdownContent>}
+                            {factSplit.outro && <MarkdownContent className="mt-3">{factSplit.outro}</MarkdownContent>}
+                          </>
+                        ) : valuesSplit ? (
+                          <>
+                            {valuesSplit.intro && <MarkdownContent>{valuesSplit.intro}</MarkdownContent>}
+                            <CultureValuesGrid values={valuesSplit.values} />
+                          </>
+                        ) : timelineSplit ? (
+                          <>
+                            {timelineSplit.intro && <MarkdownContent>{timelineSplit.intro}</MarkdownContent>}
+                            <HistoryTimeline items={timelineSplit.items} />
+                            {timelineSplit.outro && <MarkdownContent className="mt-3">{timelineSplit.outro}</MarkdownContent>}
                           </>
                         ) : stepsSplit ? (
                           <>
@@ -489,7 +472,7 @@ function StageSection({
                         <p className="text-xs text-ink-soft">{pendingContentMessage.text}</p>
                       )}
                     </Card>
-                    {timelineItems && gerencia.length > 0 && (
+                    {timelineSplit && gerencia.length > 0 && (
                       <Card>
                         <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} variant="card" />
                       </Card>
@@ -512,11 +495,15 @@ function StageSection({
             <>
               <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={setGroupIndex} />
               <div className="flex flex-col gap-4">
-                {activeGroup?.processes.map((process) => <ProcessCard key={process.id} process={process} previewMode={previewMode} />)}
+                {activeGroup?.processes.map((process) => (
+                  <ProcessCard key={process.id} process={process} pendingContentMessage={pendingContentMessage} previewMode={previewMode} />
+                ))}
               </div>
             </>
           ) : (
-            stage.processes.map((process) => <ProcessCard key={process.id} process={process} previewMode={previewMode} />)
+            stage.processes.map((process) => (
+              <ProcessCard key={process.id} process={process} pendingContentMessage={pendingContentMessage} previewMode={previewMode} />
+            ))
           )}
         </div>
       )}
@@ -594,7 +581,15 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function ProcessCard({ process, previewMode = false }: { process: JourneyProcess; previewMode?: boolean }) {
+function ProcessCard({
+  process,
+  pendingContentMessage,
+  previewMode = false,
+}: {
+  process: JourneyProcess;
+  pendingContentMessage: GuideMessage;
+  previewMode?: boolean;
+}) {
   const pending = isPendingProcess(process.title);
   const hasSteps = process.steps.length > 0;
   const allStepsCompleted = hasSteps && process.steps.every((s) => s.completed);
@@ -621,9 +616,7 @@ function ProcessCard({ process, previewMode = false }: { process: JourneyProcess
           {hasSteps && allStepsCompleted && <CompletedCheck label="Revisado" />}
         </span>
       </div>
-      {pending && (
-        <p className="mt-1 text-xs text-ink-soft">Este proceso depende de una herramienta en revisión — el paso a paso puede cambiar.</p>
-      )}
+      {pending && pendingContentMessage.enabled && <p className="mt-1 text-xs text-ink-soft">{pendingContentMessage.text}</p>}
       {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
       {isOpen && (
         <>

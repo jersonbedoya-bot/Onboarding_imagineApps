@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea, Checkbox } from "@/components/Field";
 
 export type GuideMessageValue = { text: string; enabled: boolean };
+
+export type PendingContentSummary = { contentItems: string[]; processes: string[]; steps: string[] };
 
 /**
  * Editor de todo el contenido "de guía" del recorrido: el título/subtítulo
@@ -22,17 +24,24 @@ export type GuideMessageValue = { text: string; enabled: boolean };
  * pena ver el resultado antes de guardar. Los 2 mensajes de guía son textos
  * chicos de una sola línea: alcanza con un toggle "Mostrar" + una vista
  * previa en texto, sin reproducir un componente entero.
+ *
+ * Cada campo aclara DÓNDE exactamente se ve en /onboarding (pedido
+ * explícito del usuario: "no se tiene bien conocimiento de dónde se
+ * modifica la información") — y el header lleva un link directo a
+ * /admin/preview para verlo en el recorrido real, sin tener que adivinar.
  */
 export function RouteContentForm({
   headline,
   subtitle,
   blockedNextMessage,
   pendingContentMessage,
+  pendingSummary,
 }: {
   headline: string;
   subtitle: string;
   blockedNextMessage: GuideMessageValue;
   pendingContentMessage: GuideMessageValue;
+  pendingSummary: PendingContentSummary;
 }) {
   const router = useRouter();
   const [headlineValue, setHeadlineValue] = useState(headline);
@@ -75,7 +84,11 @@ export function RouteContentForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Card className="max-w-3xl">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Título del recorrido</h2>
-        <p className="mb-4 text-sm text-ink-soft">Es el encabezado grande que ve cualquier usuario arriba de /onboarding.</p>
+        <p className="mb-4 text-sm text-ink-soft">
+          Es el encabezado grande de arriba de todo en <strong>/onboarding</strong> — pero solo la primera vez que alguien
+          entra a su primer módulo. Al volver más adelante (fase 2, 3…) ya no se muestra, para no repetir la bienvenida en
+          cada visita.
+        </p>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-4">
             <Input
@@ -107,13 +120,14 @@ export function RouteContentForm({
       <Card className="max-w-3xl">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Mensajes de guía</h2>
         <p className="mb-4 text-sm text-ink-soft">
-          Textos de orientación cortos que aparecen dentro del recorrido — desactívalos si no quieres mostrarlos, o cambia su redacción.
+          Textos de orientación cortos que aparecen dentro del recorrido — desactívalos si no quieres mostrarlos, o cambia su
+          redacción. Cada uno aclara abajo exactamente dónde se ve.
         </p>
         <div className="flex flex-col gap-4">
           <GuideMessageField
             id="blocked-next"
             label="Módulo siguiente bloqueado"
-            hint='Se muestra al pie de un módulo cuando el siguiente todavía no se desbloqueó (reemplaza al botón "Siguiente módulo").'
+            hint='Reemplaza al botón "Siguiente módulo ›" al final de un módulo — se ve mientras el usuario todavía no completó lo necesario para pasar al que sigue.'
             text={blockedNextText}
             enabled={blockedNextEnabled}
             onTextChange={setBlockedNextText}
@@ -122,12 +136,14 @@ export function RouteContentForm({
           <GuideMessageField
             id="pending-content"
             label="Contenido en revisión"
-            hint="Se muestra debajo de un item o proceso marcado como pendiente (ver isPendingContentItem/isPendingProcess)."
+            hint="Aparece debajo de un contenido o un proceso puntual que el equipo de desarrollo marcó como “todavía en revisión” (por ejemplo, algo que depende de una herramienta que no funciona bien hoy) — no se activa desde este panel, solo se edita el texto que muestra cuando ya está marcado."
             text={pendingText}
             enabled={pendingEnabled}
             onTextChange={setPendingText}
             onEnabledChange={setPendingEnabled}
-          />
+          >
+            <PendingSummaryNote summary={pendingSummary} />
+          </GuideMessageField>
         </div>
       </Card>
 
@@ -147,6 +163,7 @@ function GuideMessageField({
   enabled,
   onTextChange,
   onEnabledChange,
+  children,
 }: {
   id: string;
   label: string;
@@ -155,6 +172,8 @@ function GuideMessageField({
   enabled: boolean;
   onTextChange: (value: string) => void;
   onEnabledChange: (value: boolean) => void;
+  /** Nota adicional (ej. a qué le aplica HOY, ver PendingSummaryNote) — debajo del hint, antes del textarea. */
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-line p-4">
@@ -162,6 +181,7 @@ function GuideMessageField({
         <div>
           <p className="text-sm font-semibold text-ink">{label}</p>
           <p className="text-xs text-ink-soft">{hint}</p>
+          {children}
         </div>
         <Checkbox
           id={`${id}-enabled`}
@@ -184,5 +204,29 @@ function GuideMessageField({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * A qué le aplica el mensaje "Contenido en revisión" AHORA MISMO — sin
+ * esto, el toggle de arriba es abstracto ("¿a qué le pasa esto?"), y hoy ni
+ * siquiera hay forma de marcar/desmarcar algo como pendiente desde el
+ * panel (es una lista fija en el código, ver src/lib/pending-content.ts):
+ * mostrar la lista real es lo único que le da contexto concreto a la admin.
+ */
+function PendingSummaryNote({ summary }: { summary: PendingContentSummary }) {
+  const titles = [...summary.contentItems, ...summary.processes];
+  if (titles.length === 0) {
+    return (
+      <p className="mt-1 text-xs italic text-ink-soft">
+        Hoy no hay ningún contenido ni proceso marcado como pendiente — este mensaje no se ve en ningún lado del recorrido
+        todavía.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-1 text-xs text-ink-soft">
+      Hoy se ve debajo de: {titles.map((title) => `"${title}"`).join(", ")}.
+    </p>
   );
 }

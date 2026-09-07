@@ -6,6 +6,18 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { uploadMedia } from "@/lib/admin/upload-media";
 import { cn } from "@/lib/cn";
 
+export type MarkdownTextareaProps = TextareaProps & {
+  /**
+   * Reemplaza la vista previa por defecto (MarkdownContent) por un render
+   * a medida — usado por ContentForm para mostrar el layout REAL que va a
+   * salir en /onboarding (grid, timeline, quiz…) según `displayFormat`, no
+   * solo el Markdown genérico. Si el body no calza con ese formato, quien
+   * llama decide qué devolver acá (típicamente MarkdownContent normal, el
+   * mismo fallback que usa la vista real).
+   */
+  renderPreview?: (text: string) => ReactNode;
+};
+
 // Plantillas de los botones de "Insertar bloque" — ver comentario del
 // componente. El texto es el punto de partida, el admin lo edita después;
 // lo único que importa es que calcen con lo que MarkdownContent.tsx sabe
@@ -16,10 +28,10 @@ const SNIPPETS = {
   callout: "> **Dato clave:** completa esto antes de tal fecha, usando tal herramienta.",
   link: "[Abrir herramienta](https://)",
   table: "| Columna 1 | Columna 2 |\n| --- | --- |\n| Dato | Dato |",
-  // Solo tiene efecto especial (QuizBlock, ver institutional-content.ts)
-  // cuando el título del content item es exactamente "Pon a Prueba lo que
-  // Aprendiste" — en cualquier otro content item esto se ve como texto
-  // Markdown normal (una lista numerada), no se rompe nada.
+  // Solo tiene efecto especial (QuizBlock, ver content-display.ts) cuando
+  // el content item tiene displayFormat "Quiz de opción múltiple" — con
+  // cualquier otro formato esto se ve como texto Markdown normal (una
+  // lista numerada), no se rompe nada.
   quiz: "1. ¿Pregunta divertida?\n- Opción incorrecta\n- **Opción correcta**\n- Opción incorrecta\nDato curioso que se muestra como respuesta, aciertes o no (opcional).",
 } as const;
 
@@ -41,14 +53,14 @@ const SNIPPETS = {
  * herramienta real, tabla) sin tener que memorizar sintaxis Markdown —
  * ver MarkdownContent.tsx, que es quien le da el tratamiento visual
  * especial a cada una de estas 4 formas. "Pregunta de quiz" es distinto:
- * SIEMPRE se ve como Markdown normal acá (y en cualquier content item que
- * no sea el especial de quiz) — solo se renderiza como QuizBlock cuando el
- * título del content item calza con el que espera institutional-content.ts.
+ * SIEMPRE se ve como Markdown normal acá — solo se renderiza como QuizBlock
+ * cuando el content item tiene displayFormat "Quiz de opción múltiple"
+ * (ver el desplegable "Formato de visualización" en *Form.tsx).
  * Está acá para que el admin no tenga que memorizar el formato de pregunta
  * (numerada + opciones `-` + `**negrita**` en la correcta) al editar ESE
  * content item puntual.
  */
-export function MarkdownTextarea({ id, label, error, className, value, onChange, ...rest }: TextareaProps) {
+export function MarkdownTextarea({ id, label, error, className, value, onChange, renderPreview, ...rest }: MarkdownTextareaProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isInsertMenuOpen, setIsInsertMenuOpen] = useState(false);
@@ -215,7 +227,7 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/70">Vista previa</span>
           <div className="min-h-[88px] rounded-md border border-line bg-paper px-3 py-2">
-            {text.trim() ? <MarkdownContent>{text}</MarkdownContent> : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
+            {text.trim() ? (renderPreview ? renderPreview(text) : <MarkdownContent>{text}</MarkdownContent>) : <p className="text-sm text-ink-soft/60">Nada para previsualizar todavía.</p>}
           </div>
         </div>
       </div>

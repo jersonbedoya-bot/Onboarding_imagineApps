@@ -328,6 +328,7 @@ export async function resolveJourneyPreview(tenantId: ObjectId, roleId: ObjectId
         videoProvider: item.videoProvider,
         imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
+        displayFormat: item.displayFormat,
         completed: item.requirement === "OBLIGATORY" ? false : null,
         viewed: item.requirement === "OBLIGATORY" ? null : false,
       })),
@@ -417,6 +418,7 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
         videoProvider: item.videoProvider,
         imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
+        displayFormat: item.displayFormat,
         completed: item.requirement === "OBLIGATORY" ? progressByTarget.has(`CONTENT_ITEM:${item._id.toString()}`) : null,
         // Espejo de `completed` para el caso NO obligatorio: detección
         // pasiva de scroll (ver markContentAsViewed), nunca vía botón.

@@ -50,3 +50,18 @@ export function isPendingStep(title: string): boolean {
 export function isPendingContentItem(title: string): boolean {
   return matches(title, PENDING_CONTENT_ITEM_TITLES);
 }
+
+/**
+ * Para /admin/messages: esta lista es hoy código, no un campo editable
+ * desde el panel (ver comentario de arriba) — así que el mensaje "Contenido
+ * en revisión" es abstracto para la admin ("¿a qué le aplica esto,
+ * exactamente?") si no se muestra a qué le aplica AHORA MISMO. Devuelve los
+ * títulos tal cual, para listarlos en la UI.
+ */
+export function pendingContentSummary(): { contentItems: string[]; processes: string[]; steps: string[] } {
+  return {
+    contentItems: [...PENDING_CONTENT_ITEM_TITLES],
+    processes: [...PENDING_PROCESS_TITLES],
+    steps: [...PENDING_STEP_TITLES],
+  };
+}
