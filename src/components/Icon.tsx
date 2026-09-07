@@ -29,6 +29,7 @@ export type IconName =
   | "list"
   | "logout"
   | "message"
+  | "more"
   | "plus"
   | "reactivate"
   | "route"
@@ -116,6 +117,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M8 11h8M8 14h5" />
     </>
   ),
+  more: (
+    <>
+      <circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none" />
+    </>
+  ),
   plus: <path d="M12 5v14M5 12h14" />,
   reactivate: (
     <>
@@ -181,6 +189,7 @@ const ICON_LABELS: Record<IconName, string> = {
   list: "Lista",
   logout: "Cerrar sesión",
   message: "Mensajes",
+  more: "Más acciones",
   plus: "Añadir",
   reactivate: "Reactivar",
   route: "Ruta",

@@ -13,24 +13,35 @@ export type ModalProps = {
   /** Ancho máximo del diálogo (clase de Tailwind) — "max-w-md" por defecto para
    * los formularios admin; contenido más ancho (ej. video) puede pedir "max-w-2xl". */
   maxWidthClassName?: string;
+  /**
+   * false bloquea cerrar con click afuera, Escape, o la "X" del header —
+   * solo queda la vía que el propio contenido decida (ej. un botón "Ya la
+   * copié, cerrar" con su propio onClick a onClose). Pensado para contenido
+   * de una sola oportunidad que no se puede recuperar si se pierde por un
+   * cierre accidental — el caso real: el link/mensaje de una invitación
+   * recién creada (el token crudo no se persiste, ver token.ts), que hasta
+   * ahora se perdía para siempre con un click afuera del modal por error.
+   * Default true (el resto de los modales del admin sigue igual).
+   */
+  dismissible?: boolean;
 };
 
-export function Modal({ open, onClose, title, children, maxWidthClassName = "max-w-md" }: ModalProps) {
+export function Modal({ open, onClose, title, children, maxWidthClassName = "max-w-md", dismissible = true }: ModalProps) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dismissible) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [open, dismissible, onClose]);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-      onClick={onClose}
+      onClick={dismissible ? onClose : undefined}
       role="presentation"
     >
       <div
@@ -43,14 +54,16 @@ export function Modal({ open, onClose, title, children, maxWidthClassName = "max
       >
         <div className="mb-4 flex flex-shrink-0 items-center justify-between gap-4">
           {title && <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="ml-auto grid h-7 w-7 place-items-center rounded-md text-ink-soft transition-colors hover:bg-brand-tint hover:text-brand-strong"
-          >
-                        <Icon name="close" size="md" />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="ml-auto grid h-7 w-7 place-items-center rounded-md text-ink-soft transition-colors hover:bg-brand-tint hover:text-brand-strong"
+            >
+              <Icon name="close" size="md" />
+            </button>
+          )}
         </div>
         {/* Solo esta parte scrollea — el header (título + cerrar) queda fijo arriba.
             Antes el panel entero no tenía límite de alto: con contenido largo (ej.

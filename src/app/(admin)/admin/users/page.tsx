@@ -12,7 +12,6 @@ import { PlatformRoleBadge } from "@/components/admin/PlatformRoleBadge";
 import { USER_STATUS_LABELS } from "@/lib/status-labels";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
-import { ChangePlatformRoleAction } from "./ChangePlatformRoleAction";
 import { InvitationsList } from "./InvitationsList";
 
 export default async function AdminUsersPage() {
@@ -76,18 +75,11 @@ export default async function AdminUsersPage() {
                     <Badge variant={user.status === "ACTIVE" ? "success" : "neutral"}>{USER_STATUS_LABELS[user.status]}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isSelf && (
-                      <ChangePlatformRoleAction
-                        userId={user._id.toString()}
-                        userName={user.name}
-                        currentRole={user.platformRole}
-                        roles={roleOptions}
-                      />
-                    )}
                     <UserActions
                       userId={user._id.toString()}
                       userName={user.name}
                       status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
+                      currentPlatformRole={user.platformRole}
                       functionalRoleId={null}
                       roles={roleOptions}
                       isSelf={isSelf}
@@ -142,16 +134,11 @@ export default async function AdminUsersPage() {
               header: "Acciones",
               render: (user) => (
                 <div className="flex flex-wrap items-center gap-2">
-                  <ChangePlatformRoleAction
-                    userId={user._id.toString()}
-                    userName={user.name}
-                    currentRole={user.platformRole}
-                    roles={roleOptions}
-                  />
                   <UserActions
                     userId={user._id.toString()}
                     userName={user.name}
                     status={user.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}
+                    currentPlatformRole={user.platformRole}
                     functionalRoleId={user.functionalRoleId?.toString() ?? null}
                     roles={roleOptions}
                     isSelf={user._id.toString() === currentUserId}

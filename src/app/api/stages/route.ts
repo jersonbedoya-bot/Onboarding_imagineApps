@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { createStageSchema } from "@/server/validation/stage.schema";
 import { createStage, listStages } from "@/server/services/stage.service";
 
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createStageSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de etapa inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de etapa inválidos."), parsed.error.flatten());
     }
 
     const stage = await createStage(actingAdmin, {

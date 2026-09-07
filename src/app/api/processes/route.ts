@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { createProcessSchema } from "@/server/validation/process.schema";
 import { createProcess, listProcessesByStage } from "@/server/services/process.service";
 import type { ProcessDocument } from "@/server/repositories/process.repository";
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createProcessSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de proceso inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de proceso inválidos."), parsed.error.flatten());
     }
 
     const process = await createProcess(actingAdmin, {

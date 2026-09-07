@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { changeFunctionalRoleSchema } from "@/server/validation/user.schema";
 import { changeFunctionalRole } from "@/server/services/user.service";
 
@@ -15,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = changeFunctionalRoleSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Rol funcional inválido.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Rol funcional inválido."), parsed.error.flatten());
     }
 
     const updated = await changeFunctionalRole(actingAdmin, new ObjectId(id), new ObjectId(parsed.data.functionalRoleId));

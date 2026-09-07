@@ -5,24 +5,53 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Select } from "@/components/Field";
 import { PasswordInput } from "@/components/PasswordInput";
-import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
+import type { PlatformRole } from "@/types/enums";
 
 type RoleOption = { id: string; label: string };
+
+const PLATFORM_ROLE_LABELS: Record<PlatformRole, string> = { USER: "Imaginer", EDITOR: "Editor", ADMIN: "Administrador" };
+const ALL_PLATFORM_ROLES: PlatformRole[] = ["USER", "EDITOR", "ADMIN"];
 
 type Props = {
   userId: string;
   userName: string;
   status: "ACTIVE" | "INACTIVE";
+  currentPlatformRole: PlatformRole;
   functionalRoleId: string | null;
   roles: RoleOption[];
   isSelf: boolean;
-  /** false para Admin/Editor en el roster de equipo administrativo — no tienen rol funcional, no aplica el selector. */
+  /** false para Admin/Editor en el roster de equipo administrativo — no tienen rol funcional, no aplica el selector ni "Reiniciar onboarding". */
   showFunctionalRoleSelect?: boolean;
 };
 
-export function UserActions({ userId, userName, status, functionalRoleId, roles, isSelf, showFunctionalRoleSelect = true }: Props) {
+/**
+ * Todas las acciones sobre un usuario, agrupadas en un solo `ActionMenu`
+ * ("⋯") — pedido explícito del usuario: antes cada acción (cambiar nivel de
+ * acceso, restablecer contraseña, reiniciar onboarding, desactivar/
+ * reactivar, borrar) era un botón suelto con su propio color en la fila, y
+ * se veía como un mosaico. Ahora la fila muestra un solo control siempre
+ * igual; el color (rojo) queda reservado a las acciones destructivas, y
+ * solo se ve una vez abierto el menú. El selector de rol funcional queda
+ * FUERA del menú (no es una "acción" con confirmación, es edición en línea
+ * directa) — ver showFunctionalRoleSelect.
+ *
+ * Antes "Cambiar nivel de acceso" era su propio componente (ChangePlatform-
+ * RoleAction) al lado de este, con su propio botón — se fusionó acá porque
+ * ambos se renderizan siempre juntos, y el menú necesita un solo trigger.
+ */
+export function UserActions({
+  userId,
+  userName,
+  status,
+  currentPlatformRole,
+  functionalRoleId,
+  roles,
+  isSelf,
+  showFunctionalRoleSelect = true,
+}: Props) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +71,17 @@ export function UserActions({ userId, userName, status, functionalRoleId, roles,
   // ver showFunctionalRoleSelect/functionalRoleId).
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [isResettingOnboarding, setIsResettingOnboarding] = useState(false);
+
+  // Cambiar nivel de acceso (USER/EDITOR/ADMIN) — modal de confirmación
+  // explícito, no un <select> silencioso (el usuario señaló en su momento
+  // que eso era ambiguo). Si el destino es Imaginer, pide también el rol
+  // funcional (obligatorio para poder hacer el recorrido de onboarding).
+  const otherPlatformRoles = ALL_PLATFORM_ROLES.filter((role) => role !== currentPlatformRole);
+  const [isChangingRole, setIsChangingRole] = useState(false);
+  const [targetRole, setTargetRole] = useState<PlatformRole>(otherPlatformRoles[0]);
+  const [targetFunctionalRoleId, setTargetFunctionalRoleId] = useState(roles[0]?.id ?? "");
+  const [isChangingRoleSubmitting, setIsChangingRoleSubmitting] = useState(false);
+  const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
 
   async function callAction(path: string, init?: RequestInit) {
     setError(null);
@@ -130,6 +170,50 @@ export function UserActions({ userId, userName, status, functionalRoleId, roles,
     router.refresh();
   }
 
+  function openChangeRole() {
+    setRoleChangeError(null);
+    setTargetRole(otherPlatformRoles[0]);
+    setTargetFunctionalRoleId(roles[0]?.id ?? "");
+    setIsChangingRole(true);
+  }
+
+  async function handleChangeRole() {
+    setRoleChangeError(null);
+    setIsChangingRoleSubmitting(true);
+    const response = await fetch(`/api/users/${userId}/platform-role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        platformRole: targetRole,
+        functionalRoleId: targetRole === "USER" ? targetFunctionalRoleId : undefined,
+      }),
+    });
+    const body = await response.json();
+    setIsChangingRoleSubmitting(false);
+
+    if (!response.ok || !body.success) {
+      setRoleChangeError(body?.error?.message ?? "No se pudo cambiar el nivel de acceso.");
+      return;
+    }
+    setIsChangingRole(false);
+    router.refresh();
+  }
+
+  const menuItems: ActionMenuItem[] = [
+    { label: "Cambiar nivel de acceso", onClick: openChangeRole, disabled: isSelf },
+    { label: "Restablecer contraseña", onClick: () => setIsResettingPassword(true) },
+    ...(showFunctionalRoleSelect && functionalRoleId
+      ? [{ label: "Reiniciar onboarding", onClick: () => setIsConfirmingReset(true) }]
+      : []),
+    {
+      label: status === "ACTIVE" ? "Desactivar" : "Reactivar",
+      onClick: handleToggleStatus,
+      disabled: isSelf,
+      danger: status === "ACTIVE",
+    },
+    { label: "Borrar", onClick: () => setIsConfirmingDelete(true), disabled: isSelf, danger: true },
+  ];
+
   return (
     <div className="flex items-center gap-2">
       {showFunctionalRoleSelect && (
@@ -146,49 +230,60 @@ export function UserActions({ userId, userName, status, functionalRoleId, roles,
           ))}
         </Select>
       )}
-      <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsResettingPassword(true)}>
-        <Icon name="edit" size="sm" />
-        Restablecer contraseña
-      </Button>
-      {showFunctionalRoleSelect && functionalRoleId && (
-        <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => setIsConfirmingReset(true)}>
-          <Icon name="reactivate" size="sm" />
-          Reiniciar onboarding
-        </Button>
-      )}
-      <Button
-        variant={status === "ACTIVE" ? "ghost" : "secondary"}
-        className={status === "ACTIVE" ? "px-3 py-1.5 text-xs text-danger hover:bg-danger-soft" : "px-3 py-1.5 text-xs"}
-        isLoading={isPending}
-        disabled={isSelf}
-        onClick={handleToggleStatus}
-      >
-        {status === "ACTIVE" ? (
-          <>
-            <Icon name="archive" size="sm" />
-            Desactivar
-          </>
-        ) : (
-          <>
-            <Icon name="reactivate" size="sm" />
-            Reactivar
-          </>
-        )}
-      </Button>
-      <Button
-        variant="ghost"
-        className="px-3 py-1.5 text-xs text-danger hover:bg-danger-soft"
-        disabled={isSelf}
-        onClick={() => setIsConfirmingDelete(true)}
-      >
-        <Icon name="trash" size="sm" />
-        Borrar
-      </Button>
+      <ActionMenu items={menuItems} label={`Más acciones de ${userName}`} />
       {error && (
         <span role="alert" className="text-xs text-danger">
           {error}
         </span>
       )}
+
+      <Modal open={isChangingRole} onClose={() => setIsChangingRole(false)} title="Cambiar nivel de acceso">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-ink-soft">
+            <strong className="text-ink">{userName}</strong> es hoy{" "}
+            <strong className="text-ink">{PLATFORM_ROLE_LABELS[currentPlatformRole]}</strong>.
+          </p>
+
+          <Select
+            id="target-platform-role"
+            label="Nuevo nivel"
+            value={targetRole}
+            onChange={(event) => setTargetRole(event.target.value as PlatformRole)}
+          >
+            {otherPlatformRoles.map((role) => (
+              <option key={role} value={role}>
+                {PLATFORM_ROLE_LABELS[role]}
+              </option>
+            ))}
+          </Select>
+
+          {targetRole === "USER" && (
+            <Select
+              id="target-functional-role"
+              label="Rol funcional"
+              value={targetFunctionalRoleId}
+              onChange={(event) => setTargetFunctionalRoleId(event.target.value)}
+            >
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.label}
+                </option>
+              ))}
+            </Select>
+          )}
+
+          {roleChangeError && <p className="text-sm text-danger">{roleChangeError}</p>}
+
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" className="px-4 py-2 text-sm" onClick={() => setIsChangingRole(false)}>
+              Cancelar
+            </Button>
+            <Button isLoading={isChangingRoleSubmitting} className="px-4 py-2 text-sm" onClick={handleChangeRole}>
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={isResettingPassword}

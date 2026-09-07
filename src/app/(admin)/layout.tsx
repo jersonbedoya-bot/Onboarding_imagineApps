@@ -18,6 +18,13 @@ const ADMIN_SECTION_NAME = "Onboarding de Operaciones";
 // (sin Usuarios/Auditoría/Mensajes) — por eso el catch cae a "USER" en vez
 // de redirigir, dejando que el guard de la page propia sea quien de verdad
 // decide si la request sigue.
+//
+// max-w-[90rem] (antes max-w-5xl/64rem) — pedido explícito del usuario: en
+// una pantalla ancha el panel se sentía "una caja angosta en el medio" con
+// mucho margen vacío a los costados, quedando MÁS angosto que el propio
+// recorrido de onboarding (que ya usa hasta xl:max-w-6xl). Las tablas
+// (Usuarios, Auditoría) son justo el contenido que más se beneficia de más
+// ancho antes de necesitar scroll horizontal.
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const platformRole = await requireActiveUser()
     .then((identity) => identity.platformRole)
@@ -26,7 +33,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="min-h-screen bg-paper">
       <div className="border-b border-line bg-card">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-3">
+        <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-6 py-3">
           <Logo className="flex-shrink-0 text-base" />
           <span aria-hidden className="h-4 w-px flex-shrink-0 bg-line" />
           <span className="min-w-0 flex-shrink truncate text-xs font-bold uppercase tracking-widest text-brand-strong">
@@ -35,11 +42,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <div className="flex-1" />
           <UserMenu />
         </div>
-        <div className="mx-auto max-w-5xl px-6 pb-2">
+        <div className="mx-auto max-w-[90rem] px-6 pb-2">
           <AdminNav platformRole={platformRole} />
         </div>
       </div>
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-[90rem] px-6 py-8">{children}</main>
     </div>
   );
 }

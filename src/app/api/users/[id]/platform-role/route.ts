@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { changePlatformRoleSchema } from "@/server/validation/user.schema";
 import { changePlatformRole } from "@/server/services/user.service";
 
@@ -19,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = changePlatformRoleSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Nivel de acceso inválido.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Nivel de acceso inválido."), parsed.error.flatten());
     }
 
     const updated = await changePlatformRole(actingAdmin, new ObjectId(id), {

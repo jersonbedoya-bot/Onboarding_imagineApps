@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { ensureRoute, updateRouteContent } from "@/server/services/route.service";
 import { updateRouteContentSchema } from "@/server/validation/route.schema";
 
@@ -36,7 +37,7 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const parsed = updateRouteContentSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de título/subtítulo inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de título/subtítulo inválidos."), parsed.error.flatten());
     }
     const route = await updateRouteContent(actingAdmin, parsed.data);
     return NextResponse.json({

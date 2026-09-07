@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { createStepSchema } from "@/server/validation/step.schema";
 import { createStep, listStepsByProcess } from "@/server/services/step.service";
 import type { StepDocument } from "@/server/repositories/step.repository";
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createStepSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de paso inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de paso inválidos."), parsed.error.flatten());
     }
 
     const step = await createStep(actingAdmin, {

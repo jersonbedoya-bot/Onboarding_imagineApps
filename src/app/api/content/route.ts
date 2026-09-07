@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { createContentItemSchema } from "@/server/validation/content.schema";
 import { createContentItem, listContentByStage } from "@/server/services/content.service";
 import type { ContentItemDocument } from "@/server/repositories/content.repository";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createContentItemSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de contenido inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de contenido inválidos."), parsed.error.flatten());
     }
 
     const item = await createContentItem(actingAdmin, {

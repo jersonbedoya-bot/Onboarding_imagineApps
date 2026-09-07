@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin, requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { updateStepSchema } from "@/server/validation/step.schema";
 import { updateStep, deleteStep } from "@/server/services/step.service";
 
@@ -15,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = updateStepSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de paso inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de paso inválidos."), parsed.error.flatten());
     }
 
     const updated = await updateStep(actingAdmin, new ObjectId(id), parsed.data);

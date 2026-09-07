@@ -95,6 +95,11 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
       modalTitle={result ? "Invitación creada" : "Invitar usuario"}
       isOpen={isModalOpen}
       onOpenChange={handleOpenChange}
+      // Mientras se muestra el link/mensaje recién creado, un click afuera
+      // (o la "X") ya no lo cierra sin querer — el usuario reportó justo
+      // esto: perdía el link para siempre por cerrar el modal sin darse
+      // cuenta. Solo "Ya la copié, cerrar" (abajo) puede cerrarlo ahora.
+      dismissible={!result}
     >
       {result ? (
         <div className="flex flex-col gap-4">

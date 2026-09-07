@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin, requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { updateProcessSchema } from "@/server/validation/process.schema";
 import { updateProcess, deleteProcess } from "@/server/services/process.service";
 
@@ -15,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = updateProcessSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de proceso inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de proceso inválidos."), parsed.error.flatten());
     }
 
     const updated = await updateProcess(actingAdmin, new ObjectId(id), {

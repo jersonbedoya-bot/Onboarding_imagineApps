@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { resetPasswordSchema } from "@/server/validation/user.schema";
 import { resetPassword } from "@/server/services/user.service";
 
@@ -15,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = resetPasswordSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Contraseña inválida.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Contraseña inválida."), parsed.error.flatten());
     }
 
     await resetPassword(actingAdmin, new ObjectId(id), parsed.data.password);

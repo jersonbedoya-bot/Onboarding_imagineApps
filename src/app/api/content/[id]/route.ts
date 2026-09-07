@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireAdmin, requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { updateContentItemSchema } from "@/server/validation/content.schema";
 import { updateContentItem, deleteContentItem } from "@/server/services/content.service";
 
@@ -15,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = updateContentItemSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de contenido inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de contenido inválidos."), parsed.error.flatten());
     }
 
     const updated = await updateContentItem(actingAdmin, new ObjectId(id), {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { toErrorResponse } from "@/server/errors/handler";
 import { RateLimitedError, ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { acceptInvitationSchema } from "@/server/validation/invitation.schema";
 import { acceptInvitation } from "@/server/services/invitation.service";
 import { assertAcceptInviteNotRateLimited, recordFailedAcceptInvite } from "@/server/services/rate-limit.service";
@@ -21,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const body = await request.json();
     const parsed = acceptInvitationSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de registro inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de registro inválidos."), parsed.error.flatten());
     }
 
     const result = await acceptInvitation(token, parsed.data);

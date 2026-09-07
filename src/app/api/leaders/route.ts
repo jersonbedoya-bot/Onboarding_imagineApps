@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
 import { toErrorResponse } from "@/server/errors/handler";
 import { ValidationError } from "@/server/errors";
+import { zodErrorMessage } from "@/lib/zod-error";
 import { createLeaderSchema } from "@/server/validation/leader.schema";
 import { createLeader, listLeaders } from "@/server/services/leader.service";
 import type { LeaderDocument } from "@/server/repositories/leader.repository";
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createLeaderSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError("Datos de líder inválidos.", parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de líder inválidos."), parsed.error.flatten());
     }
 
     const leader = await createLeader(actingAdmin, {

@@ -40,7 +40,8 @@ export function AcceptInviteForm({ token }: { token: string }) {
       <Input id="name" label="Nombre" required value={name} onChange={(event) => setName(event.target.value)} />
       <PasswordInput
         id="password"
-        label="Contraseña"
+        label="Crea tu contraseña"
+        placeholder="Mínimo 8 caracteres, con letra y número"
         required
         value={password}
         onChange={(event) => setPassword(event.target.value)}

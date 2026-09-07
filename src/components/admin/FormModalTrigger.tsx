@@ -23,6 +23,7 @@ export function FormModalTrigger({
   onOpenChange,
   children,
   maxWidthClassName,
+  dismissible,
 }: {
   triggerLabel: string;
   modalTitle: string;
@@ -30,13 +31,21 @@ export function FormModalTrigger({
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
   maxWidthClassName?: string;
+  /** Ver Modal.tsx — false mientras el contenido muestra algo que se pierde para siempre si se cierra sin querer (ej. InviteUserForm con el link ya creado). */
+  dismissible?: boolean;
 }) {
   return (
     <>
       <Button onClick={() => onOpenChange(true)} className="self-start">
         {triggerLabel}
       </Button>
-      <Modal open={isOpen} onClose={() => onOpenChange(false)} title={modalTitle} maxWidthClassName={maxWidthClassName}>
+      <Modal
+        open={isOpen}
+        onClose={() => onOpenChange(false)}
+        title={modalTitle}
+        maxWidthClassName={maxWidthClassName}
+        dismissible={dismissible}
+      >
         {children}
       </Modal>
     </>
