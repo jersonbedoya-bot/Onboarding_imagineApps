@@ -199,14 +199,28 @@ export function OnboardingJourney({
     }
     if (nextStage) {
       setIndex(index + 1);
-    } else {
-      // Última etapa: no hay a dónde "avanzar" en este pager client-side —
-      // se le pide al server que recalcule el progreso real (mismo patrón
-      // que CompleteProcessButton/MarkAsReadButton). Si ya terminaste todo,
-      // journey.currentStageId pasa a null y page.tsx muestra la FinishCard
-      // arriba, sin perder acceso: el recorrido completo (este mismo
-      // componente) sigue debajo para consulta — ver comentario en page.tsx.
+    } else if (previewMode) {
+      // Preview (Admin/Editor, ver admin/preview/page.tsx): nunca hay
+      // progreso real ("todo desbloqueado, nada completado"), así que este
+      // branch solo se alcanza en el caso borde de una última etapa vacía
+      // (readOnly). completado/page.tsx vive bajo el layout de
+      // (user)/onboarding, que redirige a cualquiera sin functionalRoleId —
+      // Admin/Editor nunca lo tienen, así que navegar ahí lo sacaría de la
+      // preview en vez de mostrarle un cierre real. Se mantiene el refresh
+      // in-place de siempre.
       router.refresh();
+    } else {
+      // Última etapa: acá se completó lo último que hacía falta (el botón
+      // "Terminar Onboarding" solo aparece con stage.status === "COMPLETE",
+      // y esa condición ya se escribió en Mongo por la acción que la
+      // gatilló — MarkAsReadButton/CompleteProcessButton, cada una con su
+      // propio refresh). Antes esto hacía un router.refresh() acá mismo: el
+      // usuario reportó que "parece que no pasa nada" porque se quedaba
+      // viendo la misma etapa, con el único indicio (FinishCard) arriba del
+      // todo, fuera de la vista. Ahora navega a una pantalla de cierre
+      // propia — ver completado/page.tsx, que vuelve a pedir el progreso
+      // real al servidor (no hace falta refrescar antes).
+      router.push("/onboarding/completado");
     }
   }
 
@@ -325,6 +339,36 @@ function StageSection({
     : 0;
   const [groupIndex, setGroupIndex] = useState(defaultGroupIndex);
   const activeGroup = groups ? (groups[Math.min(groupIndex, groups.length - 1)] ?? null) : null;
+  // Acordeón por grupo (pedido explícito del usuario, ver ProcessCard):
+  // como máximo una card abierta a la vez dentro del grupo activo — abrir
+  // otra cierra la que estaba, y cambiar de pestaña (ver handleSelectGroup
+  // más abajo) las cierra todas. null = ninguna abierta; el id vive acá
+  // (no en cada ProcessCard) porque coordinar "solo una abierta" entre
+  // hermanos necesita un único dueño del estado.
+  const [openProcessId, setOpenProcessId] = useState<string | null>(null);
+  function handleSelectGroup(index: number) {
+    setGroupIndex(index);
+    setOpenProcessId(null);
+  }
+  // Barra de progreso de la fase, en grupos/módulos en vez de pasos sueltos
+  // (pedido explícito del usuario): esta fase no tiene content items, así
+  // que stage.totalCompletable/completedCount (server, ver progress.
+  // service.totalCompletableOf) cuentan PASOS — para el rol PDM eso es 137,
+  // un número sin sentido para alguien que recién entra. Acá se recalcula
+  // solo para mostrar, contando grupos en vez de pasos (7 para PDM, por
+  // ejemplo) — el pill de cada grupo ya cuenta procesos (ver ProcessGroupNav),
+  // así que esta barra queda como el nivel más agregado de los tres. No
+  // toca stage.status/unlocked: el desbloqueo de la siguiente fase sigue
+  // dependiendo del total real de pasos, sin cambios.
+  const groupCompletion = groups
+    ? {
+        total: groups.length,
+        completed: groups.filter((g) => {
+          const withSteps = g.processes.filter((p) => p.steps.length > 0);
+          return withSteps.length > 0 && withSteps.every((p) => p.steps.every((s) => s.completed));
+        }).length,
+      }
+    : null;
   // El quiz ("Pon a Prueba lo que Aprendiste") nunca va en este listado: se
   // dispara en modal desde el botón "Siguiente módulo"/"Terminar Onboarding"
   // de OnboardingJourney, nunca como una card más acá abajo.
@@ -370,8 +414,16 @@ function StageSection({
       {!stage.readOnly && (
         <div className="mb-6 max-w-xs xl:max-w-sm">
           <ProgressBar
-            value={stage.totalCompletable > 0 ? (stage.completedCount / stage.totalCompletable) * 100 : 100}
-            label={`${stage.completedCount}/${stage.totalCompletable}`}
+            value={
+              groupCompletion
+                ? groupCompletion.total > 0
+                  ? (groupCompletion.completed / groupCompletion.total) * 100
+                  : 100
+                : stage.totalCompletable > 0
+                  ? (stage.completedCount / stage.totalCompletable) * 100
+                  : 100
+            }
+            label={groupCompletion ? `${groupCompletion.completed}/${groupCompletion.total}` : `${stage.completedCount}/${stage.totalCompletable}`}
           />
         </div>
       )}
@@ -520,10 +572,17 @@ function StageSection({
 
           {groups ? (
             <>
-              <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={setGroupIndex} />
+              <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={handleSelectGroup} />
               <div className="flex flex-col gap-4">
                 {activeGroup?.processes.map((process) => (
-                  <ProcessCard key={process.id} process={process} pendingContentMessage={pendingContentMessage} previewMode={previewMode} />
+                  <ProcessCard
+                    key={process.id}
+                    process={process}
+                    pendingContentMessage={pendingContentMessage}
+                    previewMode={previewMode}
+                    isOpen={openProcessId === process.id}
+                    onToggle={() => setOpenProcessId((current) => (current === process.id ? null : process.id))}
+                  />
                 ))}
               </div>
             </>
@@ -612,10 +671,22 @@ function ProcessCard({
   process,
   pendingContentMessage,
   previewMode = false,
+  isOpen: controlledIsOpen,
+  onToggle: controlledOnToggle,
 }: {
   process: JourneyProcess;
   pendingContentMessage: GuideMessage;
   previewMode?: boolean;
+  /**
+   * Modo "acordeón", controlado desde StageSection — para procesos
+   * agrupados por pestaña (ver ProcessGroupNav), donde el usuario pidió que
+   * como máximo una card quede abierta a la vez dentro del grupo activo, y
+   * que cambiar de pestaña las cierre todas. Si no se pasan (lista plana,
+   * fases sin agrupar), la card sigue manejando su propio estado como
+   * siempre — cada una independiente de sus hermanas.
+   */
+  isOpen?: boolean;
+  onToggle?: () => void;
 }) {
   const pending = isPendingProcess(process.title);
   const hasSteps = process.steps.length > 0;
@@ -624,58 +695,84 @@ function ProcessCard({
   // real de estar viendo este grupo) se ve entero desde el primer render;
   // lo ya hecho no vuelve a ocupar pantalla salvo que se reabra a propósito
   // — antes un grupo de 5 procesos con varios ya terminados obligaba a
-  // scrollear todo su detalle igual (ver auditoría, P5).
-  const [isOpen, setIsOpen] = useState(!allStepsCompleted);
+  // scrollear todo su detalle igual (ver auditoría, P5). Ignorado en modo
+  // acordeón: ahí el dueño del estado es StageSection, que arranca cada
+  // grupo con ninguna card abierta (ver openProcessId).
+  const [internalIsOpen, setInternalIsOpen] = useState(!allStepsCompleted);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
+  const toggle = controlledOnToggle ?? (() => setInternalIsOpen((v) => !v));
+
+  // Al abrir una card, llevar su inicio arriba del todo — pedido explícito
+  // del usuario: sin esto, abrir "Kickoff con Cliente" mientras la vista
+  // seguía scrolleada por haber leído "Prekickoff" dejaba el contenido
+  // nuevo empezando fuera de pantalla, más abajo de donde mirás. Se
+  // dispara solo en la transición cerrada->abierta (nunca al cerrar, ni en
+  // el primer render de una card que ya nace abierta por defecto — ver
+  // wasOpenRef) para no scrollear cuando el usuario no acaba de pedirlo.
+  // scroll-mt-28 en el contenedor deja lugar para el topbar sticky de
+  // /onboarding, que si no taparía el título recién scrolleado.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cardRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <button type="button" onClick={() => setIsOpen((v) => !v)} aria-expanded={isOpen} className="group flex flex-1 items-start gap-2 text-left">
-          <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
-          <ChevronIcon open={isOpen} />
-        </button>
-        <span className="flex items-center gap-2">
-          {pending && <PendingBadge />}
-          {/* El check de "ya revisado" se queda arriba (permite ver de un
-              vistazo qué procesos ya están hechos sin expandir cada uno,
-              incluso colapsada) — el BOTÓN de acción se movió al final de
-              la card, ver más abajo (feedback de usuario: pedía completar
-              algo que todavía no habías leído). */}
-          {hasSteps && allStepsCompleted && <CompletedCheck label="Revisado" />}
-        </span>
-      </div>
-      {pending && pendingContentMessage.enabled && <p className="mt-1 text-xs text-ink-soft">{pendingContentMessage.text}</p>}
-      {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
-      {isOpen && (
-        <>
-          {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
-          {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
-          {process.resources.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>
-              {process.resources.map((resource) => (
-                <span key={resource} className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
-                  {resource}
-                </span>
-              ))}
-            </div>
-          )}
-          {hasSteps && (
-            <ProcessStepsTimeline
-              steps={process.steps}
-              allCompleted={allStepsCompleted}
-              isStepPending={(title) => !pending && isPendingStep(title)}
-            />
-          )}
-          {hasSteps && !allStepsCompleted && !previewMode && (
-            // Alineado a la derecha: consistente con MarkAsReadButton (ya a
-            // la derecha, arriba de cada contenido) y con el patrón usual de
-            // "acción principal al final de la card, lado derecho".
-            <div className="mt-2 flex justify-end">
-              <CompleteProcessButton processId={process.id} />
-            </div>
-          )}
-        </>
-      )}
-    </Card>
+    <div ref={cardRef} className="scroll-mt-28">
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <button type="button" onClick={toggle} aria-expanded={isOpen} className="group flex flex-1 items-start gap-2 text-left">
+            <h3 className="font-display text-xl font-semibold text-ink xl:text-2xl">{process.title}</h3>
+            <ChevronIcon open={isOpen} />
+          </button>
+          <span className="flex items-center gap-2">
+            {pending && <PendingBadge />}
+            {/* El check de "ya revisado" se queda arriba (permite ver de un
+                vistazo qué procesos ya están hechos sin expandir cada uno,
+                incluso colapsada) — el BOTÓN de acción se movió al final de
+                la card, ver más abajo (feedback de usuario: pedía completar
+                algo que todavía no habías leído). */}
+            {hasSteps && allStepsCompleted && <CompletedCheck label="Revisado" />}
+          </span>
+        </div>
+        {pending && pendingContentMessage.enabled && <p className="mt-1 text-xs text-ink-soft">{pendingContentMessage.text}</p>}
+        {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
+        {isOpen && (
+          <>
+            {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
+            {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
+            {process.resources.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>
+                {process.resources.map((resource) => (
+                  <span key={resource} className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
+                    {resource}
+                  </span>
+                ))}
+              </div>
+            )}
+            {hasSteps && (
+              <ProcessStepsTimeline
+                steps={process.steps}
+                allCompleted={allStepsCompleted}
+                isStepPending={(title) => !pending && isPendingStep(title)}
+              />
+            )}
+            {hasSteps && !allStepsCompleted && !previewMode && (
+              // Alineado a la derecha: consistente con MarkAsReadButton (ya a
+              // la derecha, arriba de cada contenido) y con el patrón usual de
+              // "acción principal al final de la card, lado derecho".
+              <div className="mt-2 flex justify-end">
+                <CompleteProcessButton processId={process.id} />
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
   );
 }

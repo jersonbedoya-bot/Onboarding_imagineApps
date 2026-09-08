@@ -105,3 +105,34 @@ body::before {
     animation: none;
   }
 }
+
+/*
+ * Pedido explícito del usuario: "donde se pueda clickear... cambia el
+ * icono del mouse por una manito". Causa raíz: los navegadores le dan
+ * `cursor: pointer` a <a>, pero NO a <button> (queda en `default`) ni a
+ * <select>/checkbox/radio — así que casi ningún botón real de la app
+ * (Button, IconButton, ActionMenu, los tabs de ProcessGroupNav, abrir/
+ * cerrar una ProcessCard, ConfirmModal, la "X" de Modal...) mostraba la
+ * manito pese a ser 100% clickeable. Una sola regla acá arregla todos a
+ * la vez, en vez de agregar `cursor-pointer` botón por botón.
+ *
+ * label:has(input[type=checkbox|radio]): el checkbox/radio en sí también
+ * queda en `default` en el navegador pese a heredar `cursor` de un
+ * ancestro con cursor-pointer (LeaderForm.tsx tiene radios sin esa clase
+ * en su <label>, ver Checkbox de Field.tsx que sí la tenía) — así que se
+ * fija acá para los dos casos a la vez, sin depender de que cada form
+ * recuerde agregar la clase.
+ */
+button:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+select:not(:disabled),
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]) {
+  cursor: pointer;
+}
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}

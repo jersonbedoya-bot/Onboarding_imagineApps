@@ -157,7 +157,13 @@ export function StepForm({
 
   if (variant === "modal") {
     return (
-      <FormModalTrigger triggerLabel={triggerLabel} modalTitle={modalTitle} isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
+      <FormModalTrigger
+        triggerLabel={triggerLabel}
+        modalTitle={modalTitle}
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        maxWidthClassName="max-w-4xl"
+      >
         <form onSubmit={handleSubmit}>{fields}</form>
       </FormModalTrigger>
     );

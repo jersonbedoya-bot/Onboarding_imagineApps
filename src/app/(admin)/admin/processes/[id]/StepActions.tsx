@@ -66,7 +66,7 @@ export function StepActions({
         </span>
       )}
 
-      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar paso">
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar paso" maxWidthClassName="max-w-4xl">
         <StepForm processId={item.processId} mode="edit" stepId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
       </Modal>
 

@@ -78,7 +78,7 @@ export function LeaderActions({
         </span>
       )}
 
-      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar líder">
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar líder" maxWidthClassName="max-w-4xl">
         <LeaderForm roles={roles} mode="edit" leaderId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
       </Modal>
 

@@ -16,7 +16,12 @@ export function CultureValuesGrid({ values }: { values: ValueItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    // Flexbox con wrap en vez de columnas fijas (sm:grid-cols-2
+    // xl:grid-cols-3): con Grid, una cantidad de valores que no es múltiplo
+    // exacto de columnas deja la última fila pegada a la izquierda.
+    // Flexbox centra cada fila envuelta de forma independiente (ver
+    // feedback de usuario, mismo caso que IconCardGrid/LeadersBoard).
+    <div className="flex flex-wrap justify-center gap-3">
       {values.map((value, i) => {
         const isOpen = openIndex === i;
         return (
@@ -26,7 +31,7 @@ export function CultureValuesGrid({ values }: { values: ValueItem[] }) {
             onClick={() => setOpenIndex(isOpen ? null : i)}
             aria-expanded={isOpen}
             className={cn(
-              "rounded-lg border p-4 text-left shadow-sm transition-all duration-200",
+              "w-full rounded-lg border p-4 text-left shadow-sm transition-all duration-200 sm:max-w-[340px] sm:flex-1 sm:basis-[260px]",
               isOpen ? "border-brand bg-brand-tint" : "border-line bg-card hover:-translate-y-0.5 hover:border-brand-soft hover:shadow-md",
             )}
           >
@@ -42,7 +47,11 @@ export function CultureValuesGrid({ values }: { values: ValueItem[] }) {
                 isOpen ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
               )}
             >
-              <span className="overflow-hidden">{value.description}</span>
+              {/* Mismo caso que IconCardGrid: el Markdown fuente es una sola
+                  oración ("**Título:** descripción en minúscula"), pero acá
+                  se separan visualmente en 2 líneas — se capitaliza solo al
+                  mostrarla, sin tocar el texto guardado. */}
+              <span className="overflow-hidden first-letter:uppercase">{value.description}</span>
             </p>
           </button>
         );

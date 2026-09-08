@@ -430,7 +430,7 @@ export function ContentForm({
         modalTitle={modalTitle}
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
-        maxWidthClassName="max-w-2xl"
+        maxWidthClassName="max-w-4xl"
       >
         <form onSubmit={handleSubmit}>{fields}</form>
       </FormModalTrigger>

@@ -84,7 +84,7 @@ export function ProcessActions({
         </span>
       )}
 
-      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar proceso">
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar proceso" maxWidthClassName="max-w-4xl">
         <ProcessForm
           stageId={item.stageId}
           roles={roles}

@@ -59,7 +59,7 @@ export function StageActions({
 
   const modals = (
     <>
-      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar módulo">
+      <Modal open={isEditing} onClose={() => setIsEditing(false)} title="Editar módulo" maxWidthClassName="max-w-4xl">
         <StageForm existingStages={allStages} mode="edit" stageId={item.id} initial={initial} variant="bare" onSaved={() => setIsEditing(false)} />
       </Modal>
 

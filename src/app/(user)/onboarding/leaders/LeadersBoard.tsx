@@ -88,15 +88,16 @@ function LeaderSection({
       ) : (
         <h2 className="mb-4 font-display text-xl font-semibold text-ink xl:text-2xl">{title}</h2>
       )}
-      {/* auto-fit + minmax en vez de columnas fijas por breakpoint: con un
-          número de columnas fijo (ej. xl:grid-cols-4), una cantidad de
-          líderes que no es múltiplo exacto (típico en "Gerencia", un grupo
-          chico y fijo) deja la última fila con un hueco grande y descuadrado
-          — más visible cuanto más ancho es el contenedor. Acotando el ancho
-          de cada card (220-260px) y centrando el bloque, la grilla arma
-          tantas columnas como entran y la fila incompleta queda centrada en
-          vez de pegada a la izquierda con espacio vacío a la derecha. */}
-      <div className="grid grid-cols-1 gap-5 sm:[grid-template-columns:repeat(auto-fit,minmax(220px,260px))] sm:justify-center">
+      {/* Flexbox con wrap en vez de CSS Grid + auto-fit: con Grid,
+          `justify-content: center` centra el bloque de columnas completo
+          (compartido por TODAS las filas) — al ensanchar el contenedor,
+          auto-fit arma tantas columnas que casi no queda espacio sobrante
+          para centrar, y una fila incompleta (típico en "Gerencia", un
+          grupo chico y fijo) queda pegada a la izquierda. Flexbox centra
+          cada fila envuelta de forma independiente, sin importar cuánto se
+          ensanche el contenedor (ver feedback de usuario) — el ancho por
+          card (220-260px) vive en LeaderCard. */}
+      <div className="flex flex-wrap justify-center gap-5">
         {leaders.map((leader) => (
           <LeaderCard key={leader.id} leader={leader} onPlay={onPlay} />
         ))}

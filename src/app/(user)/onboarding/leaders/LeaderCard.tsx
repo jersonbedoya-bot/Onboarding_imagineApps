@@ -23,7 +23,7 @@ export function LeaderCard({ leader, onPlay }: { leader: LeaderCardData; onPlay:
   const thumbnailSrc = leader.videoThumbnailUrl ?? leader.photoUrl;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-line bg-card shadow-md">
+    <div className="flex w-full flex-col overflow-hidden rounded-lg border border-line bg-card shadow-md sm:max-w-[260px] sm:flex-1 sm:basis-[220px]">
       {/* Las fotos que sube el equipo son cuadradas (300x300) — una caja
           cuadrada evita recortar innecesariamente arriba/abajo (lo que
           antes empujaba la cara fuera de foco con una caja 4:3). */}
