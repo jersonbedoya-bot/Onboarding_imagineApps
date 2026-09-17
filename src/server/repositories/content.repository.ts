@@ -82,6 +82,11 @@ export async function listByStage(
   return (await collection()).find(filter).sort({ order: 1, createdAt: 1 }).toArray();
 }
 
+/** Todos los content items de un formato dado, de cualquier etapa — hoy solo usado para listar los quizzes (ver /admin/quiz-answers). */
+export async function listByDisplayFormat(tenantId: ObjectId, displayFormat: ContentDisplayFormat): Promise<ContentItemDocument[]> {
+  return (await collection()).find({ tenantId, displayFormat }).sort({ title: 1 }).toArray();
+}
+
 export async function update(
   tenantId: ObjectId,
   id: ObjectId,

@@ -152,6 +152,30 @@ export function OnboardingJourney({
   const prevStage = stages[index - 1] ?? null;
   const nextStage = stages[index + 1] ?? null;
 
+  // `index` es deliberadamente independiente de `currentStageId` mientras
+  // el usuario navega (Módulo anterior/Siguiente módulo no tocan el prop,
+  // ver advance() más abajo) — así completar la etapa actual no lo saca de
+  // ahí antes de que decida avanzar él mismo. Pero un reinicio de onboarding
+  // admin (ver progress.service.resetOnboarding) borra TODO el progreso
+  // mientras esta misma pantalla puede seguir montada del lado del usuario:
+  // si eso pasa, la etapa que `index` venía mostrando queda bloqueada (ya no
+  // cumple su dependsOnStageId) y StageSection la renderiza vacía
+  // (`!stage.unlocked` -> null) — "una pantalla rara", exactamente lo
+  // reportado. Ajuste durante el render (patrón oficial de React para
+  // "resetear estado cuando cambia una prop", ver react.dev/learn/you-might-
+  // not-need-an-effect) en vez de un efecto: llamar setState en un efecto
+  // acá dispara el lint react-hooks/set-state-in-effect, y de paso esto
+  // evita el commit intermedio con la etapa vacía. Nunca al revés: una
+  // etapa que sigue desbloqueada no se toca, así que el avance manual
+  // normal no se ve afectado.
+  const [lastKnownUnlocked, setLastKnownUnlocked] = useState(stage?.unlocked ?? true);
+  if (stage && stage.unlocked !== lastKnownUnlocked) {
+    setLastKnownUnlocked(stage.unlocked);
+    if (!stage.unlocked) {
+      setIndex(Math.max(0, stages.findIndex((s) => s.id === currentStageId)));
+    }
+  }
+
   // Quiz de la etapa ACTUAL (no la siguiente): "Pon a Prueba lo que
   // Aprendiste" cierra el módulo que estás dejando, no abre el que sigue.
   // Antes vivía como una card más al final del listado de items (ver
@@ -187,7 +211,10 @@ export function OnboardingJourney({
 
   function advance() {
     setQuizGateOpen(false);
-    if (quizItem && quizQuestions && !quizAlreadyAnswered) {
+    // previewMode (Admin/Editor, sin functionalRoleId): este POST fallaría
+    // igual server-side (requireRoleId) y no hay ningún "respondido" real
+    // que marcar — mejor no dispararlo que dejarlo fallar en silencio.
+    if (!previewMode && quizItem && quizQuestions && !quizAlreadyAnswered) {
       // Marca el quiz como respondido — reusa el mismo endpoint de "visto
       // pasivo" que ya usa ContentViewTracker para contenido INFORMATIONAL
       // (el quiz es INFORMATIONAL, ver add-quiz-questions.ts): no hace
@@ -201,9 +228,10 @@ export function OnboardingJourney({
       setIndex(index + 1);
     } else if (previewMode) {
       // Preview (Admin/Editor, ver admin/preview/page.tsx): nunca hay
-      // progreso real ("todo desbloqueado, nada completado"), así que este
-      // branch solo se alcanza en el caso borde de una última etapa vacía
-      // (readOnly). completado/page.tsx vive bajo el layout de
+      // progreso real ("todo desbloqueado, nada completado"), así que llegar
+      // acá es "Admin/Editor terminó de revisar la última etapa" (a mano,
+      // con "Saltar", o porque esa etapa está vacía/readOnly) — no un cierre
+      // real de nadie. completado/page.tsx vive bajo el layout de
       // (user)/onboarding, que redirige a cualquiera sin functionalRoleId —
       // Admin/Editor nunca lo tienen, así que navegar ahí lo sacaría de la
       // preview en vez de mostrarle un cierre real. Se mantiene el refresh
@@ -289,15 +317,25 @@ export function OnboardingJourney({
 
       {quizQuestions && (
         <Modal open={quizGateOpen} onClose={() => setQuizGateOpen(false)} title={quizItem?.title} maxWidthClassName="max-w-2xl">
-          <QuizBlock questions={quizQuestions} onAllAnsweredChange={setQuizAllAnswered} />
-          <Button className="mt-5 w-full justify-center" onClick={advance} disabled={!quizAllAnswered}>
-            {nextStage ? "Continuar al siguiente módulo ›" : "🎉 Finalizar Onboarding"}
+          <QuizBlock
+            contentItemId={quizItem?.id ?? ""}
+            questions={quizQuestions}
+            onAllAnsweredChange={setQuizAllAnswered}
+            previewMode={previewMode}
+          />
+          <Button className="mt-5 w-full justify-center" onClick={advance} disabled={!previewMode && !quizAllAnswered}>
+            {previewMode ? "Saltar (vista previa) ›" : nextStage ? "Continuar al siguiente módulo ›" : "🎉 Finalizar Onboarding"}
           </Button>
           {/* Pedido explícito del usuario: no se puede avanzar sin responder
               las N preguntas (no importa si acertaste, solo que respondiste
               todas) — antes el botón de acá abajo quedaba habilitado desde
-              que se abría el modal. */}
-          {!quizAllAnswered && <p className="mt-2 text-center text-xs text-ink-soft">Responde todas las preguntas para continuar.</p>}
+              que se abría el modal. En previewMode (Admin/Editor validando
+              contenido, sin usuario real detrás) no aplica: solo necesita
+              observar, no responder nada, así que el botón queda siempre
+              habilitado y sin este aviso. */}
+          {!previewMode && !quizAllAnswered && (
+            <p className="mt-2 text-center text-xs text-ink-soft">Responde todas las preguntas para continuar.</p>
+          )}
         </Modal>
       )}
     </div>

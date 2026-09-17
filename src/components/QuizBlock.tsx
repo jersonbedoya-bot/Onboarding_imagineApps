@@ -7,6 +7,22 @@ import { cn } from "@/lib/cn";
 
 const LETTERS = ["A", "B", "C", "D"];
 
+// Cuántas preguntas se muestran por intento, sorteadas del banco completo
+// que el admin escribe en el body (ver content-display.ts) — pedido
+// explícito del usuario: un banco más grande del que se elige un
+// subconjunto al azar cada vez, para que el quiz no sea siempre exactamente
+// igual. Si el banco tiene menos preguntas que esto, se muestran todas.
+const QUESTIONS_PER_ATTEMPT = 5;
+
+function shuffleArray<T>(input: T[]): T[] {
+  const arr = [...input];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /**
  * Baraja las opciones de una pregunta (Fisher-Yates) y recalcula
  * `correctIndex` a su nueva posición. Arregla de raíz el problema real
@@ -19,45 +35,141 @@ const LETTERS = ["A", "B", "C", "D"];
  */
 function shuffleQuestionOptions(question: QuizQuestion): QuizQuestion {
   const correctOption = question.options[question.correctIndex];
-  const options = [...question.options];
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
+  const options = shuffleArray(question.options);
   return { ...question, options, correctIndex: options.indexOf(correctOption) };
 }
 
+type QuizState = { shuffled: QuizQuestion[]; answers: Record<number, number> };
+
 /**
- * Quiz de opción múltiple, divertido y sin evaluación real (contenido con
- * `displayFormat: "QUIZ"`, ver content-display.ts): la respuesta CORRECTA no se exige — cualquier
- * opción cuenta como "respondida" — solo se exige responder las N
- * preguntas (pedido explícito del usuario, ver el gate en
- * OnboardingJourney: "Continuar al siguiente módulo" queda deshabilitado
- * hasta `answeredCount === questions.length`, y una vez respondido una
- * primera vez no se vuelve a exigir — ver quizAlreadyAnswered ahí mismo).
- * Nada de esto persiste en `user_progress` ni pasa por el backend acá
- * adentro — es puramente cliente (useState local por pregunta, se
- * resetea si el modal se cierra y se reabre), mismo criterio que la
- * maqueta de referencia (handleQuizAnswer en app.js): el objetivo sigue
- * siendo el momento lúdico, no un registro de "quién sabe qué" — solo que
- * ahora además hace de "cierre" obligatorio del módulo (la primera vez).
+ * Quiz de opción múltiple, divertido y sin evaluación real que afecte el
+ * progreso (contenido con `displayFormat: "QUIZ"`, ver content-display.ts):
+ * la respuesta CORRECTA no se exige — cualquier opción cuenta como
+ * "respondida" — solo se exige responder las preguntas mostradas (pedido
+ * explícito del usuario, ver el gate en OnboardingJourney). Nada de esto
+ * afecta `user_progress` ni el avance del recorrido — es puramente
+ * informativo para quien lo responde.
+ *
+ * Sí se PERSISTE cada respuesta (ver quiz-answer.service.ts) — a pedido
+ * explícito del usuario, para 2 cosas: (a) el admin puede ver qué
+ * respondió cada quien (/admin/quiz-answers), y (b) cerrar el modal a
+ * medio responder no pierde el progreso — al reabrir, este componente
+ * pide lo ya guardado y arma el intento con esas preguntas más las que
+ * hagan falta sorteadas del banco, nunca perdiendo lo ya contestado.
  */
-export function QuizBlock({ questions, onAllAnsweredChange }: { questions: QuizQuestion[]; onAllAnsweredChange?: (allAnswered: boolean) => void }) {
-  // Se baraja UNA sola vez por montaje (no en cada render, para que no
-  // cambie el orden debajo de las respuestas ya elegidas) — como el modal
-  // desmonta el componente al cerrarse, cada apertura trae un orden fresco.
-  const [shuffled] = useState(() => questions.map(shuffleQuestionOptions));
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+export function QuizBlock({
+  contentItemId,
+  questions,
+  onAllAnsweredChange,
+  previewMode = false,
+  questionsPerAttempt = QUESTIONS_PER_ATTEMPT,
+}: {
+  contentItemId: string;
+  questions: QuizQuestion[];
+  onAllAnsweredChange?: (allAnswered: boolean) => void;
+  /**
+   * true desde ContentForm.tsx (vista previa en vivo mientras se escribe
+   * el quiz) o desde /admin/preview (Admin/Editor viendo el onboarding
+   * como un rol, sin cambiar de cuenta) — en ninguno de los dos casos hay
+   * progreso real de un usuario al cual atribuirle nada. Sin red: no lee
+   * respuestas guardadas ni persiste ninguna — responder acá no debe
+   * ensuciar /admin/quiz-answers con datos de prueba del admin.
+   */
+  previewMode?: boolean;
+  /**
+   * Cuántas preguntas mostrar de `questions` (ver QUESTIONS_PER_ATTEMPT).
+   * ContentForm.tsx pasa `questions.length` acá (todo el banco, sin
+   * sortear) — mientras se escribe el quiz, el admin necesita ver CADA
+   * pregunta para revisar su formato, no un subconjunto al azar.
+   * /admin/preview deja el default: ahí sí importa que se vea el mismo
+   * subconjunto realista que vería un usuario real.
+   */
+  questionsPerAttempt?: number;
+}) {
+  // null mientras se resuelve qué ya estaba respondido — armar el intento
+  // sin esperar esto perdería justo el progreso que se quiere conservar.
+  // En previewMode se arma de una, sin red (ver comentario del prop).
+  const [state, setState] = useState<QuizState | null>(() =>
+    previewMode
+      ? { shuffled: shuffleArray(questions).slice(0, questionsPerAttempt).map(shuffleQuestionOptions), answers: {} }
+      : null,
+  );
+
+  useEffect(() => {
+    if (previewMode) return;
+    let cancelled = false;
+
+    async function load() {
+      let saved: { questionText: string; selectedOption: string }[] = [];
+      try {
+        const response = await fetch(`/api/progress/content/${contentItemId}/quiz-answers`);
+        const body = await response.json();
+        if (response.ok && body.success) saved = body.data.answers;
+      } catch {
+        // Sin conexión momentánea: mejor un quiz fresco que bloquear la
+        // pantalla — en el peor caso se pide de nuevo algo ya respondido.
+      }
+      if (cancelled) return;
+
+      const savedByQuestion = new Map(saved.map((a) => [a.questionText, a.selectedOption]));
+      // Las ya respondidas SIEMPRE entran (retomar el intento), el resto
+      // del cupo se sortea entre las que faltan — así nunca se pierde lo
+      // ya contestado, aunque el sorteo en sí sea distinto cada vez.
+      const alreadyAnswered = questions.filter((q) => savedByQuestion.has(q.question));
+      const notYetAnswered = questions.filter((q) => !savedByQuestion.has(q.question));
+      const remainingSlots = Math.max(0, questionsPerAttempt - alreadyAnswered.length);
+      const picked = shuffleArray(notYetAnswered).slice(0, remainingSlots);
+
+      const shuffled = [...alreadyAnswered, ...picked].map(shuffleQuestionOptions);
+      const answers: Record<number, number> = {};
+      shuffled.forEach((q, i) => {
+        const savedOption = savedByQuestion.get(q.question);
+        if (savedOption === undefined) return;
+        const optionIndex = q.options.indexOf(savedOption);
+        if (optionIndex !== -1) answers[i] = optionIndex;
+      });
+
+      setState({ shuffled, answers });
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+    // Solo al montar — cada apertura del modal es un intento propio (el
+    // modal desmonta este componente al cerrarse, ver OnboardingJourney).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const shuffled = state?.shuffled ?? [];
+  const answers = state?.answers ?? {};
   const answeredCount = Object.keys(answers).length;
   const correctCount = shuffled.filter((q, i) => answers[i] === q.correctIndex).length;
 
   useEffect(() => {
+    if (!state) return; // todavía cargando: no avisar "completo" de mentira con 0/0
     // onAllAnsweredChange no entra en las deps a propósito: es un setState
     // del padre, su identidad cambia en cada render de OnboardingJourney sin
     // que eso deba re-disparar este efecto.
-    onAllAnsweredChange?.(answeredCount === shuffled.length);
+    onAllAnsweredChange?.(shuffled.length > 0 && answeredCount === shuffled.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answeredCount, shuffled.length]);
+  }, [state, answeredCount, shuffled.length]);
+
+  function handleAnswer(index: number, optionIndex: number) {
+    const question = shuffled[index];
+    if (!question) return;
+    setState((prev) => (prev ? { ...prev, answers: { ...prev.answers, [index]: optionIndex } } : prev));
+    if (previewMode) return; // no ensuciar /admin/quiz-answers con respuestas de prueba del admin
+    fetch(`/api/progress/content/${contentItemId}/quiz-answers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionText: question.question, selectedOption: question.options[optionIndex] }),
+    }).catch(() => {});
+  }
+
+  if (!state) {
+    return <p className="py-4 text-center text-sm text-ink-soft">Cargando preguntas…</p>;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,7 +179,7 @@ export function QuizBlock({ questions, onAllAnsweredChange }: { questions: QuizQ
         </p>
       )}
       {shuffled.map((q, i) => (
-        <QuizQuestionCard key={i} question={q} selected={answers[i] ?? null} onAnswer={(optionIndex) => setAnswers((prev) => ({ ...prev, [i]: optionIndex }))} />
+        <QuizQuestionCard key={q.question} question={q} selected={answers[i] ?? null} onAnswer={(optionIndex) => handleAnswer(i, optionIndex)} />
       ))}
     </div>
   );

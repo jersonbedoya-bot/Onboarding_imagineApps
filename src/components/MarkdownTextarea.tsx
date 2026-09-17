@@ -92,6 +92,18 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
     };
   }, [isInsertMenuOpen]);
 
+  // El textarea tenía altura fija (min-h + resize-y manual) mientras la
+  // vista previa crece libre con el contenido — con texto largo, uno se ve
+  // cómodo y el otro queda corto y con scroll interno para escribir (ver
+  // feedback de usuario). Autoajustar la altura al contenido, igual que la
+  // vista previa, evita esa asimetría.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [text]);
+
   function insertSnippet(snippet: string) {
     if (!onChange) return;
     const textarea = textareaRef.current;
@@ -218,7 +230,7 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
             value={value}
             onChange={onChange}
             className={cn(
-              "w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand min-h-[88px] resize-y",
+              "w-full resize-none overflow-hidden rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand min-h-[88px]",
               className,
             )}
             {...rest}

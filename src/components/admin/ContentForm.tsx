@@ -164,7 +164,7 @@ export function ContentForm({
         // en cada cambio para que la vista previa siempre refleje el texto
         // actual, no el de cuando se abrió el formulario.
         if (!questions) break;
-        return <QuizBlock key={text} questions={questions} />;
+        return <QuizBlock key={text} contentItemId="" questions={questions} previewMode questionsPerAttempt={questions.length} />;
       }
     }
     return <MarkdownContent>{text}</MarkdownContent>;

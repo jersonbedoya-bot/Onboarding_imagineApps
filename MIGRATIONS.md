@@ -168,6 +168,38 @@ de desincronización entre el script y la fuente de verdad.
 `scripts/migrate-add-editor-role.ts --apply` — no depende de ningún ID
 específico del tenant de desarrollo, corre igual contra cualquier base.
 
+### 8. Colección nueva `quiz_answers` — respuestas de quiz visibles desde el admin
+
+A diferencia de #1-#7, esto no es un `collMod` sobre una colección
+existente — `quiz_answers` es una colección nueva, así que `db:bootstrap`
+la crea sola (con su validador e índices) la próxima vez que corra contra
+cualquier base, sin ningún paso manual. Se documenta acá igual, por
+consistencia con el resto de esta sección (todo cambio a `collections` en
+`schema.ts` queda registrado).
+
+**Por qué**: pedido explícito del usuario — el quiz (`displayFormat:
+"QUIZ"`) nació deliberadamente "puramente lúdico, sin evaluación real ni
+persistencia" (ver BACKLOG.md y el comentario original de `QuizBlock.tsx`).
+Ahora se necesita, además: (a) un banco de preguntas más grande del que se
+sortea un subconjunto en cada intento (más "vivo", nunca el mismo quiz dos
+veces), (b) que el admin pueda ver qué respondió cada persona, y (c) que
+cerrar el modal a medio responder no borre lo ya contestado. Los 3 pedidos
+se resuelven con el mismo mecanismo: cada pregunta respondida se guarda de
+inmediato (no recién al final) en `quiz_answers`, con upsert por
+`{tenantId, userId, contentItemId, questionText}` — la clave es el TEXTO
+de la pregunta porque el banco entero vive como Markdown dentro de
+`content_items.body`, sin id propio por pregunta.
+
+**Aplicado en Atlas de desarrollo el 2026-09-08**, corriendo
+`npm run db:bootstrap` (ya era additive/idempotente, no hizo falta un
+script de migración de datos — no hay nada que backfillear en una
+colección que antes no existía).
+
+**Cómo migrar otra base existente**: correr `npm run db:bootstrap` —
+`ensureCollection` crea `quiz_answers` con el validador de `schema.ts` en
+cualquier base donde todavía no exista, sin tocar ninguna colección ya
+existente.
+
 ## Migraciones de contenido (no-schema)
 
 A diferencia de todo lo de arriba, esto no toca `schema.ts` — es una

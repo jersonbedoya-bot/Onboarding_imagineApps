@@ -215,6 +215,43 @@ export const collections: CollectionDef[] = [
       { spec: { expiresAt: 1 }, options: { expireAfterSeconds: 0 } },
     ],
   },
+  {
+    // Respuestas de un content item con displayFormat "QUIZ" (ver
+    // content-display.ts) — antes no se guardaba nada (a propósito,
+    // "puramente lúdico", ver QuizBlock.tsx); pedido explícito del usuario
+    // para poder revisarlas desde el admin. Clave natural en
+    // `questionText`, no un id de pregunta: el banco entero vive como
+    // texto dentro de `content_items.body`, sin su propia colección. Ese
+    // mismo upsert-por-pregunta es lo que permite retomar un quiz a medio
+    // responder si el modal se cerró antes de terminarlo (ver
+    // QuizBlock.tsx) — cada pregunta ya respondida se guarda apenas se
+    // elige una opción, no recién al final.
+    name: "quiz_answers",
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: ["tenantId", "userId", "contentItemId", "questionText", "selectedOption", "answeredAt"],
+        properties: {
+          tenantId: objectId,
+          userId: objectId,
+          contentItemId: objectId,
+          questionText: { bsonType: "string" },
+          selectedOption: { bsonType: "string" },
+          answeredAt: date,
+        },
+      },
+    },
+    indexes: [
+      // Único: sostiene el upsert idempotente (re-responder la misma
+      // pregunta actualiza, nunca duplica).
+      { spec: { tenantId: 1, userId: 1, contentItemId: 1, questionText: 1 }, options: { unique: true } },
+      // Retomar un quiz a medio responder: todas las respuestas de ESTE
+      // usuario para ESTE quiz.
+      { spec: { tenantId: 1, userId: 1, contentItemId: 1 } },
+      // Vista de admin: todas las respuestas de un quiz, más recientes primero.
+      { spec: { tenantId: 1, contentItemId: 1, answeredAt: -1 } },
+    ],
+  },
 ];
 
 export async function ensureCollection(db: Db, def: CollectionDef): Promise<void> {

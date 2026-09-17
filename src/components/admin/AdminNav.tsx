@@ -16,6 +16,7 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { href: "/admin/messages", label: "Mensajes", icon: "message", adminOnly: true },
   { href: "/admin/leaders", label: "Líderes", icon: "crown" },
   { href: "/admin/users", label: "Usuarios", icon: "users", adminOnly: true },
+  { href: "/admin/quiz-answers", label: "Quiz", icon: "list", adminOnly: true },
   { href: "/admin/audit", label: "Auditoría", icon: "eye", adminOnly: true },
 ];
 

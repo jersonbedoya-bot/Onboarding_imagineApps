@@ -35,6 +35,11 @@ export async function listContentByStage(actingAdmin: RequestIdentity, stageId: 
   return contentRepository.listByStage(actingAdmin.tenantId, stageId);
 }
 
+/** Los quizzes del tenant (cualquier etapa) — para el filtro de /admin/quiz-answers. */
+export async function listQuizItems(actingAdmin: RequestIdentity) {
+  return contentRepository.listByDisplayFormat(actingAdmin.tenantId, "QUIZ");
+}
+
 export async function createContentItem(
   actingAdmin: RequestIdentity,
   input: {
