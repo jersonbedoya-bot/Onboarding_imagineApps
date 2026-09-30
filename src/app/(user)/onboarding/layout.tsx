@@ -37,7 +37,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     // manda al panel en vez de mostrarle el mensaje de "pedile un rol a un
     // admin", que no aplica para ninguno de los dos.
     if (identity.platformRole !== "USER") {
-      redirect("/admin/modules");
+      redirect("/admin");
     }
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">

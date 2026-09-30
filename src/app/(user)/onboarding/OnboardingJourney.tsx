@@ -135,7 +135,7 @@ export function OnboardingJourney({
    *
    * También cambia cómo se muestra "Conoce a tu equipo" (Fase 04): el link
    * normal a /onboarding/leaders vive bajo el layout de (user)/onboarding,
-   * que redirige a /admin/modules apenas ve un identity sin functionalRoleId
+   * que redirige a /admin apenas ve un identity sin functionalRoleId
    * (todo Admin/Editor) — un Admin/Editor haciendo clic ahí terminaba
    * expulsado de la vista previa de un salto. Acá se embebe el mismo
    * LeadersBoard en la propia card, igual que ya se hace con la gerencia.
@@ -592,7 +592,7 @@ function StageSection({
             previewMode ? (
               // El link normal (abajo) apunta a /onboarding/leaders, que vive
               // bajo el layout de (user)/onboarding — ese layout redirige a
-              // /admin/modules apenas ve un identity sin functionalRoleId
+              // /admin apenas ve un identity sin functionalRoleId
               // (todo Admin/Editor, ver layout.tsx). Acá se embebe el mismo
               // LeadersBoard en la card en vez de linkear ahí, para no
               // expulsar a quien está usando /admin/preview.

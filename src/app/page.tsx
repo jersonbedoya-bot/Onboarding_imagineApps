@@ -13,5 +13,8 @@ export default async function Home() {
 
   // ADMIN y EDITOR entran al panel; ninguno de los dos tiene functionalRoleId
   // (ver PLATFORM_ROLES), así que nunca deberían caer en /onboarding.
-  redirect(identity.platformRole !== "USER" ? "/admin/modules" : "/onboarding");
+  // /admin (antes /admin/modules) es el dashboard de bienvenida — pedido
+  // explícito del usuario, orienta a alguien sin trasfondo técnico en vez
+  // de dejarlo caer directo en una lista de módulos sin contexto.
+  redirect(identity.platformRole !== "USER" ? "/admin" : "/onboarding");
 }

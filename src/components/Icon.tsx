@@ -26,6 +26,7 @@ export type IconName =
   | "edit"
   | "eye"
   | "grid"
+  | "home"
   | "list"
   | "logout"
   | "message"
@@ -96,6 +97,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
       <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
     </>
   ),
   list: (
@@ -186,6 +193,7 @@ const ICON_LABELS: Record<IconName, string> = {
   edit: "Editar",
   eye: "Visibilidad",
   grid: "Módulos",
+  home: "Inicio",
   list: "Lista",
   logout: "Cerrar sesión",
   message: "Mensajes",
