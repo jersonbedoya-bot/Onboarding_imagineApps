@@ -386,7 +386,17 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
     dependsOnStageId: bundle.stage.dependsOnStageId ? bundle.stage.dependsOnStageId.toString() : null,
   }));
   const unlocked = deriveUnlockedStages(forUnlock);
-  const currentStageId = deriveCurrentStage(forUnlock, unlocked);
+  // Un módulo sin nada obligatorio (ej. "Bienvenidos") cuenta como COMPLETE
+  // desde el inicio — correcto para desbloquear lo que sigue, pero hacía que
+  // alguien sin ningún avance guardado abriera directo en el módulo 2, sin
+  // ver la bienvenida ni el primer módulo. Sin progreso todavía, se empieza
+  // por el primer módulo desbloqueado. Excepción: si NINGÚN módulo tiene
+  // nada que completar, no hay progreso posible que guardar, y se deja la
+  // regla normal (si no, /onboarding/completado nunca dejaría pasar).
+  const hasStarted = rows.length > 0 || computed.every(({ total }) => total === 0);
+  const currentStageId = hasStarted
+    ? deriveCurrentStage(forUnlock, unlocked)
+    : (forUnlock.find((stage) => unlocked.get(stage.stageId))?.stageId ?? null);
   const routeStatus = deriveRouteStatus(forUnlock.map((s) => ({ status: s.status })));
 
   return {

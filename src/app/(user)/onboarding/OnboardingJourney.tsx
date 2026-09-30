@@ -306,7 +306,16 @@ export function OnboardingJourney({
             {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
           </Button>
         ) : (
-          blockedNextMessage.enabled && <p className="text-xs text-ink-soft">{blockedNextMessage.text}</p>
+          // Bloqueado: el botón se ve igual, deshabilitado — antes, con el
+          // aviso desactivado desde /admin/messages (así estaba en
+          // producción), este espacio quedaba vacío y la persona no veía ni
+          // cómo seguir ni por qué no podía. El aviso sigue siendo opcional.
+          <div className="flex flex-col items-end gap-1.5 text-right">
+            <Button className="px-4 py-2 text-sm" disabled>
+              {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
+            </Button>
+            {blockedNextMessage.enabled && <p className="max-w-xs text-xs text-ink-soft">{blockedNextMessage.text}</p>}
+          </div>
         )}
       </div>
 
@@ -418,11 +427,11 @@ function StageSection({
             de dejar que dos cifras convivan sin explicación. */}
         <span className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
           <ClockIcon />
-          {isCurrent ? `Fase ${index + 1} de ${total}` : `Revisando · Fase ${index + 1} de ${total}`}
+          {isCurrent ? `Módulo ${index + 1} de ${total}` : `Revisando · Módulo ${index + 1} de ${total}`}
         </span>
         {(isCurrent || !stage.unlocked || stage.status === "COMPLETE") && (
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
-            {isCurrent && <Badge variant="brand">Etapa actual</Badge>}
+            {isCurrent && <Badge variant="brand">Módulo actual</Badge>}
             {!stage.unlocked && <Badge variant="neutral">Bloqueada</Badge>}
             {stage.status === "COMPLETE" &&
               // readOnly (total===0, sin nada obligatorio) queda COMPLETE de

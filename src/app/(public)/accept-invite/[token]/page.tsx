@@ -26,13 +26,13 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
 
   return (
     <AuthShell
-      title="Activá tu cuenta"
+      title="Activa tu cuenta"
       // Pedido explícito del usuario: la pantalla mostraba nombre+contraseña
       // sin aclarar dos cosas que no son obvias para quien recibe el link
       // por primera vez — (a) ese email (no un usuario aparte) es con lo
       // que va a iniciar sesión de ahora en más, y (b) la contraseña de acá
       // abajo es una NUEVA que él mismo elige, no una que ya tenga.
-      description={`Te invitaron a ${preview.tenantName} como ${preview.roleLabel}. Vas a iniciar sesión con ${preview.email} — elegí acá abajo la contraseña que vas a usar de ahora en más.`}
+      description={`Te invitamos a ${preview.tenantName} como ${preview.roleLabel}. Iniciarás sesión con ${preview.email}; elige abajo la contraseña que usarás a partir de ahora.`}
     >
       <AcceptInviteForm token={token} />
     </AuthShell>

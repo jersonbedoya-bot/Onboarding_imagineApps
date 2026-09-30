@@ -129,7 +129,7 @@ export function RouteContentForm({
           number={2}
           title="Aviso para avanzar"
           what="Le explica a la persona por qué todavía no puede pasar al siguiente módulo."
-          when="Al final de un módulo, en lugar del botón «Siguiente módulo ›» (o «🎉 Terminar Onboarding» en el último), mientras la persona no termine lo obligatorio de ese módulo: los contenidos marcados como obligatorios y los pasos de sus procesos."
+          when="Al final de un módulo, debajo del botón «Siguiente módulo ›» (o «🎉 Terminar Onboarding» en el último), que se ve deshabilitado mientras la persona no termine lo obligatorio de ese módulo: los contenidos marcados como obligatorios y los pasos de sus procesos."
           extra="Solo frena a la persona si el siguiente módulo depende de este y este es obligatorio (en Módulos → Editar: «Depende de» y «Obligatorio completarlo para abrir los módulos que dependen de este»). Si no, el botón aparece siempre y este aviso no se ve."
         />
         <MessageEditor
@@ -141,18 +141,17 @@ export function RouteContentForm({
           defaultText={DEFAULT_BLOCKED_NEXT_MESSAGE}
           onTextChange={setBlockedNextText}
           onEnabledChange={setBlockedNextEnabled}
-          offWarning="Si lo desactivas, ese espacio queda vacío: la persona no ve el botón ni una explicación de por qué no puede avanzar."
+          offWarning="Si lo desactivas, la persona ve el botón deshabilitado pero sin ninguna explicación de por qué no puede avanzar."
         />
         <div className="mt-4">
           <Sample note="En la vista previa del panel no aparece, porque ahí todos los módulos están desbloqueados. Así lo verá la persona:">
             {/* Mismo pie de módulo que OnboardingJourney: línea arriba, anterior a la izquierda. */}
-            <div className="flex items-center justify-between gap-3 border-t border-line bg-card px-2 pt-4">
-              <span className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink">‹ Módulo anterior</span>
-              {blockedNextEnabled && blockedNextText.trim() ? (
-                <p className="text-xs text-ink-soft">{blockedNextText}</p>
-              ) : (
-                <span className="rounded border border-dashed border-line px-3 py-1.5 text-xs italic text-ink-soft/70">Espacio vacío</span>
-              )}
+            <div className="flex items-start justify-between gap-3 border-t border-line bg-card px-2 pt-4">
+              <span className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink">‹ Módulo anterior</span>
+              <div className="flex flex-col items-end gap-1.5 text-right">
+                <span className="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white opacity-50">Siguiente módulo ›</span>
+                {blockedNextEnabled && blockedNextText.trim() && <p className="max-w-xs text-xs text-ink-soft">{blockedNextText}</p>}
+              </div>
             </div>
           </Sample>
         </div>

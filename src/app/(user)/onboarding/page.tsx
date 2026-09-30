@@ -34,7 +34,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
         <EmptyState
           title="Tu onboarding todavía no está publicado"
-          description="Cuando tu organización publique el recorrido, vas a verlo acá."
+          description="Cuando tu organización publique el recorrido, lo verás aquí."
         />
         <UserMenu />
       </main>
@@ -89,7 +89,7 @@ function FinishCard() {
           para texto normal) — text-paper sólido da 5.1–6.2:1, sin agregar un
           color nuevo (mismo token que el resto del sistema). */}
       <p className="mx-auto mt-3 max-w-md text-paper xl:text-lg">
-        Recorriste todas las etapas. El contenido sigue disponible acá abajo como consulta.
+        Recorriste todos los módulos. El contenido sigue disponible aquí abajo como consulta.
       </p>
     </div>
   );

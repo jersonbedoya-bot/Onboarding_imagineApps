@@ -30,7 +30,7 @@ export default async function OnboardingLeadersPage() {
       {leaders.length === 0 ? (
         <EmptyState
           title="Todavía no hay líderes publicados"
-          description="Cuando tu organización los publique, los vas a ver acá."
+          description="Cuando tu organización los publique, los verás aquí."
         />
       ) : (
         <LeadersBoard gerencia={gerencia} equipo={equipo} equipoLabel={role?.label ?? null} />

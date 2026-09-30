@@ -224,7 +224,10 @@ async function runUserFlow(scenario: Scenario): Promise<void> {
   expect(stage2Start.status).toBe("NOT_STARTED");
   expect(stage2Start.unlocked).toBe(true); // stage1 es COMPLETE
   expect(stage3Start.unlocked).toBe(false); // stage2 todavía no está completa
-  expect(journeyStart.currentStageId).toBe(scenario.stage2._id.toString());
+  // Sin ningún avance guardado se empieza por la Bienvenida, aunque sea
+  // solo-lectura (antes se la saltaba y abría directo en stage2 — ver
+  // first-day-journey.test.ts).
+  expect(journeyStart.currentStageId).toBe(scenario.stage1._id.toString());
 
   // --- Marcar el contenido obligatorio como leído ---
   await progressService.markContentAsRead(user, scenario.stage2ObligatoryItemId);

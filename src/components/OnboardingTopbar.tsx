@@ -28,13 +28,18 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
   // representar el cierre) — eso hacía que acá dijera "Fase 3 de 4" mientras
   // StageSection, con el total real de etapas, decía "Fase 3 de 3" (ver
   // feedback de usuario). Mismo total en los dos lados: stages.length.
-  const allPhasesComplete = stages.every((stage) => stage.status === "COMPLETE");
-  const completedPhases = stages.filter((stage) => stage.status === "COMPLETE").length;
   const totalPhases = stages.length;
   const currentIndex = stages.findIndex((stage) => stage.id === currentStageId);
+  const allPhasesComplete = currentStageId === null && stages.every((stage) => stage.status === "COMPLETE");
+  // Un módulo solo de lectura (readOnly) figura COMPLETE desde el inicio;
+  // se cuenta como hecho recién cuando la persona ya pasó de él — si no, el
+  // primer día arrancaba en "1/3" sin haber hecho nada.
+  const completedPhases = stages.filter(
+    (stage, i) => stage.status === "COMPLETE" && (!stage.readOnly || allPhasesComplete || i < currentIndex),
+  ).length;
   const phaseLabel = allPhasesComplete
     ? "Recorrido completo"
-    : `Fase ${currentIndex >= 0 ? currentIndex + 1 : totalPhases} de ${totalPhases}`;
+    : `Módulo ${currentIndex >= 0 ? currentIndex + 1 : totalPhases} de ${totalPhases}`;
 
   const progressValue = (completedPhases / totalPhases) * 100;
   const progressLabel = `${completedPhases}/${totalPhases}`;
