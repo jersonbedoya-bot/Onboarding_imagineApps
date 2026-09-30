@@ -27,6 +27,11 @@ export type ActionMenuItem = {
  * necesitar createPortal, mientras ningún ancestro tenga transform/filter
  * (no es el caso en este admin).
  */
+// Items habilitados del panel, en orden — lo que recorren las flechas.
+function enabledItems(menu: HTMLElement | null): HTMLButtonElement[] {
+  return Array.from(menu?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not([disabled])') ?? []);
+}
+
 export function ActionMenu({ items, label = "Más acciones" }: { items: ActionMenuItem[]; label?: string }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; openUpward: boolean } | null>(null);
@@ -46,6 +51,12 @@ export function ActionMenu({ items, label = "Más acciones" }: { items: ActionMe
     setOpen(true);
   }
 
+  // Al abrir, el foco pasa al primer item (patrón de menú de WAI-ARIA): así
+  // se puede elegir una acción solo con teclado, sin tabular por la tabla.
+  useEffect(() => {
+    if (open && coords) enabledItems(menuRef.current)[0]?.focus();
+  }, [open, coords]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -55,20 +66,48 @@ export function ActionMenu({ items, label = "Más acciones" }: { items: ActionMe
       setOpen(false);
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        // Devuelve el foco al "⋯": si no, quien usa teclado queda perdido
+        // en el inicio de la página al desaparecer el menú.
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      // Tab sale del menú (sus items no están en el orden de tabulación):
+      // se cierra para no dejarlo abierto apuntando a una fila sin foco.
+      if (event.key === "Tab") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
+      const enabled = enabledItems(menuRef.current);
+      if (enabled.length === 0) return;
+      event.preventDefault();
+      const current = enabled.indexOf(document.activeElement as HTMLButtonElement);
+      let next: number;
+      if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = enabled.length - 1;
+      else if (event.key === "ArrowDown") next = current === -1 ? 0 : (current + 1) % enabled.length;
+      else next = current === -1 ? enabled.length - 1 : (current - 1 + enabled.length) % enabled.length;
+      enabled[next].focus();
     }
     // capture:true en "scroll" — ese evento no burbujea, pero sí se
     // dispara en fase de captura para cualquier ancestro (incluido el
     // contenedor overflow-x-auto de DataTable, o el scroll de la página).
     // Sin esto, la posición fixed queda pegada al viewport mientras la fila
     // se movió por debajo, y el menú termina apuntando a otra fila.
+    // Misma referencia en add/remove: con dos flechas distintas el listener
+    // nunca se quitaba y se acumulaba uno por cada apertura.
+    function handleScroll() {
+      setOpen(false);
+    }
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("scroll", () => setOpen(false), true);
+    window.addEventListener("scroll", handleScroll, true);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("scroll", () => setOpen(false), true);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [open]);
 
@@ -108,8 +147,13 @@ export function ActionMenu({ items, label = "Más acciones" }: { items: ActionMe
                   type="button"
                   role="menuitem"
                   disabled={item.disabled}
+                  tabIndex={-1}
                   onClick={() => {
                     setOpen(false);
+                    // Foco al "⋯" ANTES de la acción: si abre un Modal, este
+                    // toma como disparador al "⋯" (el item desaparece al
+                    // cerrarse el menú) y le devuelve el foco al cerrar.
+                    triggerRef.current?.focus();
                     item.onClick();
                   }}
                   className={cn(

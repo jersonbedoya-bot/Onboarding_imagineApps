@@ -47,6 +47,26 @@ type JourneyProcess = JourneyStage["processes"][number];
 // muy brusco. 900ms con ease-in-out se ve pausado sin sentirse lento.
 const SCROLL_TO_TOP_DURATION_MS = 900;
 
+// Un solo verbo para el cierre: antes este botón decía "Terminar
+// Onboarding" y el del quiz final "Finalizar Onboarding" para lo mismo.
+const FINISH_LABEL = "🎉 Terminar Onboarding";
+
+// Anchors de las cards que pueden quedar pendientes — los usa la lista "Te
+// falta revisar" del aviso de bloqueo para saltar directo a cada una.
+function contentItemAnchorId(id: string) {
+  return `contenido-${id}`;
+}
+function processAnchorId(id: string) {
+  return `proceso-${id}`;
+}
+
+// Al empezar el módulo de procesos quedan ~20 pendientes: listarlos todos
+// empujaba una columna larguísima bajo el botón. Se muestran los primeros
+// y un "y N más"; la lista se vuelve útil sobre todo cuando quedan pocos.
+const MAX_PENDING_SHOWN = 5;
+
+type PendingEntry = { id: string; kind: "item" | "process"; title: string; anchorId: string };
+
 function easeInOutQuad(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 }
@@ -209,8 +229,11 @@ export function OnboardingJourney({
   );
   const quizAlreadyAnswered = quizItem ? answeredQuizIds.has(quizItem.id) : false;
 
-  function advance() {
-    setQuizGateOpen(false);
+  // Mientras se guarda el quiz respondido, el botón de avanzar queda en
+  // "cargando" para que un doble clic no dispare dos avances.
+  const [isAdvancing, setIsAdvancing] = useState(false);
+
+  async function advance() {
     // previewMode (Admin/Editor, sin functionalRoleId): este POST fallaría
     // igual server-side (requireRoleId) y no hay ningún "respondido" real
     // que marcar — mejor no dispararlo que dejarlo fallar en silencio.
@@ -218,14 +241,25 @@ export function OnboardingJourney({
       // Marca el quiz como respondido — reusa el mismo endpoint de "visto
       // pasivo" que ya usa ContentViewTracker para contenido INFORMATIONAL
       // (el quiz es INFORMATIONAL, ver add-quiz-questions.ts): no hace
-      // falta un endpoint nuevo. Best-effort (sin await): si falla, la
-      // próxima carga completa del server vuelve a pedir el quiz — no es
-      // catastrófico, mismo criterio que ContentViewTracker.
+      // falta un endpoint nuevo. Antes iba sin await ni refresh: el topbar
+      // seguía en "Módulo 1" y el módulo 2 aparecía como "Revisando" hasta
+      // recargar, porque el servidor todavía no tenía el registro (ver
+      // hasStarted en progress.service.resolveJourneyFor). Si el POST falla
+      // no se frena el avance: la próxima carga vuelve a pedir el quiz, no
+      // es catastrófico (mismo criterio que ContentViewTracker).
+      setIsAdvancing(true);
       setAnsweredQuizIds((prev) => new Set(prev).add(quizItem.id));
-      fetch(`/api/progress/content/${quizItem.id}/view`, { method: "POST" }).catch(() => {});
+      await fetch(`/api/progress/content/${quizItem.id}/view`, { method: "POST" }).catch(() => {});
+      setIsAdvancing(false);
     }
+    setQuizGateOpen(false);
     if (nextStage) {
       setIndex(index + 1);
+      // Refresh también sin quiz: ContentViewTracker guarda vistas sin
+      // refrescar, así que el currentStageId de esta pantalla (y el topbar
+      // del layout) puede venir atrasado respecto de Mongo. `index` no
+      // depende del prop, así que el refresh no mueve a la persona.
+      if (!previewMode) router.refresh();
     } else if (previewMode) {
       // Preview (Admin/Editor): no hay progreso real que cerrar, pero sí la
       // misma pantalla final que vería un Imaginer — en su propia ruta del
@@ -242,9 +276,40 @@ export function OnboardingJourney({
       // viendo la misma etapa, con el único indicio (FinishCard) arriba del
       // todo, fuera de la vista. Ahora navega a una pantalla de cierre
       // propia — ver completado/page.tsx, que vuelve a pedir el progreso
-      // real al servidor (no hace falta refrescar antes).
+      // real al servidor. El refresh es para el topbar: el layout se
+      // conserva al navegar entre páginas hermanas y, sin él, seguiría
+      // diciendo "Módulo 3 de 3" ya en la pantalla de cierre. Va DESPUÉS
+      // del push (las acciones del router se encolan en orden), así
+      // refresca la ruta nueva; antes del push no alcanzaba.
       router.push("/onboarding/completado");
+      router.refresh();
     }
+  }
+
+  // Lo obligatorio que falta en el módulo que se está viendo — mismo
+  // criterio que usa el servidor para desbloquear el siguiente (items
+  // OBLIGATORY sin leer + procesos con pasos sin completar).
+  const pendingEntries: PendingEntry[] = [
+    ...stage.items
+      .filter((item) => item.displayFormat !== "QUIZ" && item.requirement === "OBLIGATORY" && !item.completed)
+      .map((item) => ({ id: item.id, kind: "item" as const, title: item.title, anchorId: contentItemAnchorId(item.id) })),
+    ...stage.processes
+      .filter((process) => process.steps.some((step) => !step.completed))
+      .map((process) => ({ id: process.id, kind: "process" as const, title: process.title, anchorId: processAnchorId(process.id) })),
+  ];
+  // Un proceso puede estar en una pestaña de grupo que no es la activa (solo
+  // el grupo activo está en el DOM): StageSection recibe el pedido, cambia
+  // de pestaña y abre esa card; el scroll va después de ese render. El nonce
+  // permite repetir el salto a la misma card.
+  const [focusRequest, setFocusRequest] = useState<{ processId: string; nonce: number } | null>(null);
+  function jumpTo(entry: PendingEntry) {
+    if (entry.kind === "process") {
+      setFocusRequest((prev) => ({ processId: entry.id, nonce: (prev?.nonce ?? 0) + 1 }));
+    }
+    requestAnimationFrame(() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById(entry.anchorId)?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+    });
   }
 
   // Al cambiar de módulo (prev/next) se sube al tope de la página: sin esto
@@ -285,6 +350,7 @@ export function OnboardingJourney({
         equipo={equipo}
         pendingContentMessage={pendingContentMessage}
         previewMode={previewMode}
+        focusRequest={focusRequest}
       />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 xl:mt-12 xl:pt-8">
@@ -301,9 +367,10 @@ export function OnboardingJourney({
         {(nextStage ? nextStage.unlocked : stage.status === "COMPLETE") ? (
           <Button
             className="px-4 py-2 text-sm"
+            isLoading={isAdvancing}
             onClick={() => (quizQuestions && !quizAlreadyAnswered ? setQuizGateOpen(true) : advance())}
           >
-            {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
+            {nextStage ? "Siguiente módulo ›" : FINISH_LABEL}
           </Button>
         ) : (
           // Bloqueado: el botón se ve igual, deshabilitado — antes, con el
@@ -312,9 +379,37 @@ export function OnboardingJourney({
           // cómo seguir ni por qué no podía. El aviso sigue siendo opcional.
           <div className="flex flex-col items-end gap-1.5 text-right">
             <Button className="px-4 py-2 text-sm" disabled>
-              {nextStage ? "Siguiente módulo ›" : "🎉 Terminar Onboarding"}
+              {nextStage ? "Siguiente módulo ›" : FINISH_LABEL}
             </Button>
             {blockedNextMessage.enabled && <p className="max-w-xs text-xs text-ink-soft">{blockedNextMessage.text}</p>}
+            {/* El aviso fijo no decía QUÉ falta, y un módulo puede medir
+                ~6000px: había que recorrerlo entero buscando lo pendiente.
+                Se lista cada pendiente con un salto directo a su card
+                (visible aunque el aviso esté desactivado). */}
+            {pendingEntries.length > 0 && (
+              <div className="max-w-xs text-xs text-ink-soft">
+                <p className="font-semibold text-ink">Te falta revisar:</p>
+                <ul className="mt-1 flex flex-col items-end gap-1">
+                  {pendingEntries.slice(0, MAX_PENDING_SHOWN).map((entry) => (
+                    <li key={entry.id}>
+                      <a
+                        href={`#${entry.anchorId}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          jumpTo(entry);
+                        }}
+                        className="font-semibold text-brand-strong underline-offset-2 hover:underline"
+                      >
+                        {entry.title}
+                      </a>
+                    </li>
+                  ))}
+                  {pendingEntries.length > MAX_PENDING_SHOWN && (
+                    <li>y {pendingEntries.length - MAX_PENDING_SHOWN} más</li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -327,8 +422,13 @@ export function OnboardingJourney({
             onAllAnsweredChange={setQuizAllAnswered}
             previewMode={previewMode}
           />
-          <Button className="mt-5 w-full justify-center" onClick={advance} disabled={!previewMode && !quizAllAnswered}>
-            {previewMode ? "Saltar (vista previa) ›" : nextStage ? "Continuar al siguiente módulo ›" : "🎉 Finalizar Onboarding"}
+          <Button
+            className="mt-5 w-full justify-center"
+            onClick={advance}
+            isLoading={isAdvancing}
+            disabled={!previewMode && !quizAllAnswered}
+          >
+            {previewMode ? "Saltar (vista previa) ›" : nextStage ? "Continuar al siguiente módulo ›" : FINISH_LABEL}
           </Button>
           {/* Pedido explícito del usuario: no se puede avanzar sin responder
               las N preguntas (no importa si acertaste, solo que respondiste
@@ -357,6 +457,7 @@ function StageSection({
   equipo,
   pendingContentMessage,
   previewMode = false,
+  focusRequest,
 }: {
   stage: JourneyStage;
   index: number;
@@ -368,6 +469,7 @@ function StageSection({
   equipo: LeaderCardData[];
   pendingContentMessage: GuideMessage;
   previewMode?: boolean;
+  focusRequest: { processId: string; nonce: number } | null;
 }) {
   const groups = groupProcesses(stage.key, stage.processes);
   // Por defecto abre el primer grupo con trabajo pendiente (si ya
@@ -391,6 +493,18 @@ function StageSection({
   function handleSelectGroup(index: number) {
     setGroupIndex(index);
     setOpenProcessId(null);
+  }
+  // Salto desde "Te falta revisar" (ver OnboardingJourney.jumpTo): ajuste
+  // durante el render, mismo patrón que lastKnownUnlocked, en vez de un
+  // efecto con setState.
+  const [handledFocusNonce, setHandledFocusNonce] = useState(0);
+  if (focusRequest && focusRequest.nonce !== handledFocusNonce) {
+    setHandledFocusNonce(focusRequest.nonce);
+    const targetGroup = groups?.findIndex((g) => g.processes.some((p) => p.id === focusRequest.processId)) ?? -1;
+    if (targetGroup >= 0) {
+      setGroupIndex(targetGroup);
+      setOpenProcessId(focusRequest.processId);
+    }
   }
   // Barra de progreso de la fase, en grupos/módulos en vez de pasos sueltos
   // (pedido explícito del usuario): esta fase no tiene content items, así
@@ -508,7 +622,8 @@ function StageSection({
                     )}
                     <Card
                       hover
-                      className="animate-stage-in flex flex-col gap-3"
+                      id={contentItemAnchorId(item.id)}
+                      className="animate-stage-in flex scroll-mt-28 flex-col gap-3"
                       style={{ animationDelay: `${Math.min(itemIndex, 5) * 70}ms` }}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -640,6 +755,36 @@ function StageSection({
 }
 
 /**
+ * A quién aplica cada grupo de ProcessGroupNav — espejo de los bloques
+ * comentados en PROYECTOS_Y_ROL_GROUPS (phase-groups.ts): ciclo de vida
+ * común, grupos propios de cada rol, y los compartidos que cierran el
+ * recorrido. Se mapea por nombre de grupo (mismo criterio de "config de
+ * código" que `icon`/`name` allá); un grupo que no está acá ("Otros", o uno
+ * nuevo) se muestra igual, solo que sin subtítulo.
+ */
+type ProcessGroupKind = "COMMON" | "ROLE" | "SHARED";
+const PROCESS_GROUP_KIND: Record<string, ProcessGroupKind> = {
+  "Inicio del proyecto": "COMMON",
+  Planificación: "COMMON",
+  "Ritmo operativo": "COMMON",
+  "Reportes y seguimiento": "ROLE",
+  "Riesgo y mejora": "ROLE",
+  "Discovery y planificación": "ROLE",
+  "Diseño y sistema": "ROLE",
+  "Entrega y validación": "ROLE",
+  "Gestión de equipo": "SHARED",
+  // Sus procesos son solo de PDM (UX/UI no ve este grupo), aunque en
+  // PROYECTOS_Y_ROL_GROUPS vaya al final, junto al compartido.
+  "Cierre de proyecto": "ROLE",
+};
+const PROCESS_GROUP_KIND_ORDER: ProcessGroupKind[] = ["COMMON", "ROLE", "SHARED"];
+const PROCESS_GROUP_KIND_LABEL: Record<ProcessGroupKind, string> = {
+  COMMON: "Para todos",
+  ROLE: "De tu rol",
+  SHARED: "Compartidos",
+};
+
+/**
  * Navegación secundaria por grupo (Bloque 3): pastillas en vez de tabs
  * tradicionales con contenido fijo — con 3-4 grupos por fase, envuelven
  * bien en mobile (flex-wrap) sin necesitar scroll horizontal ni acordeón.
@@ -655,42 +800,74 @@ function ProcessGroupNav({
   active: number;
   onSelect: (index: number) => void;
 }) {
+  // Las pestañas se veían todas iguales: se separan en bloques con un
+  // subtítulo chico según a quién aplican (comunes → de tu rol →
+  // compartidos → sin tipo). Dentro de cada bloque se respeta el orden de
+  // `groups`, y cada pestaña conserva su índice original, que es lo que usa
+  // onSelect.
+  const sections = ([...PROCESS_GROUP_KIND_ORDER, null] as (ProcessGroupKind | null)[])
+    .map((kind) => ({
+      kind,
+      items: groups
+        .map((group, index) => ({ group, index }))
+        .filter(({ group }) => (PROCESS_GROUP_KIND[group.name] ?? null) === kind),
+    }))
+    .filter((section) => section.items.length > 0);
+
   return (
-    <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-2.5">
-      {groups.map((group, i) => {
-        // Se cuenta por proceso, no por paso — el completado ahora se
-        // dispara de un tirón por proceso entero (CompleteProcessButton),
-        // así que un conteo de pasos sueltos (16/16, 19/19...) ya no refleja
-        // la acción real que hace el usuario. Un proceso sin pasos no entra
-        // en el total: no hay nada que marcarle como completo.
-        const withSteps = group.processes.filter((p) => p.steps.length > 0);
-        const totalProcesses = withSteps.length;
-        const completedProcesses = withSteps.filter((p) => p.steps.every((s) => s.completed)).length;
-        const isActive = i === active;
-        return (
-          <button
-            key={group.name}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onSelect(i)}
-            className={cn(
-              "flex min-w-[140px] flex-col items-start gap-1 rounded-xl border-2 px-4 py-2.5 text-left transition-colors",
-              isActive ? "border-brand bg-brand-tint" : "border-line bg-paper hover:border-brand-soft",
-            )}
-          >
-            <span className="flex items-center gap-1.5 font-display text-sm font-semibold text-ink">
-              <span aria-hidden="true">{group.icon}</span>
-              {group.name}
-            </span>
-            {totalProcesses > 0 && (
-              <span className={cn("font-mono text-xs tabular-nums", isActive ? "text-brand-strong" : "text-ink-soft/70")}>
-                {completedProcesses}/{totalProcesses} procesos
-              </span>
-            )}
-          </button>
-        );
-      })}
+    <div role="tablist" aria-label="Grupos de procesos de esta fase" className="flex flex-wrap gap-x-6 gap-y-4">
+      {sections.map((section) => (
+        <div key={section.items[0].index} className="flex flex-col gap-1.5">
+          {section.kind && (
+            <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">{PROCESS_GROUP_KIND_LABEL[section.kind]}</p>
+          )}
+          <div className="flex flex-wrap gap-2.5">
+            {section.items.map(({ group, index: i }) => {
+              // Se cuenta por proceso, no por paso — el completado ahora se
+              // dispara de un tirón por proceso entero (CompleteProcessButton),
+              // así que un conteo de pasos sueltos (16/16, 19/19...) ya no
+              // refleja la acción real que hace el usuario. Un proceso sin
+              // pasos no entra en el total: no hay nada que marcarle como completo.
+              const withSteps = group.processes.filter((p) => p.steps.length > 0);
+              const totalProcesses = withSteps.length;
+              const completedProcesses = withSteps.filter((p) => p.steps.every((s) => s.completed)).length;
+              const isActive = i === active;
+              return (
+                <button
+                  key={group.name}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => onSelect(i)}
+                  className={cn(
+                    "flex min-w-[140px] flex-col items-start gap-1 rounded-xl border-2 px-4 py-2.5 text-left transition-colors",
+                    isActive ? "border-brand bg-brand-tint" : "border-line bg-paper hover:border-brand-soft",
+                  )}
+                >
+                  <span className="flex items-center gap-1.5 font-display text-sm font-semibold text-ink">
+                    <span aria-hidden="true">{group.icon}</span>
+                    {group.name}
+                  </span>
+                  {totalProcesses > 0 && (
+                    <span className={cn("text-xs tabular-nums", isActive ? "text-brand-strong" : "text-ink-soft/70")}>
+                      {completedProcesses}/{totalProcesses} {totalProcesses === 1 ? "proceso" : "procesos"}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProcessField({ label, children }: { label: string; children: string }) {
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-semibold text-ink-soft">{label}</p>
+      <MarkdownContent className="mt-1">{children}</MarkdownContent>
     </div>
   );
 }
@@ -764,7 +941,7 @@ function ProcessCard({
   }, [isOpen]);
 
   return (
-    <div ref={cardRef} className="scroll-mt-28">
+    <div ref={cardRef} id={processAnchorId(process.id)} className="scroll-mt-28">
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <button type="button" onClick={toggle} aria-expanded={isOpen} className="group flex flex-1 items-start gap-2 text-left">
@@ -782,11 +959,14 @@ function ProcessCard({
           </span>
         </div>
         {pending && pendingContentMessage.enabled && <p className="mt-1 text-xs text-ink-soft">{pendingContentMessage.text}</p>}
-        {process.objective && <MarkdownContent className="mt-1">{process.objective}</MarkdownContent>}
+        {/* Antes objetivo/contexto/resultado iban como tres párrafos sin
+            rótulo y no se distinguía cuál era cuál. Mismo estilo de
+            etiqueta que "🧰 Herramientas" más abajo. */}
+        {process.objective && <ProcessField label="🎯 Para qué">{process.objective}</ProcessField>}
         {isOpen && (
           <>
-            {process.context && <MarkdownContent className="mt-1">{process.context}</MarkdownContent>}
-            {process.expectedResult && <MarkdownContent className="mt-1">{process.expectedResult}</MarkdownContent>}
+            {process.context && <ProcessField label="🕒 Cuándo empieza y termina">{process.context}</ProcessField>}
+            {process.expectedResult && <ProcessField label="✅ Resultado esperado">{process.expectedResult}</ProcessField>}
             {process.resources.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-xs font-semibold text-ink-soft">🧰 Herramientas:</span>

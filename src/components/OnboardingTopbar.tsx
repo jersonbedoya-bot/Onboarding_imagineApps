@@ -22,20 +22,42 @@ type JourneyStage = Awaited<ReturnType<typeof resolveJourney>>["stages"][number]
  * Recursos ya no tiene link propio acá — sus políticas pasaron a ser
  * contenido real dentro de "Tu Día a Día en Imagine Apps" (ver MIGRATIONS.md).
  */
-export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneyStage[]; currentStageId: string | null }) {
+export function OnboardingTopbar({
+  stages,
+  currentStageId,
+  finalQuizPending,
+}: {
+  stages: JourneyStage[];
+  currentStageId: string | null;
+  /**
+   * true cuando ya no queda nada obligatorio (currentStageId === null) pero
+   * el quiz del último módulo sigue sin responder — ver layout.tsx. Antes
+   * esta barra decía "Recorrido completo" apenas se marcaba el último
+   * proceso, ANTES del quiz final: el cierre real es pasar ese quiz.
+   */
+  finalQuizPending: boolean;
+}) {
   const pathname = usePathname();
   // Antes sumaba +1 a totalPhases/completedPhases (una fase "fantasma" para
   // representar el cierre) — eso hacía que acá dijera "Fase 3 de 4" mientras
   // StageSection, con el total real de etapas, decía "Fase 3 de 3" (ver
   // feedback de usuario). Mismo total en los dos lados: stages.length.
   const totalPhases = stages.length;
-  const currentIndex = stages.findIndex((stage) => stage.id === currentStageId);
-  const allPhasesComplete = currentStageId === null && stages.every((stage) => stage.status === "COMPLETE");
+  const lastIndex = stages.length - 1;
+  // Con el quiz final pendiente, la persona sigue en el último módulo aunque
+  // currentStageId ya sea null (nada obligatorio pendiente).
+  const currentIndex = finalQuizPending ? lastIndex : stages.findIndex((stage) => stage.id === currentStageId);
+  const allPhasesComplete = currentStageId === null && !finalQuizPending && stages.every((stage) => stage.status === "COMPLETE");
   // Un módulo solo de lectura (readOnly) figura COMPLETE desde el inicio;
   // se cuenta como hecho recién cuando la persona ya pasó de él — si no, el
   // primer día arrancaba en "1/3" sin haber hecho nada.
+  // El último módulo tampoco cuenta como hecho mientras su quiz siga
+  // pendiente: si no, la barra llegaba a 3/3 antes del cierre real.
   const completedPhases = stages.filter(
-    (stage, i) => stage.status === "COMPLETE" && (!stage.readOnly || allPhasesComplete || i < currentIndex),
+    (stage, i) =>
+      stage.status === "COMPLETE" &&
+      (!stage.readOnly || allPhasesComplete || i < currentIndex) &&
+      !(finalQuizPending && i === lastIndex),
   ).length;
   const phaseLabel = allPhasesComplete
     ? "Recorrido completo"
@@ -46,8 +68,12 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-paper/60 backdrop-blur">
-      <div className="mx-auto max-w-5xl px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
-        <div className="flex items-center gap-4">
+      {/* Debajo de sm: padding lateral de 16px (px-4), gap más chico y
+          "Cerrar sesión" solo con ícono (ver UserMenu compactOnMobile) — con
+          px-6 + gap-4 la fila medía 440px en un celular de 390 y el botón
+          se cortaba ("Cerrar se…"). */}
+      <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/onboarding">
             <Logo className="text-base xl:text-lg" />
           </Link>
@@ -59,11 +85,11 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
             <span className="whitespace-nowrap text-xs text-ink-soft xl:text-sm">{phaseLabel}</span>
           </div>
 
-          <nav className="ml-auto flex items-center gap-1 xl:gap-2">
+          <nav className="ml-auto flex min-w-0 items-center gap-1 xl:gap-2">
             <TopbarLink href="/onboarding/leaders" active={pathname === "/onboarding/leaders"}>
               Nuestro equipo
             </TopbarLink>
-            <UserMenu />
+            <UserMenu compactOnMobile />
           </nav>
         </div>
 

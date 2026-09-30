@@ -61,7 +61,7 @@ export function RoleForm() {
           autoFocus
           value={label}
           onChange={(event) => setLabel(event.target.value)}
-          placeholder="Ej. Contabilidad, Ventas, Diseño…"
+          placeholder="Ej. PDM, UX/UI Designer…"
         />
         <p className="-mt-2 text-xs text-ink-soft">
           Va a aparecer así en &quot;Rol funcional&quot; al invitar a un Imaginer, y al elegir el alcance de contenido, procesos y líderes específicos por rol.

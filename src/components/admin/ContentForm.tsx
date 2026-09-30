@@ -170,11 +170,18 @@ export function ContentForm({
         const questions = parseQuizQuestions(text);
         // key={text}: sin esto React reusa la misma instancia de QuizBlock
         // mientras se edita (mismo lugar en el árbol) y su estado interno
-        // (barajado + respuestas) queda pegado al primer montaje — remonta
-        // en cada cambio para que la vista previa siempre refleje el texto
-        // actual, no el de cuando se abrió el formulario.
+        // (respuestas) queda pegado al primer montaje — remonta en cada
+        // cambio para que la vista previa siempre refleje el texto actual.
+        // editorPreview: en el orden escrito y con la correcta marcada, para
+        // que la "Pregunta 1" de la vista previa sea la de los campos; la
+        // nota aclara que al Imaginer sí le salen barajadas.
         if (!questions) break;
-        return <QuizBlock key={text} contentItemId="" questions={questions} previewMode questionsPerAttempt={questions.length} />;
+        return (
+          <>
+            <p className="mb-3 text-xs text-ink-soft">Al Imaginer las opciones le salen en orden aleatorio.</p>
+            <QuizBlock key={text} contentItemId="" questions={questions} previewMode editorPreview questionsPerAttempt={questions.length} />
+          </>
+        );
       }
     }
     return <MarkdownContent>{text}</MarkdownContent>;
@@ -249,7 +256,7 @@ export function ContentForm({
     }
 
     if (mode === "edit" && initial) {
-      const atRisk = fieldsThatLostFormatting([{ label: "Cuerpo", before: initial.body, after: body }]);
+      const atRisk = fieldsThatLostFormatting([{ label: "Texto", before: initial.body, after: body }]);
       if (atRisk.length > 0) {
         setLossWarningFields(atRisk);
         return;
@@ -333,7 +340,7 @@ export function ContentForm({
 
         {structured ? (
           <>
-            <p className="-mt-2 text-xs text-ink-soft">Completa los campos: el diseño se arma solo, sin escribir ningún símbolo.</p>
+            <p className="-mt-2 text-xs text-ink-soft">Completa los campos y el diseño se arma solo.</p>
             <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
               <StructuredContentEditor value={structured} onChange={updateStructured} />
               <div className="flex flex-col gap-1 md:sticky md:top-0 md:self-start">
@@ -352,7 +359,7 @@ export function ContentForm({
             {displayFormat !== "PROSE" && <p className="-mt-2 text-xs text-ink-soft">{CONTENT_DISPLAY_FORMAT_HINTS[displayFormat]}</p>}
             <MarkdownTextarea
               id="content-body"
-              label="Cuerpo (admite Markdown)"
+              label="Texto"
               required
               value={body}
               onChange={(event) => setBody(event.target.value)}

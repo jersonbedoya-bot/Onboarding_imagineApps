@@ -1,6 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listStepsByProcess } from "@/server/services/step.service";
 import * as processRepository from "@/server/repositories/process.repository";
 import * as stageRepository from "@/server/repositories/stage.repository";
@@ -21,8 +22,8 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
   let identity;
   try {
     identity = await requireContentEditor();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
   const canManageLifecycle = identity.platformRole === "ADMIN";
 

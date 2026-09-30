@@ -33,6 +33,14 @@
   --color-danger: #d4634a;
   --color-danger-soft: rgba(212, 99, 74, 0.18);
 
+  /* Tono por grupo de la nav del admin (AdminNav.tsx): solo marca el punto
+     del título y el icono de las pestañas inactivas, para que cada grupo se
+     reconozca de un vistazo. Violetas/aguamarina a propósito: el naranja
+     (brand) queda reservado para la pestaña activa, sin competencia. */
+  --color-group-people: #9b7bff;
+  --color-group-content: #d58cff;
+  --color-group-review: #5fd3c6;
+
   /* Sobreescriben la escala de radios/sombras por defecto de Tailwind:
      rounded-sm/md/lg/xl y shadow-sm/md/lg ya salen con el look de marca. */
   --radius-sm: 8px;
@@ -53,6 +61,21 @@
    `fixed` propio, no en `background-attachment: fixed` del body — ese
    approach se rompe en páginas largas (el gradiente queda anclado al
    viewport inicial y el resto del scroll se ve sin fondo). */
+/* Pantallas grandes: toda la escala de Tailwind (texto, espaciado, anchos
+   máximos) está en rem, así que subir el font-size raíz agranda la app
+   entera en proporción — sin tocar componente por componente ni romper el
+   layout. Por debajo de 1536px no cambia nada. */
+@media (min-width: 1536px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+@media (min-width: 1920px) {
+  html {
+    font-size: 125%;
+  }
+}
+
 body {
   position: relative;
   background-color: var(--color-paper);
@@ -135,4 +158,16 @@ button:disabled,
 input:disabled,
 select:disabled {
   cursor: not-allowed;
+}
+
+/*
+ * Fila con scroll horizontal sin la barra nativa (nav del admin en
+ * celular): la barra gris ocupaba alto y se veía como un error; la pista
+ * de "hay más" la da el degradado del borde derecho (AdminNav.tsx).
+ */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

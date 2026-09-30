@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listUsers } from "@/server/services/user.service";
 import { resolveJourneyFor } from "@/server/services/progress.service";
 import { listInvitations } from "@/server/services/invitation.service";
@@ -23,8 +23,8 @@ export default async function AdminUsersPage() {
   let identity;
   try {
     identity = await requireAdmin();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   // pageSize alto a propósito: antes se usaba el default del service (20) y
@@ -70,7 +70,14 @@ export default async function AdminUsersPage() {
 
   return (
     <div>
-      <PageHeader title="Usuarios" description="Gestión de acceso y rol funcional de tu organización." />
+      {/* La acción principal va en el encabezado, arriba a la derecha (como en
+          Módulos/Mensajes) — antes quedaba después de las dos listas, a mitad
+          de página, y con muchas personas había que bajar para encontrarla. */}
+      <PageHeader
+        title="Usuarios"
+        description="Gestión de acceso y rol funcional de tu organización."
+        action={<InviteUserForm roles={roleOptions} />}
+      />
 
       <PasswordResetRequests
         requests={passwordResetRequests.map((request) => ({ ...request, requestedAt: request.requestedAt.toISOString() }))}
@@ -188,10 +195,6 @@ export default async function AdminUsersPage() {
           ]}
         />
       </section>
-
-      <div className="mt-8">
-        <InviteUserForm roles={roleOptions} />
-      </div>
 
       <div className="mt-10">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Invitaciones</h2>

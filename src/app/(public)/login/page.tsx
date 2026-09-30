@@ -32,7 +32,8 @@ export default function LoginPage() {
       }
       // Mensaje genérico: nunca distinguimos "no existe" de "password incorrecta"
       // ni de "cuenta no activa" — esa distinción solo vive en los logs del servidor.
-      setError("Credenciales inválidas o cuenta no activa.");
+      // Sin "credenciales": es jerga; el texto sirve igual para una cuenta no activa.
+      setError("El email o la contraseña no son correctos.");
       return;
     }
 
@@ -60,7 +61,11 @@ export default function LoginPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <Link href="/forgot-password" className="self-end text-xs font-semibold text-ink-soft hover:text-brand-strong">
+          {/* py-2.5 + -my-2: área táctil de ≥ 32px sin mover el layout ni cambiar el look. */}
+          <Link
+            href="/forgot-password"
+            className="-my-2 self-end py-2.5 pl-2 text-xs font-semibold text-ink-soft hover:text-brand-strong"
+          >
             ¿Olvidaste tu contraseña?
           </Link>
         </div>

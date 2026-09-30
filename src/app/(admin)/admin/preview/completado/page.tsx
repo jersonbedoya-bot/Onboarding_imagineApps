@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireContentEditor } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { LinkButton } from "@/components/Button";
 import { OnboardingCompletion } from "@/components/OnboardingCompletion";
@@ -13,8 +13,8 @@ import { OnboardingCompletion } from "@/components/OnboardingCompletion";
 export default async function AdminPreviewCompletadoPage() {
   try {
     await requireContentEditor();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   return (

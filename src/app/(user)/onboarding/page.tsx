@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
 import { RouteHeader } from "@/components/RouteHeader";
 import { OnboardingJourney } from "./OnboardingJourney";
+import { isFinalQuizPending } from "@/lib/final-quiz";
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ stage?: string }> }) {
   // El layout de /onboarding ya garantiza sesión activa + rol funcional
@@ -44,7 +45,19 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   // ?stage=<id>: sin UI propia hoy (ver comentario en OnboardingTopbar),
   // pero page.tsx lo sigue aceptando por si se reintroduce un salto directo
   // más adelante.
-  const selectedStageId = requestedStageId ?? journey.currentStageId;
+  //
+  // currentStageId === null solo dice que no queda nada OBLIGATORIO: el quiz
+  // del último módulo (INFORMATIONAL) puede seguir sin responder. Antes
+  // "¡Completaste tu onboarding!" salía apenas se marcaba el último proceso,
+  // antes de ese quiz. Pasarlo deja su registro `view` (ver
+  // OnboardingJourney.advance) = item.viewed. Regla única en src/lib/final-quiz.ts
+  // (topbar); solo cuenta un quiz parseable, porque uno roto nunca abre el
+  // gate y dejaría el recorrido sin cierre posible.
+  const lastStage = journey.stages.at(-1);
+  const finalQuizPending = isFinalQuizPending(journey);
+  // Con el quiz final pendiente se abre en el último módulo (donde vive su
+  // botón), no en el primero (lo que daba currentStageId null).
+  const selectedStageId = requestedStageId ?? (finalQuizPending ? lastStage!.id : journey.currentStageId);
 
   // El manifiesto grande es la bienvenida — se muestra en cada visita
   // mientras la fase actual del usuario (no la vista por ?stage=) sea la
@@ -55,7 +68,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
 
   return (
     <main className="mx-auto max-w-5xl px-6 pb-24 pt-10 lg:px-12 xl:max-w-6xl xl:px-16">
-      {journey.currentStageId === null ? (
+      {journey.currentStageId === null && !finalQuizPending ? (
         <FinishCard />
       ) : isFirstStage ? (
         <RouteHeader headline={routeContent.headline} subtitle={routeContent.subtitle} />

@@ -48,6 +48,12 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Desactivar pide confirmación (antes se ejecutaba al primer click desde
+  // el menú, sin aviso, y le cortaba el acceso a la persona). Reactivar no:
+  // devuelve el acceso y no hay nada que perder.
+  const [isConfirmingDeactivate, setIsConfirmingDeactivate] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
   // Restablecer contraseña — no hay envío de correo: lo recomendado es un
   // enlace de un solo uso para que la persona elija la suya (ver
   // PasswordResetLinkGenerator); fijarla a mano (user.service.resetPassword)
@@ -87,7 +93,10 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
 
   async function handleToggleStatus() {
     const action = status === "ACTIVE" ? "deactivate" : "reactivate";
+    setIsTogglingStatus(true);
     await callAction(`/api/users/${userId}/${action}`);
+    setIsTogglingStatus(false);
+    setIsConfirmingDeactivate(false);
   }
 
   async function handleDelete() {
@@ -175,7 +184,7 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
     ...(functionalRoleId ? [{ label: "Reiniciar onboarding", onClick: () => setIsConfirmingReset(true) }] : []),
     {
       label: status === "ACTIVE" ? "Desactivar" : "Reactivar",
-      onClick: handleToggleStatus,
+      onClick: status === "ACTIVE" ? () => setIsConfirmingDeactivate(true) : handleToggleStatus,
       disabled: isSelf,
       danger: status === "ACTIVE",
     },
@@ -285,6 +294,16 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
         isLoading={isResettingOnboarding}
         onConfirm={handleResetOnboarding}
         onClose={() => setIsConfirmingReset(false)}
+      />
+
+      <ConfirmModal
+        open={isConfirmingDeactivate}
+        title={`Desactivar a ${userName}`}
+        description="Ya no podrá entrar hasta que lo reactives. Su progreso se conserva."
+        confirmLabel="Sí, desactivar"
+        isLoading={isTogglingStatus}
+        onConfirm={handleToggleStatus}
+        onClose={() => setIsConfirmingDeactivate(false)}
       />
 
       <ConfirmModal

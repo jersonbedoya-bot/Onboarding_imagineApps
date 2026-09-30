@@ -12,15 +12,30 @@ export const CONTENT_REQUIREMENT_LABELS: Record<ContentRequirement, string> = {
   INFORMATIONAL: "Informativo — solo de consulta, no bloquea nada",
 };
 
-// Ver src/lib/content-display.ts para el detalle de qué patrón de texto
-// espera cada formato dentro de "Cuerpo".
+// Nombre corto de cada formato — el de la columna "Tipo" en la tabla de
+// contenido de un módulo. Antes esa columna mostraba el tipo de medio
+// (CONTENT_TYPE_LABELS), que es "Texto" para casi todo, así que no se
+// distinguía un quiz de una línea de tiempo.
+export const CONTENT_DISPLAY_FORMAT_SHORT_LABELS: Record<ContentDisplayFormat, string> = {
+  PROSE: "Texto",
+  FACT_GRID: "Tarjetas",
+  VALUES_GRID: "Valores",
+  TIMELINE: "Línea de tiempo",
+  STEPS: "Pasos",
+  QUIZ: "Quiz",
+};
+
+// Opciones del select "Formato de visualización" (ContentForm): empiezan
+// con el mismo nombre corto de la tabla, para que se reconozcan en ambos
+// lugares. Ver src/lib/content-display.ts para el detalle de qué patrón de
+// texto espera cada formato dentro del campo "Texto".
 export const CONTENT_DISPLAY_FORMAT_LABELS: Record<ContentDisplayFormat, string> = {
-  PROSE: "Narrativa (texto plano)",
-  FACT_GRID: "Hechos paralelos (tarjetas siempre visibles)",
-  VALUES_GRID: "Valores/cultura (tarjetas con clic para descubrir)",
-  TIMELINE: "Cronología (línea de tiempo)",
-  STEPS: "Procedimiento (pasos numerados)",
-  QUIZ: "Quiz de opción múltiple",
+  PROSE: "Texto (párrafos normales)",
+  FACT_GRID: "Tarjetas (datos sueltos, siempre visibles)",
+  VALUES_GRID: "Valores (tarjetas que se abren con un clic)",
+  TIMELINE: "Línea de tiempo (hitos en orden)",
+  STEPS: "Pasos (procedimiento numerado)",
+  QUIZ: "Quiz (preguntas de opción múltiple)",
 };
 
 export const CONTENT_DISPLAY_FORMAT_HINTS: Record<ContentDisplayFormat, string> = {

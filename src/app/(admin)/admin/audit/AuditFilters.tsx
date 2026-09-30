@@ -32,8 +32,8 @@ export function AuditFilters({
 }) {
   return (
     <Card as="form" method="get" action="/admin/audit" className="mb-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <Select id="userId" name="userId" label="Usuario" defaultValue={selected.userId ?? ""} className="w-auto">
+      <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <Select id="userId" name="userId" label="Usuario" defaultValue={selected.userId ?? ""}>
           <option value="">Todos</option>
           {users.map((user) => (
             <option key={user.id} value={user.id}>
@@ -42,7 +42,7 @@ export function AuditFilters({
           ))}
         </Select>
 
-        <Select id="action" name="action" label="Acción" defaultValue={selected.action ?? ""} className="w-auto">
+        <Select id="action" name="action" label="Acción" defaultValue={selected.action ?? ""}>
           <option value="">Todas</option>
           {groupActions(actions).map(({ group, actions: groupedActions }) => (
             <optgroup key={group} label={group}>
@@ -55,8 +55,8 @@ export function AuditFilters({
           ))}
         </Select>
 
-        <Input id="from" label="Desde" type="date" name="from" defaultValue={selected.from ?? ""} className="w-auto" />
-        <Input id="to" label="Hasta" type="date" name="to" defaultValue={selected.to ?? ""} className="w-auto" />
+        <Input id="from" label="Desde" type="date" name="from" defaultValue={selected.from ?? ""} />
+        <Input id="to" label="Hasta" type="date" name="to" defaultValue={selected.to ?? ""} />
 
         <Button type="submit" className="px-5 py-2 text-sm">
           Filtrar

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireActiveUser } from "@/server/auth/session";
 import { resolveJourney } from "@/server/services/progress.service";
 import { OnboardingCompletion } from "@/components/OnboardingCompletion";
+import { isFinalQuizPending } from "@/lib/final-quiz";
 
 /**
  * Pantalla propia para el cierre del onboarding — antes "Terminar
@@ -17,7 +18,9 @@ export default async function OnboardingCompletadoPage() {
 
   // Llegada por URL directa/compartida antes de terminar de verdad: no hay
   // nada que celebrar todavía, de vuelta al recorrido real.
-  if (journey.currentStageId !== null) {
+  // El quiz final pendiente también cuenta como "no terminado" (misma regla
+  // que el topbar y la FinishCard).
+  if (journey.currentStageId !== null || isFinalQuizPending(journey)) {
     redirect("/onboarding");
   }
 

@@ -5,6 +5,7 @@ import { resolveJourney } from "@/server/services/progress.service";
 import { OnboardingTopbar } from "@/components/OnboardingTopbar";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
+import { isFinalQuizPending } from "@/lib/final-quiz";
 
 /**
  * Chrome compartido de todo /onboarding/* (recorrido, equipo). Antes había
@@ -51,10 +52,12 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
   }
 
   const journey = await resolveJourney(identity);
+  // Quiz del último módulo todavía sin pasar (ver src/lib/final-quiz.ts).
+  const finalQuizPending = isFinalQuizPending(journey);
 
   return (
     <div className="min-h-screen">
-      <OnboardingTopbar stages={journey.stages} currentStageId={journey.currentStageId} />
+      <OnboardingTopbar stages={journey.stages} currentStageId={journey.currentStageId} finalQuizPending={finalQuizPending} />
       {children}
     </div>
   );

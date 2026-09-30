@@ -218,7 +218,7 @@ function IntroField({ id, label, value, onChange }: { id: string; label: string;
   return (
     <div className="flex flex-col gap-1">
       <Textarea id={id} label={label} rows={2} value={value} onChange={(e) => onChange(e.target.value)} />
-      <p className="text-xs text-ink-soft/80">Texto libre. Si una línea empieza con «### », se muestra como subtítulo.</p>
+      <p className="text-xs text-ink-soft/80">Texto libre. Opcional: si quieres un subtítulo, empieza esa línea con «### ».</p>
     </div>
   );
 }

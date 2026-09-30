@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listAuditLog } from "@/server/services/audit.service";
 import { listUsers } from "@/server/services/user.service";
 import { AUDIT_ACTIONS, type AuditAction } from "@/server/repositories/audit.repository";
@@ -21,8 +21,8 @@ export default async function AdminAuditPage({
   let identity;
   try {
     identity = await requireAdmin();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   const params = await searchParams;
@@ -58,7 +58,11 @@ export default async function AdminAuditPage({
         columns={[
           {
             header: "Fecha",
-            render: (item) => new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(item.timestamp),
+            render: (item) => (
+              <span className="whitespace-nowrap">
+                {new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(item.timestamp)}
+              </span>
+            ),
           },
           { header: "Usuario", render: (item) => usersById.get(item.userId.toString()) ?? item.userId.toString() },
           { header: "Acción", render: (item) => AUDIT_ACTION_LABELS[item.action] ?? item.action },

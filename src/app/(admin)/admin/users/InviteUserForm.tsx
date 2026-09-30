@@ -10,7 +10,7 @@ import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 type RoleOption = { id: string; label: string };
 
 const PLATFORM_ROLE_DESCRIPTIONS: Record<"USER" | "EDITOR" | "ADMIN", string> = {
-  USER: "Hace el recorrido de onboarding. Necesita un rol funcional (ej. Diseño, Ventas) — se lo asignas abajo.",
+  USER: "Hace el recorrido de onboarding. Necesita un rol funcional (ej. PDM, UX/UI Designer) — se lo asignas abajo.",
   EDITOR: "Puede crear y editar contenido, procesos y líderes del onboarding, pero no puede borrar/archivar nada ni gestionar usuarios ni roles.",
   ADMIN: "Gestiona todo el panel: usuarios, permisos y contenido. No hace el recorrido de onboarding.",
 };
@@ -112,7 +112,7 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
         <div className="flex flex-col gap-4">
           <div className="rounded-md border border-brand-soft bg-brand-tint p-4">
             <p className="mb-1 text-sm text-ink">
-              La plataforma no envía correos: copia este mensaje y envíaselo tú a la persona (por correo, Slack o WhatsApp).
+              La plataforma no envía correos: copia este mensaje y envíaselo tú a la persona. Compártelo por Google Chat o por correo.
             </p>
             <p className="mb-2 text-sm font-semibold text-ink">
               ⚠️ Este mensaje no se vuelve a mostrar — cópialo antes de cerrar esta ventana.
@@ -133,7 +133,7 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
 
           <Select
             id="invite-platform-role"
-            label="Tipo de cuenta"
+            label="Nivel de acceso"
             value={platformRole}
             onChange={(event) => setPlatformRole(event.target.value as "USER" | "EDITOR" | "ADMIN")}
           >

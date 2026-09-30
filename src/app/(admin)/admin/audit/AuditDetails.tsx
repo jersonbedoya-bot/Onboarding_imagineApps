@@ -27,7 +27,7 @@ export function AuditDetails({ metadata }: { metadata: Record<string, unknown> }
     if (platformRole) {
       return (
         <span className="text-xs text-ink-soft">
-          <span className="font-semibold text-ink">Tipo de cuenta:</span> {AUDIT_PLATFORM_ROLE_LABELS[platformRole] ?? platformRole}
+          <span className="font-semibold text-ink">Nivel de acceso:</span> {AUDIT_PLATFORM_ROLE_LABELS[platformRole] ?? platformRole}
         </span>
       );
     }

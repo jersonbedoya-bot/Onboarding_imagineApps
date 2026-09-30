@@ -26,6 +26,7 @@ export type IconName =
   | "edit"
   | "eye"
   | "grid"
+  | "history"
   | "home"
   | "list"
   | "logout"
@@ -100,6 +101,15 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
+  // Reloj con flecha de "volver atrás": registro de lo que pasó (Auditoría),
+  // distinto del ojo, que queda para "ver cómo se ve" (Vista previa).
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 2.64-6.36" />
+      <path d="M3 4v4h4" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
   home: (
     <>
       <path d="M3 11l9-8 9 8" />
@@ -167,7 +177,14 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M16 3.1a4 4 0 0 1 0 7.8" />
     </>
   ),
-  view: <path d="M2 12s4-9 10-9 10 9 10 9-4 9-10 9-10-9-10-9z" />,
+  // Antes era solo el contorno (sin pupila) y a 14px se leía como un
+  // círculo vacío; con la pupila se reconoce como ojo.
+  view: (
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = "md", className, ...rest }: IconProps) {
@@ -200,6 +217,7 @@ const ICON_LABELS: Record<IconName, string> = {
   edit: "Editar",
   eye: "Visibilidad",
   grid: "Módulos",
+  history: "Historial",
   home: "Inicio",
   list: "Lista",
   logout: "Cerrar sesión",

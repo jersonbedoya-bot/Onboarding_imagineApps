@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireContentEditor } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { ensureRoute } from "@/server/services/route.service";
 import { listStages } from "@/server/services/stage.service";
 import { listContentByStage } from "@/server/services/content.service";
@@ -24,8 +24,8 @@ export default async function AdminModulesPage() {
   let identity;
   try {
     identity = await requireContentEditor();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
   // EDITOR entra a ver/editar contenido de cada módulo, pero no gestiona la
   // estructura en sí (crear/editar/publicar/archivar/borrar módulos, ni la
@@ -81,10 +81,13 @@ export default async function AdminModulesPage() {
         title="Módulos"
         description="Cada módulo agrupa su contenido y sus procesos en un solo lugar."
         action={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold text-ink-soft">Estado del onboarding:</span>
             <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[route.status]}</Badge>
             {canManageStages && <RouteActions status={route.status} />}
+            {/* "+ Agregar módulo" junto al estado, arriba a la derecha — antes
+                quedaba al final, después de todas las tarjetas. */}
+            {canManageStages && <StageForm existingStages={stageOptions} variant="modal" />}
           </div>
         }
       />
@@ -98,12 +101,6 @@ export default async function AdminModulesPage() {
       <ArchivedSection count={archivedStages.length}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{archivedStages.map(renderCard)}</div>
       </ArchivedSection>
-
-      {canManageStages && (
-        <div className="mt-8">
-          <StageForm existingStages={stageOptions} variant="modal" />
-        </div>
-      )}
     </div>
   );
 }

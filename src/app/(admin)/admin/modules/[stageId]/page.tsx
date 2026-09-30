@@ -1,6 +1,8 @@
-import { notFound, redirect } from "next/navigation";
+import { Fragment } from "react";
+import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireContentEditor } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listStages } from "@/server/services/stage.service";
 import * as stageRepository from "@/server/repositories/stage.repository";
 import { listContentByStage } from "@/server/services/content.service";
@@ -14,7 +16,7 @@ import { Icon } from "@/components/Icon";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ModuleSummaryBadge, countByStatus } from "@/components/ModuleSummaryBadge";
 import { ArchivedSection } from "@/components/admin/ArchivedSection";
-import { CONTENT_TYPE_LABELS } from "@/lib/content-labels";
+import { CONTENT_DISPLAY_FORMAT_SHORT_LABELS } from "@/lib/content-labels";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { StageActions } from "@/components/admin/StageActions";
 import { ContentForm } from "@/components/admin/ContentForm";
@@ -27,8 +29,8 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   let identity;
   try {
     identity = await requireContentEditor();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
   // Mismo criterio que /admin/modules: EDITOR edita el contenido/procesos
   // de este módulo, no la estructura del módulo en sí.
@@ -76,7 +78,9 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
     return [
       { header: "Orden", render: (item: (typeof content)[number]) => item.order },
       { header: "Título", render: (item: (typeof content)[number]) => item.title },
-      { header: "Tipo", render: (item: (typeof content)[number]) => CONTENT_TYPE_LABELS[item.type] },
+      // El formato de presentación (Quiz, Línea de tiempo…), no el tipo de
+      // medio: este último es "Texto" para casi todo y no distinguía nada.
+      { header: "Tipo", render: (item: (typeof content)[number]) => CONTENT_DISPLAY_FORMAT_SHORT_LABELS[item.displayFormat] },
       {
         header: "Alcance",
         render: (item: (typeof content)[number]) =>
@@ -117,10 +121,13 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   // Celdas ya renderizadas en el servidor — ReorderableDataTable es un
   // Client Component, no puede recibir los documentos de Mongo (ObjectId)
   // ni las funciones `render` cruzando ese límite, solo JSX ya resuelto.
+  // Cada celda va en un Fragment con key: es un array de elementos que
+  // viaja al cliente, y sin key React avisa "Each child in a list should
+  // have a unique key" (aunque la tabla después le ponga key a cada <td>).
   const contentRows = activeContent.map((item) => ({
     id: item._id.toString(),
     order: item.order,
-    cells: contentColumns.map((column) => column.render(item)),
+    cells: contentColumns.map((column) => <Fragment key={column.header}>{column.render(item)}</Fragment>),
   }));
 
   function buildProcessColumns() {
@@ -165,7 +172,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
   const processRows = activeProcesses.map((item) => ({
     id: item._id.toString(),
     order: item.order,
-    cells: processColumns.map((column) => column.render(item)),
+    cells: processColumns.map((column) => <Fragment key={column.header}>{column.render(item)}</Fragment>),
   }));
 
   return (

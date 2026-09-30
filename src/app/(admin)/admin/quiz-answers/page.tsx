@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listQuizAnswers } from "@/server/services/quiz-answer.service";
 import { listQuizItems } from "@/server/services/content.service";
 import { listUsers } from "@/server/services/user.service";
@@ -26,8 +26,8 @@ export default async function AdminQuizAnswersPage({
   let identity;
   try {
     identity = await requireAdmin();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   const params = await searchParams;

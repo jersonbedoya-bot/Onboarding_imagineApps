@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/Field";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 
 export function AcceptInviteForm({ token }: { token: string }) {
   const router = useRouter();
@@ -41,11 +42,12 @@ export function AcceptInviteForm({ token }: { token: string }) {
       <PasswordInput
         id="password"
         label="Crea tu contraseña"
-        placeholder="Mínimo 8 caracteres, con letra y número"
         required
+        aria-describedby="password-requirements"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
       />
+      <PasswordRequirements id="password-requirements" password={password} />
       {error && (
         <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}

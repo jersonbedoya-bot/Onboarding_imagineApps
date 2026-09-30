@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
 import { requireContentEditor } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { resolveJourneyPreview } from "@/server/services/progress.service";
 import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service";
 import { getRouteContent } from "@/server/services/route.service";
@@ -30,8 +30,8 @@ export default async function AdminPreviewPage({ searchParams }: { searchParams:
   let identity;
   try {
     identity = await requireContentEditor();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   const [{ role: roleIdParam }, roles] = await Promise.all([searchParams, roleRepository.listByTenant(identity.tenantId)]);

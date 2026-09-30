@@ -13,7 +13,7 @@ const ADMIN_SECTION_NAME = "Onboarding de Operaciones";
 
 // Chrome compartido por TODO /admin — evita repetir el contenedor, la
 // franja superior y la nav en cada page.tsx. Cada page.tsx sigue haciendo
-// su propio guard (requireAdmin/requireContentEditor) + redirect a /login;
+// su propio guard (requireAdmin/requireContentEditor) + redirectForGuardError (src/server/auth/guard-redirect.ts);
 // acá solo se necesita saber el platformRole para filtrar la nav de EDITOR
 // (sin Usuarios/Auditoría/Mensajes) — por eso el catch cae a "USER" en vez
 // de redirigir, dejando que el guard de la page propia sea quien de verdad
@@ -38,8 +38,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="border-b border-line bg-paper/60 backdrop-blur">
         <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-6 py-3">
           <Logo className="flex-shrink-0 text-base" />
-          <span aria-hidden className="h-4 w-px flex-shrink-0 bg-line" />
-          <span className="min-w-0 flex-shrink truncate text-xs font-bold uppercase tracking-widest text-brand-strong">
+          {/* Oculto por debajo de sm: en celular no entra junto al logo y al
+              menú de usuario y quedaba truncado ("ONBOARDIN…"). */}
+          <span aria-hidden className="hidden h-4 w-px flex-shrink-0 bg-line sm:block" />
+          <span className="hidden min-w-0 flex-shrink truncate text-xs font-bold uppercase tracking-widest text-brand-strong sm:block">
             {ADMIN_SECTION_NAME}
           </span>
           <div className="flex-1" />

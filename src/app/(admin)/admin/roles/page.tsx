@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { listRolesForAdmin } from "@/server/services/role.service";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -23,8 +23,8 @@ export default async function AdminRolesPage() {
   let identity;
   try {
     identity = await requireAdmin();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   const roles = await listRolesForAdmin(identity);
@@ -53,17 +53,14 @@ export default async function AdminRolesPage() {
     <div>
       <PageHeader
         title="Roles funcionales"
-        description="Los roles que puedes asignar a un Imaginer al invitarlo (ej. Diseño, Ventas) — determinan qué contenido, procesos y líderes ve en su recorrido, además de lo común a todos."
+        description="Los roles que puedes asignar a un Imaginer al invitarlo (ej. PDM, UX/UI Designer) — determinan qué contenido, procesos y líderes ve en su recorrido, además de lo común a todos."
+        action={<RoleForm />}
       />
 
-      <DataTable rows={activeRoles} rowKey={(role) => role._id.toString()} emptyMessage="Todavía no hay roles funcionales — crea el primero abajo." columns={columns} />
+      <DataTable rows={activeRoles} rowKey={(role) => role._id.toString()} emptyMessage="Todavía no hay roles funcionales — crea el primero con “+ Crear rol funcional”." columns={columns} />
       <ArchivedSection count={inactiveRoles.length} label="inactivos">
         <DataTable rows={inactiveRoles} rowKey={(role) => role._id.toString()} emptyMessage="Sin roles inactivos." columns={columns} />
       </ArchivedSection>
-
-      <div className="mt-8">
-        <RoleForm />
-      </div>
     </div>
   );
 }

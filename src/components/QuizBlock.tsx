@@ -63,6 +63,7 @@ export function QuizBlock({
   onAllAnsweredChange,
   previewMode = false,
   questionsPerAttempt = QUESTIONS_PER_ATTEMPT,
+  editorPreview = false,
 }: {
   contentItemId: string;
   questions: QuizQuestion[];
@@ -85,18 +86,29 @@ export function QuizBlock({
    * subconjunto realista que vería un usuario real.
    */
   questionsPerAttempt?: number;
+  /**
+   * true solo desde ContentForm.tsx (implica previewMode): muestra el banco
+   * completo en el orden escrito, sin barajar preguntas ni opciones, y marca
+   * de entrada la opción correcta. Antes la vista previa del editor se
+   * remontaba en cada tecla (key={text}) y rebarajaba todo, así que la
+   * "Pregunta 1" de la vista previa no era la "Pregunta 1" de los campos.
+   * El quiz real (y /admin/preview) sigue barajando igual que siempre.
+   */
+  editorPreview?: boolean;
 }) {
   // null mientras se resuelve qué ya estaba respondido — armar el intento
   // sin esperar esto perdería justo el progreso que se quiere conservar.
   // En previewMode se arma de una, sin red (ver comentario del prop).
   const [state, setState] = useState<QuizState | null>(() =>
-    previewMode
+    editorPreview
+      ? { shuffled: questions, answers: {} }
+      : previewMode
       ? { shuffled: shuffleArray(questions).slice(0, questionsPerAttempt).map(shuffleQuestionOptions), answers: {} }
       : null,
   );
 
   useEffect(() => {
-    if (previewMode) return;
+    if (previewMode || editorPreview) return;
     let cancelled = false;
 
     async function load() {
@@ -159,7 +171,7 @@ export function QuizBlock({
     const question = shuffled[index];
     if (!question) return;
     setState((prev) => (prev ? { ...prev, answers: { ...prev.answers, [index]: optionIndex } } : prev));
-    if (previewMode) return; // no ensuciar /admin/quiz-answers con respuestas de prueba del admin
+    if (previewMode || editorPreview) return; // no ensuciar /admin/quiz-answers con respuestas de prueba del admin
     fetch(`/api/progress/content/${contentItemId}/quiz-answers`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -179,7 +191,13 @@ export function QuizBlock({
         </p>
       )}
       {shuffled.map((q, i) => (
-        <QuizQuestionCard key={q.question} question={q} selected={answers[i] ?? null} onAnswer={(optionIndex) => handleAnswer(i, optionIndex)} />
+        <QuizQuestionCard
+          key={editorPreview ? i : q.question}
+          question={q}
+          selected={answers[i] ?? null}
+          revealCorrect={editorPreview}
+          onAnswer={(optionIndex) => handleAnswer(i, optionIndex)}
+        />
       ))}
     </div>
   );
@@ -189,10 +207,13 @@ function QuizQuestionCard({
   question,
   selected,
   onAnswer,
+  revealCorrect = false,
 }: {
   question: QuizQuestion;
   selected: number | null;
   onAnswer: (optionIndex: number) => void;
+  /** Vista previa del editor: la correcta se marca antes de responder. */
+  revealCorrect?: boolean;
 }) {
   const answered = selected !== null;
   const isCorrect = selected === question.correctIndex;
@@ -212,7 +233,8 @@ function QuizQuestionCard({
               onClick={() => onAnswer(i)}
               className={cn(
                 "flex items-start gap-3 rounded-md border px-3.5 py-2.5 text-left text-sm font-medium text-ink transition-colors disabled:cursor-default",
-                !answered && "border-line bg-card hover:border-brand-soft hover:bg-brand-tint/40",
+                !answered && revealCorrect && isTheCorrectOne && "border-success bg-success-soft",
+                !answered && !(revealCorrect && isTheCorrectOne) && "border-line bg-card hover:border-brand-soft hover:bg-brand-tint/40",
                 answered && isSelected && isCorrect && "border-success bg-success-soft",
                 answered && isSelected && !isCorrect && "border-danger bg-danger-soft",
                 answered && !isSelected && "border-line bg-card opacity-60",
@@ -223,7 +245,12 @@ function QuizQuestionCard({
               </span>
               <span className="flex-1">{option}</span>
               {answered && isSelected && (isCorrect ? <Icon name="check" size="sm" className="mt-0.5 flex-none text-success" /> : null)}
-              {answered && !isSelected && isTheCorrectOne && <Icon name="check" size="sm" className="mt-0.5 flex-none text-success" />}
+              {(answered ? !isSelected : revealCorrect) && isTheCorrectOne && (
+                <span className="mt-0.5 flex flex-none items-center gap-1 text-xs font-semibold text-success">
+                  {!answered && "Correcta"}
+                  <Icon name="check" size="sm" />
+                </span>
+              )}
             </button>
           );
         })}

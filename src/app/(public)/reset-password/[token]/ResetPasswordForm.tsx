@@ -3,8 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button, LinkButton } from "@/components/Button";
+import { AuthShell } from "@/components/AuthShell";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 
-export function ResetPasswordForm({ token }: { token: string }) {
+// El AuthShell vive acá (no en page.tsx) porque el título depende del estado
+// del formulario: tras guardar, "Elige una nueva contraseña" ya no aplica.
+export function ResetPasswordForm({ token, firstName, email }: { token: string; firstName: string; email: string }) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,41 +43,48 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   if (done) {
     return (
-      <div className="flex flex-col gap-4">
-        <p className="rounded-md bg-success-soft px-3 py-2 text-sm text-ink">✓ Listo, tu contraseña ya cambió. Ya puedes iniciar sesión con ella.</p>
-        <LinkButton href="/login" variant="primary" className="w-full">
-          Iniciar sesión
-        </LinkButton>
-      </div>
+      <AuthShell title="Tu contraseña ya cambió" description={`Ya puedes iniciar sesión con ${email} y tu nueva contraseña.`}>
+        <div className="flex flex-col gap-4">
+          <p role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-ink">
+            ✓ Listo, guardamos tu nueva contraseña.
+          </p>
+          <LinkButton href="/login" variant="primary" className="w-full">
+            Iniciar sesión
+          </LinkButton>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <PasswordInput
-        id="password"
-        label="Nueva contraseña"
-        placeholder="Mínimo 8 caracteres, con letra y número"
-        required
-        autoFocus
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-      />
-      <PasswordInput
-        id="password-confirmation"
-        label="Repite la contraseña"
-        required
-        value={confirmation}
-        onChange={(event) => setConfirmation(event.target.value)}
-      />
-      {error && (
-        <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
-      <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
-        {isSubmitting ? "Guardando…" : "Guardar contraseña"}
-      </Button>
-    </form>
+    <AuthShell title="Elige una nueva contraseña" description={`Hola, ${firstName}. Vas a cambiar la contraseña de ${email}.`}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <PasswordInput
+          id="password"
+          label="Nueva contraseña"
+          required
+          autoFocus
+          aria-describedby="password-requirements"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <PasswordRequirements id="password-requirements" password={password} />
+        <PasswordInput
+          id="password-confirmation"
+          label="Repite la contraseña"
+          required
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
+        {error && (
+          <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
+          {isSubmitting ? "Guardando…" : "Guardar contraseña"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

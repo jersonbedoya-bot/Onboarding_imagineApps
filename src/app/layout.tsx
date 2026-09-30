@@ -9,6 +9,11 @@ const tasaOrbiter = TASA_Orbiter({
   variable: "--font-tasa-orbiter",
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700", "800"],
+  // next/font no tiene métricas de TASA Orbiter (fuente reciente) para
+  // calcular un fallback ajustado, y avisaba "Failed to find font override
+  // values" en cada compilación. Se desactiva ese ajuste: mientras carga se
+  // ve la fuente de sistema de --font-display sin corrección de tamaño.
+  adjustFontFallback: false,
 });
 
 const workSans = Work_Sans({

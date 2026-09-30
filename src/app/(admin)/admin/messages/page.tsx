@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/server/auth/session";
+import { redirectForGuardError } from "@/server/auth/guard-redirect";
 import { getRouteContent } from "@/server/services/route.service";
 import { pendingContentSummary } from "@/lib/pending-content";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -17,8 +17,8 @@ export default async function AdminMessagesPage() {
   let identity;
   try {
     identity = await requireAdmin();
-  } catch {
-    redirect("/login");
+  } catch (error) {
+    return redirectForGuardError(error);
   }
 
   const routeContent = await getRouteContent(identity.tenantId);

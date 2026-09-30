@@ -90,7 +90,7 @@ export function RouteContentForm({
   const pendingTitles = [...pendingSummary.contentItems, ...pendingSummary.processes];
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-3xl flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex max-w-5xl flex-col gap-6">
       {/* ───── 1. Bienvenida ───── */}
       <Card>
         <BlockHeader
@@ -129,7 +129,7 @@ export function RouteContentForm({
           number={2}
           title="Aviso para avanzar"
           what="Le explica a la persona por qué todavía no puede pasar al siguiente módulo."
-          when="Al final de un módulo, debajo del botón «Siguiente módulo ›» (o «🎉 Terminar Onboarding» en el último), que se ve deshabilitado mientras la persona no termine lo obligatorio de ese módulo: los contenidos marcados como obligatorios y los pasos de sus procesos."
+          when="Al final de un módulo, debajo del botón «Siguiente módulo ›» (o «🎉 Terminar Onboarding» en el último), que se ve deshabilitado mientras la persona no termine lo obligatorio de ese módulo: los contenidos marcados como obligatorios y los pasos de sus procesos. Debajo de tu texto, la plataforma lista sola lo que le falta, con un enlace a cada cosa."
           extra="Solo frena a la persona si el siguiente módulo depende de este y este es obligatorio (en Módulos → Editar: «Depende de» y «Obligatorio completarlo para abrir los módulos que dependen de este»). Si no, el botón aparece siempre y este aviso no se ve."
         />
         <MessageEditor

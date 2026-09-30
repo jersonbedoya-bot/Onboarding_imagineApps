@@ -220,10 +220,11 @@ existe, y tiene rate limit por email e IP (`rate_limit_attempts`, scopes
 nuevos `forgot-password` / `reset-password` — esa colección no tiene
 validador, no hace falta `collMod`).
 
-**Pendiente de aplicar**: correr `npm run db:bootstrap` contra la base de
-producción al desplegar. Si no se corre, Mongo igual crea la colección en el
-primer uso, pero **sin** validador ni índices (en particular, sin el único
-de `tokenHash`) — por eso conviene correrlo antes.
+**Aplicado en Atlas el 2026-09-30**, corriendo `npm run db:bootstrap`
+(creó `password_resets` con su validador y sus 3 índices; el resto de las
+colecciones ya existía y no se tocó). Para otra base: mismo comando — si no
+se corre, Mongo crea la colección en el primer uso pero **sin** validador ni
+índices (en particular, sin el único de `tokenHash`).
 
 ## Migraciones de contenido (no-schema)
 

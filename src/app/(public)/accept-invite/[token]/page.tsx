@@ -1,7 +1,7 @@
 import { previewInvitation } from "@/server/services/invitation.service";
 import { AcceptInviteForm } from "./AcceptInviteForm";
 import { AuthShell } from "@/components/AuthShell";
-import { EmptyState } from "@/components/EmptyState";
+import { LinkButton } from "@/components/Button";
 
 export default async function AcceptInvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -14,13 +14,22 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
   }
 
   if (!preview) {
+    // Mismo AuthShell que el resto de pantallas públicas y con salida a login:
+    // una invitación ya aceptada también cae acá, y esa persona solo necesita entrar.
     return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <EmptyState
-          title="Invitación inválida"
-          description="Este link no es válido o ya expiró. Pídele a quien te invitó que te comparta uno nuevo."
-        />
-      </main>
+      <AuthShell
+        title="Esta invitación ya no sirve"
+        description="El enlace no es válido, ya se usó o ya venció. Pídele a quien te invitó que te comparta uno nuevo."
+      >
+        {/* Etiqueta corta en el botón: LinkButton es whitespace-nowrap y la frase
+            completa se salía del botón a 390px. */}
+        <div className="flex flex-col gap-3">
+          <p className="text-center text-sm text-ink-soft">¿Ya activaste tu cuenta?</p>
+          <LinkButton href="/login" variant="secondary" className="w-full">
+            Iniciar sesión
+          </LinkButton>
+        </div>
+      </AuthShell>
     );
   }
 
