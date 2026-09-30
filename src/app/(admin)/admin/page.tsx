@@ -81,6 +81,11 @@ export default async function AdminHomePage() {
         <h2 className="mb-3 font-display text-lg font-semibold text-ink">Accesos rápidos</h2>
         <div className="flex flex-wrap gap-3">
           {isAdmin && <LinkButton href="/admin/users">+ Invitar usuario</LinkButton>}
+          {isAdmin && (
+            <LinkButton href="/admin/roles" variant="secondary">
+              + Crear rol funcional
+            </LinkButton>
+          )}
           <LinkButton href="/admin/modules" variant="secondary">
             + Agregar módulo
           </LinkButton>

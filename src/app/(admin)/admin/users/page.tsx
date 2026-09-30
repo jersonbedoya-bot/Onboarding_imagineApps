@@ -13,6 +13,9 @@ import { USER_STATUS_LABELS } from "@/lib/status-labels";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
 import { InvitationsList } from "./InvitationsList";
+import { FunctionalRoleSelect } from "./FunctionalRoleSelect";
+
+const USERS_PAGE_SIZE = 1000;
 
 export default async function AdminUsersPage() {
   let identity;
@@ -22,13 +25,23 @@ export default async function AdminUsersPage() {
     redirect("/login");
   }
 
-  const [{ items: users }, roles, invitations] = await Promise.all([
-    listUsers(identity, {}),
-    roleRepository.listByTenant(identity.tenantId),
+  // pageSize alto a propósito: antes se usaba el default del service (20) y
+  // a partir de la persona 21 desaparecían del listado sin ningún aviso.
+  const [{ items: users, total: totalUsers }, allRoles, invitations] = await Promise.all([
+    listUsers(identity, { pageSize: USERS_PAGE_SIZE }),
+    roleRepository.listByTenant(identity.tenantId, { includeInactive: true }),
     listInvitations(identity),
   ]);
 
-  const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
+  // Solo los roles activos se ofrecen para asignar; los inactivos se siguen
+  // mostrando con su nombre + "(inactivo)" en quien ya los tiene, en vez de
+  // que el select caiga en silencio al primer rol de la lista.
+  const roleOptions = allRoles
+    .filter((role) => role.status === "ACTIVE")
+    .map((role) => ({ id: role._id.toString(), label: role.label }));
+  const roleLabelById = new Map(
+    allRoles.map((role) => [role._id.toString(), role.status === "ACTIVE" ? role.label : `${role.label} (inactivo)`]),
+  );
   const currentUserId = identity.userId.toString();
 
   // Separación pedida por el usuario: antes todo vivía en una sola tabla y
@@ -54,10 +67,15 @@ export default async function AdminUsersPage() {
 
   return (
     <div>
-      <PageHeader title="Usuarios" description="Gestión de acceso y rol funcional de tu tenant." />
+      <PageHeader title="Usuarios" description="Gestión de acceso y rol funcional de tu organización." />
 
       <section className="mb-10">
-        <h2 className="mb-3 font-display text-lg font-semibold text-ink">Equipo administrativo</h2>
+        <h2 className="mb-1 font-display text-lg font-semibold text-ink">Equipo administrativo</h2>
+        <p className="mb-3 text-sm text-ink-soft">
+          Un <strong className="text-ink">Administrador</strong> gestiona todo el panel, incluyendo usuarios y permisos. Un{" "}
+          <strong className="text-ink">Editor</strong> puede crear y editar contenido, procesos y líderes del onboarding, pero
+          no puede borrar/archivar nada ni gestionar usuarios ni roles.
+        </p>
         {adminTeam.length === 0 ? (
           <p className="text-sm text-ink-soft">Todavía no hay administradores ni editores.</p>
         ) : (
@@ -83,7 +101,6 @@ export default async function AdminUsersPage() {
                       functionalRoleId={null}
                       roles={roleOptions}
                       isSelf={isSelf}
-                      showFunctionalRoleSelect={false}
                     />
                   </div>
                 </div>
@@ -95,6 +112,11 @@ export default async function AdminUsersPage() {
 
       <section>
         <h2 className="mb-3 font-display text-lg font-semibold text-ink">Imaginers</h2>
+        {totalUsers > users.length && (
+          <p className="mb-3 text-sm text-danger">
+            Mostrando {users.length} de {totalUsers} cuentas — hay más personas que no entran en este listado.
+          </p>
+        )}
         <DataTable
           rows={imaginers}
           rowKey={(user) => user._id.toString()}
@@ -104,7 +126,17 @@ export default async function AdminUsersPage() {
             { header: "Nombre", render: (user) => user.name },
             {
               header: "Rol funcional",
-              render: (user) => roleOptions.find((r) => r.id === user.functionalRoleId?.toString())?.label ?? "—",
+              render: (user) =>
+                user.functionalRoleId ? (
+                  <FunctionalRoleSelect
+                    userId={user._id.toString()}
+                    functionalRoleId={user.functionalRoleId.toString()}
+                    currentRoleLabel={roleLabelById.get(user.functionalRoleId.toString()) ?? "Rol eliminado"}
+                    roles={roleOptions}
+                  />
+                ) : (
+                  "—"
+                ),
             },
             {
               header: "Estado",
@@ -118,7 +150,7 @@ export default async function AdminUsersPage() {
                 }
                 const progress = progressByUserId.get(user._id.toString());
                 if (!progress || progress.total === 0) {
-                  return <span className="text-xs text-ink-soft">Sin ruta publicada</span>;
+                  return <span className="text-xs text-ink-soft">Sin módulos publicados</span>;
                 }
                 return (
                   <div className="min-w-[8rem]">
@@ -157,12 +189,13 @@ export default async function AdminUsersPage() {
       <div className="mt-10">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Invitaciones</h2>
         <p className="mb-4 text-sm text-ink-soft">
-          Control de las invitaciones enviadas. Si perdiste el link de una pendiente o te equivocaste de rol, revócala y
-          volvé a invitar a ese mismo email desde &quot;+ Invitar usuario&quot; — no hace falta esperar a que expire (7 días).
+          Control de las invitaciones enviadas. Si perdiste el link de una pendiente o elegiste el rol equivocado, revócala
+          y vuelve a invitar a ese mismo email desde &quot;+ Invitar usuario&quot; — no hace falta esperar a que expire (7
+          días).
         </p>
         <InvitationsList
           invitations={invitations}
-          roles={roleOptions}
+          roles={[...roleLabelById].map(([id, label]) => ({ id, label }))}
           users={users.map((user) => ({ id: user._id.toString(), name: user.name, email: user.email }))}
         />
       </div>

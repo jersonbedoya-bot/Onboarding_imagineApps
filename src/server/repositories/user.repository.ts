@@ -155,3 +155,8 @@ export async function countActiveAdmins(tenantId: ObjectId): Promise<number> {
 export async function findById(tenantId: ObjectId, userId: ObjectId): Promise<UserDocument | null> {
   return (await collection()).findOne({ _id: userId, tenantId });
 }
+
+/** Cuántos usuarios tienen asignado este rol funcional — usado por role.service para avisar antes de desactivar un rol en uso. */
+export async function countByFunctionalRole(tenantId: ObjectId, roleId: ObjectId): Promise<number> {
+  return (await collection()).countDocuments({ tenantId, functionalRoleId: roleId });
+}

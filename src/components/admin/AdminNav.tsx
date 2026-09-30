@@ -25,7 +25,10 @@ const HOME_ITEM: NavItem = { href: "/admin", label: "Inicio", icon: "home" };
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Personas",
-    items: [{ href: "/admin/users", label: "Usuarios", icon: "users", adminOnly: true }],
+    items: [
+      { href: "/admin/users", label: "Usuarios", icon: "users", adminOnly: true },
+      { href: "/admin/roles", label: "Roles", icon: "tag", adminOnly: true },
+    ],
   },
   {
     label: "Contenido del recorrido",
@@ -62,15 +65,17 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
+      // Mismo lenguaje que el menú de imagineapps.co: texto blanco, el
+      // activo en naranja con una línea debajo (no una píldora de fondo).
       className={cn(
-        "group inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-        active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-paper hover:text-ink",
+        "group inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-1.5 text-sm font-medium transition-colors",
+        active ? "border-brand-strong text-brand-strong" : "border-transparent text-ink hover:text-brand-strong",
       )}
     >
       <Icon
         name={item.icon}
         size="sm"
-        className={cn("transition-colors", active ? "text-brand-strong" : "text-ink-soft group-hover:text-ink")}
+        className={cn("transition-colors", active ? "text-brand-strong" : "text-ink-soft group-hover:text-brand-strong")}
       />
       {item.label}
     </Link>

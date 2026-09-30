@@ -27,10 +27,10 @@ export default async function AdminMessagesPage() {
     <div>
       <PageHeader
         title="Mensajes de guía"
-        description="El encabezado y los textos de orientación que ve cualquier usuario a lo largo de su recorrido."
+        description="Los textos que acompañan a cada persona en su recorrido: la bienvenida y dos avisos que aparecen solos según la situación."
         action={
           <LinkButton href="/admin/preview" variant="secondary" className="px-4 py-2 text-sm">
-            👁️ Ver el recorrido real
+            👁️ Ver en la vista previa
           </LinkButton>
         }
       />

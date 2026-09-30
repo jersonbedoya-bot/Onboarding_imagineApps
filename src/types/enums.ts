@@ -18,8 +18,12 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 export const INVITATION_STATUSES = ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"] as const;
 export type InvitationStatus = (typeof INVITATION_STATUSES)[number];
 
-// Roles funcionales iniciales del PRD. Extensible sin tocar la arquitectura
-// (DEVELOPER, QA, etc. se agregan como nuevas filas en `roles`, no acá).
+// Roles funcionales iniciales del PRD, usados solo por el seed
+// (scripts/seed-bootstrap.ts). Un rol nuevo (DEVELOPER, QA, Contabilidad...)
+// ya NO necesita agregarse acá: se crea desde /admin/roles, que genera su
+// propia `key` (ver role.repository.ts, RoleDocument.key es `string`, no
+// FunctionalRoleKey) — este type solo sigue tipando los 2 valores fijos que
+// planta el seed.
 export const FUNCTIONAL_ROLE_KEYS = ["PDM", "UX_UI_DESIGNER"] as const;
 export type FunctionalRoleKey = (typeof FUNCTIONAL_ROLE_KEYS)[number];
 

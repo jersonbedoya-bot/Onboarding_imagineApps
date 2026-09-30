@@ -4,31 +4,35 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { Badge } from "@/components/Badge";
 import { Input, Textarea, Checkbox } from "@/components/Field";
+import { PendingBadge } from "@/components/PendingBadge";
+import {
+  DEFAULT_BLOCKED_NEXT_MESSAGE,
+  DEFAULT_PENDING_CONTENT_MESSAGE,
+  BLOCKED_NEXT_MESSAGE_MAX,
+  PENDING_CONTENT_MESSAGE_MAX,
+} from "@/lib/guide-message-defaults";
 
 export type GuideMessageValue = { text: string; enabled: boolean };
 
 export type PendingContentSummary = { contentItems: string[]; processes: string[]; steps: string[] };
 
 /**
- * Editor de todo el contenido "de guía" del recorrido: el título/subtítulo
- * del header de /onboarding (route.service.getRouteHeader de antes) más los
- * 2 mensajes que hasta ahora vivían quemados en OnboardingJourney.tsx
- * ("Completa lo pendiente..." y el aviso de contenido en revisión) — ver
- * route.service.getRouteContent. Vive en /admin/messages, no en
- * /admin/modules: es contenido editorial del recorrido completo, no de un
- * módulo puntual.
+ * Editor de los textos que acompañan el recorrido (route.service.getRouteContent):
+ * la bienvenida (título/subtítulo) y los 2 avisos automáticos.
  *
- * El título/subtítulo tiene vista previa en vivo (mismas clases que el
- * header real, ver page.tsx) porque es un bloque grande y vistoso — vale la
- * pena ver el resultado antes de guardar. Los 2 mensajes de guía son textos
- * chicos de una sola línea: alcanza con un toggle "Mostrar" + una vista
- * previa en texto, sin reproducir un componente entero.
+ * Cada bloque sigue el mismo orden, pensado para alguien sin trasfondo
+ * técnico: qué es → cuándo lo ve la persona → el texto → una muestra de
+ * cómo se ve. La muestra es necesaria, no decorativa: en /admin/preview
+ * todos los módulos aparecen desbloqueados, así que el aviso para avanzar
+ * nunca se ve ahí — esta es la única forma de verlo antes de guardar.
  *
- * Cada campo aclara DÓNDE exactamente se ve en /onboarding (pedido
- * explícito del usuario: "no se tiene bien conocimiento de dónde se
- * modifica la información") — y el header lleva un link directo a
- * /admin/preview para verlo en el recorrido real, sin tener que adivinar.
+ * Las reglas de "cuándo aparece" están verificadas contra el código real
+ * (onboarding/page.tsx para la bienvenida, el pie de módulo en
+ * OnboardingJourney.tsx para el aviso, pending-content.ts para contenido en
+ * revisión). Si alguna de esas reglas cambia, este texto tiene que cambiar
+ * con ella.
  */
 export function RouteContentForm({
   headline,
@@ -51,11 +55,13 @@ export function RouteContentForm({
   const [pendingText, setPendingText] = useState(pendingContentMessage.text);
   const [pendingEnabled, setPendingEnabled] = useState(pendingContentMessage.enabled);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setSaved(false);
     setIsSubmitting(true);
 
     const response = await fetch("/api/route", {
@@ -74,30 +80,28 @@ export function RouteContentForm({
     setIsSubmitting(false);
 
     if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo guardar los cambios.");
+      setError(body?.error?.message ?? "No se pudieron guardar los cambios.");
       return;
     }
+    setSaved(true);
     router.refresh();
   }
 
+  const pendingTitles = [...pendingSummary.contentItems, ...pendingSummary.processes];
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <Card className="max-w-3xl">
-        <h2 className="mb-1 font-display text-lg font-semibold text-ink">Título del recorrido</h2>
-        <p className="mb-4 text-sm text-ink-soft">
-          Es el encabezado grande de arriba de todo en <strong>/onboarding</strong> — pero solo la primera vez que alguien
-          entra a su primer módulo. Al volver más adelante (fase 2, 3…) ya no se muestra, para no repetir la bienvenida en
-          cada visita.
-        </p>
+    <form onSubmit={handleSubmit} className="flex max-w-3xl flex-col gap-6">
+      {/* ───── 1. Bienvenida ───── */}
+      <Card>
+        <BlockHeader
+          number={1}
+          title="Bienvenida del recorrido"
+          what="El título grande con el que cada persona empieza su onboarding."
+          when="Arriba de todo, en cada visita, hasta que la persona completa su primer módulo. Después deja de verse. Si ese primer módulo no tiene nada obligatorio, no llega a verse."
+        />
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-4">
-            <Input
-              id="route-headline"
-              label="Título"
-              required
-              value={headlineValue}
-              onChange={(event) => setHeadlineValue(event.target.value)}
-            />
+            <Input id="route-headline" label="Título" required value={headlineValue} onChange={(event) => setHeadlineValue(event.target.value)} />
             <Textarea
               id="route-subtitle"
               label="Subtítulo (opcional)"
@@ -106,127 +110,211 @@ export function RouteContentForm({
               onChange={(event) => setSubtitleValue(event.target.value)}
             />
           </div>
-          {/* Vista previa: mismas clases que el header real en (user)/onboarding/page.tsx */}
-          <div className="flex flex-col justify-center rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-5 py-6">
-            <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-strong">
-              Tu recorrido
-            </span>
-            <p className="text-gradient-brand font-display text-2xl font-semibold leading-tight">{headlineValue || "…"}</p>
-            {subtitleValue && <p className="mt-2 text-sm text-ink-soft">{subtitleValue}</p>}
-          </div>
+          <Sample>
+            {/* Mismas clases que RouteHeader, a escala reducida. */}
+            <div className="rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-5 py-6">
+              <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-strong">
+                Tu recorrido
+              </span>
+              <p className="text-gradient-brand font-display text-2xl font-semibold leading-tight">{headlineValue || "…"}</p>
+              {subtitleValue && <p className="mt-2 text-sm text-ink-soft">{subtitleValue}</p>}
+            </div>
+          </Sample>
         </div>
       </Card>
 
-      <Card className="max-w-3xl">
-        <h2 className="mb-1 font-display text-lg font-semibold text-ink">Mensajes de guía</h2>
-        <p className="mb-4 text-sm text-ink-soft">
-          Textos de orientación cortos que aparecen dentro del recorrido — desactívalos si no quieres mostrarlos, o cambia su
-          redacción. Cada uno aclara abajo exactamente dónde se ve.
+      {/* ───── 2. Aviso para avanzar ───── */}
+      <Card>
+        <BlockHeader
+          number={2}
+          title="Aviso para avanzar"
+          what="Le explica a la persona por qué todavía no puede pasar al siguiente módulo."
+          when="Al final de un módulo, en lugar del botón «Siguiente módulo ›» (o «🎉 Terminar Onboarding» en el último), mientras la persona no termine lo obligatorio de ese módulo: los contenidos marcados como obligatorios y los pasos de sus procesos."
+          extra="Solo frena a la persona si el siguiente módulo depende de este y este es obligatorio (en Módulos → Editar: «Depende de» y «Obligatorio completarlo para abrir los módulos que dependen de este»). Si no, el botón aparece siempre y este aviso no se ve."
+        />
+        <MessageEditor
+          id="blocked-next"
+          toggleLabel="Mostrar este aviso"
+          text={blockedNextText}
+          enabled={blockedNextEnabled}
+          maxLength={BLOCKED_NEXT_MESSAGE_MAX}
+          defaultText={DEFAULT_BLOCKED_NEXT_MESSAGE}
+          onTextChange={setBlockedNextText}
+          onEnabledChange={setBlockedNextEnabled}
+          offWarning="Si lo desactivas, ese espacio queda vacío: la persona no ve el botón ni una explicación de por qué no puede avanzar."
+        />
+        <div className="mt-4">
+          <Sample note="En la vista previa del panel no aparece, porque ahí todos los módulos están desbloqueados. Así lo verá la persona:">
+            {/* Mismo pie de módulo que OnboardingJourney: línea arriba, anterior a la izquierda. */}
+            <div className="flex items-center justify-between gap-3 border-t border-line bg-card px-2 pt-4">
+              <span className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink">‹ Módulo anterior</span>
+              {blockedNextEnabled && blockedNextText.trim() ? (
+                <p className="text-xs text-ink-soft">{blockedNextText}</p>
+              ) : (
+                <span className="rounded border border-dashed border-line px-3 py-1.5 text-xs italic text-ink-soft/70">Espacio vacío</span>
+              )}
+            </div>
+          </Sample>
+        </div>
+      </Card>
+
+      {/* ───── 3. Contenido en revisión ───── */}
+      <Card>
+        <BlockHeader
+          number={3}
+          title="Aviso de contenido en revisión"
+          what="Avisa que un contenido o proceso puntual todavía no tiene su versión definitiva (por ejemplo, porque depende de una herramienta que hoy no funciona bien)."
+          when="Dentro de la tarjeta de cada contenido o proceso que el equipo técnico marcó como «en revisión», junto a la etiqueta «⚠️ Pendiente de actualización»."
+          extra="Qué queda marcado no se elige desde el panel: aquí solo cambias el texto o lo ocultas. Si necesitas marcar o desmarcar algo, pídeselo al equipo técnico."
+          badge="Lo marca el equipo técnico"
+        />
+        <div className="mb-4 rounded-md bg-paper px-3 py-2 text-xs text-ink-soft">
+          {pendingTitles.length === 0 ? (
+            <p>
+              <strong className="text-ink">Hoy no se ve en ninguna parte:</strong> no hay ningún contenido ni proceso marcado como en
+              revisión.
+            </p>
+          ) : (
+            <p>
+              <strong className="text-ink">Hoy aparece debajo de:</strong> {pendingTitles.map((title) => `«${title}»`).join(", ")}.
+            </p>
+          )}
+          {pendingSummary.steps.length > 0 && (
+            <p className="mt-1.5">
+              Aparte, {pendingSummary.steps.length === 1 ? "este paso muestra" : "estos pasos muestran"} la etiqueta fija «⚠️ Pendiente de
+              actualización», que no depende de este aviso: {pendingSummary.steps.map((title) => `«${title}»`).join(", ")}.
+            </p>
+          )}
+        </div>
+        <MessageEditor
+          id="pending-content"
+          toggleLabel="Mostrar este aviso"
+          text={pendingText}
+          enabled={pendingEnabled}
+          maxLength={PENDING_CONTENT_MESSAGE_MAX}
+          defaultText={DEFAULT_PENDING_CONTENT_MESSAGE}
+          onTextChange={setPendingText}
+          onEnabledChange={setPendingEnabled}
+          offWarning="Si lo desactivas, el contenido marcado sigue mostrando la etiqueta «⚠️ Pendiente de actualización», pero sin esta explicación."
+        />
+        <div className="mt-4">
+          <Sample>
+            <div className="flex flex-col gap-1.5 rounded-md border border-line bg-card px-4 py-3">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-base font-semibold text-ink">Título del contenido</span>
+                <PendingBadge />
+              </span>
+              <span className="text-xs text-ink-soft/70">…el contenido se sigue viendo normal…</span>
+              {pendingEnabled && pendingText.trim() && <p className="text-xs text-ink-soft">{pendingText}</p>}
+            </div>
+          </Sample>
+        </div>
+      </Card>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" isLoading={isSubmitting}>
+          Guardar cambios
+        </Button>
+        {saved && !error && <span className="text-sm text-ink-soft">✓ Cambios guardados</span>}
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
         </p>
-        <div className="flex flex-col gap-4">
-          <GuideMessageField
-            id="blocked-next"
-            label="Módulo siguiente bloqueado"
-            hint='Reemplaza al botón "Siguiente módulo ›" al final de un módulo — se ve mientras el usuario todavía no completó lo necesario para pasar al que sigue.'
-            text={blockedNextText}
-            enabled={blockedNextEnabled}
-            onTextChange={setBlockedNextText}
-            onEnabledChange={setBlockedNextEnabled}
-          />
-          <GuideMessageField
-            id="pending-content"
-            label="Contenido en revisión"
-            hint="Aparece debajo de un contenido o un proceso puntual que el equipo de desarrollo marcó como “todavía en revisión” (por ejemplo, algo que depende de una herramienta que no funciona bien hoy) — no se activa desde este panel, solo se edita el texto que muestra cuando ya está marcado."
-            text={pendingText}
-            enabled={pendingEnabled}
-            onTextChange={setPendingText}
-            onEnabledChange={setPendingEnabled}
-          >
-            <PendingSummaryNote summary={pendingSummary} />
-          </GuideMessageField>
-        </div>
-      </Card>
-
-      {error && <p className="max-w-3xl text-sm text-danger">{error}</p>}
-      <Button type="submit" isLoading={isSubmitting} className="self-start">
-        Guardar cambios
-      </Button>
+      )}
     </form>
   );
 }
 
-function GuideMessageField({
-  id,
-  label,
-  hint,
-  text,
-  enabled,
-  onTextChange,
-  onEnabledChange,
-  children,
+function BlockHeader({
+  number,
+  title,
+  what,
+  when,
+  extra,
+  badge,
 }: {
-  id: string;
-  label: string;
-  hint: string;
-  text: string;
-  enabled: boolean;
-  onTextChange: (value: string) => void;
-  onEnabledChange: (value: boolean) => void;
-  /** Nota adicional (ej. a qué le aplica HOY, ver PendingSummaryNote) — debajo del hint, antes del textarea. */
-  children?: ReactNode;
+  number: number;
+  title: string;
+  what: string;
+  when: string;
+  /** Aclaración secundaria (excepciones, quién lo controla) — debajo de "Cuándo aparece". */
+  extra?: string;
+  badge?: string;
 }) {
   return (
-    <div className="rounded-lg border border-line p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">{label}</p>
-          <p className="text-xs text-ink-soft">{hint}</p>
-          {children}
-        </div>
-        <Checkbox
-          id={`${id}-enabled`}
-          label="Mostrar"
-          checked={enabled}
-          onChange={(event) => onEnabledChange(event.target.checked)}
-        />
+    <div className="mb-5">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-tint text-xs font-bold text-brand-strong">{number}</span>
+        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+        {badge && <Badge variant="neutral">{badge}</Badge>}
       </div>
+      <p className="text-sm text-ink-soft">{what}</p>
+      <p className="mt-2 text-sm text-ink-soft">
+        <strong className="text-ink">Cuándo aparece:</strong> {when}
+      </p>
+      {extra && <p className="mt-1.5 text-xs text-ink-soft">{extra}</p>}
+    </div>
+  );
+}
+
+function MessageEditor({
+  id,
+  toggleLabel,
+  text,
+  enabled,
+  maxLength,
+  defaultText,
+  onTextChange,
+  onEnabledChange,
+  offWarning,
+}: {
+  id: string;
+  toggleLabel: string;
+  text: string;
+  enabled: boolean;
+  maxLength: number;
+  defaultText: string;
+  onTextChange: (value: string) => void;
+  onEnabledChange: (value: boolean) => void;
+  offWarning: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Checkbox id={`${id}-enabled`} label={toggleLabel} checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} />
       <Textarea
         id={id}
+        aria-label="Texto del aviso"
         rows={2}
+        maxLength={maxLength}
         value={text}
         disabled={!enabled}
         onChange={(event) => onTextChange(event.target.value)}
         className={!enabled ? "opacity-50" : undefined}
       />
-      {enabled && text && (
-        <p className="mt-2 text-xs text-ink-soft">
-          Vista previa: <span className="italic">{text}</span>
-        </p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
+        {enabled && text !== defaultText ? (
+          <button type="button" onClick={() => onTextChange(defaultText)} className="font-semibold text-brand-strong hover:underline">
+            Restaurar texto original
+          </button>
+        ) : (
+          <span />
+        )}
+        <span>
+          {text.length}/{maxLength}
+        </span>
+      </div>
+      {!enabled && <p className="text-xs font-semibold text-danger">⚠ {offWarning}</p>}
     </div>
   );
 }
 
-/**
- * A qué le aplica el mensaje "Contenido en revisión" AHORA MISMO — sin
- * esto, el toggle de arriba es abstracto ("¿a qué le pasa esto?"), y hoy ni
- * siquiera hay forma de marcar/desmarcar algo como pendiente desde el
- * panel (es una lista fija en el código, ver src/lib/pending-content.ts):
- * mostrar la lista real es lo único que le da contexto concreto a la admin.
- */
-function PendingSummaryNote({ summary }: { summary: PendingContentSummary }) {
-  const titles = [...summary.contentItems, ...summary.processes];
-  if (titles.length === 0) {
-    return (
-      <p className="mt-1 text-xs italic text-ink-soft">
-        Hoy no hay ningún contenido ni proceso marcado como pendiente — este mensaje no se ve en ningún lado del recorrido
-        todavía.
-      </p>
-    );
-  }
+function Sample({ note, children }: { note?: string; children: ReactNode }) {
   return (
-    <p className="mt-1 text-xs text-ink-soft">
-      Hoy se ve debajo de: {titles.map((title) => `"${title}"`).join(", ")}.
-    </p>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/70">Así se ve</span>
+      {note && <p className="text-xs text-ink-soft">{note}</p>}
+      {children}
+    </div>
   );
 }

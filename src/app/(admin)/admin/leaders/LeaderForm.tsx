@@ -121,8 +121,9 @@ export function LeaderForm({
         onChange={(event) => setDescription(event.target.value)}
       />
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Foto</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Foto (opcional)</span>
         <MediaUploader key={mediaUploaderKey} initialUrl={initial?.photoUrl ?? null} onUploaded={(mediaId) => setPhotoMediaId(mediaId)} />
+        <p className="text-xs text-ink-soft">Sin foto, el Imaginer ve solo las iniciales del nombre en vez de una cara — recomendado subir una.</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-end gap-3">
@@ -156,7 +157,7 @@ export function LeaderForm({
             onChange={() => setScope("COMMON")}
             className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
           />
-          Todos los roles
+          Común (todos los roles)
         </label>
         <label className="flex items-center gap-2 text-sm text-ink">
           <input
@@ -166,7 +167,7 @@ export function LeaderForm({
             onChange={() => setScope("ROLE")}
             className="h-4 w-4 border-line text-brand focus:ring-2 focus:ring-brand/30"
           />
-          Roles específicos
+          Específico por rol
         </label>
         {scope === "ROLE" && (
           <div className="ml-6 flex flex-col gap-1.5 border-l border-line pl-3">

@@ -10,7 +10,9 @@ export type AuthShellProps = {
 /** Shell centrado compartido por login y accept-invite: wordmark + card. */
 export function AuthShell({ title, description, children }: AuthShellProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-paper px-6 py-12">
+    // Sin bg propio: el degradado de marca vive en body::before (globals.css)
+    // y un fondo sólido acá lo tapaba entero.
+    <main className="flex min-h-screen items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <Logo className="text-xl" />

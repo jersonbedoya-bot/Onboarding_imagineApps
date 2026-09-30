@@ -72,7 +72,7 @@ export async function createInvitation(
   });
 
   const link = `${env.appUrl}/accept-invite/${rawToken}`;
-  const message = `Te invitaron a Imagine Apps como ${roleLabel}. Activá tu cuenta acá (válido por 7 días): ${link}`;
+  const message = `Te invitamos a Imagine Apps como ${roleLabel}. Activa tu cuenta aquí (el enlace vence en 7 días): ${link}`;
 
   return { invitation, link, message };
 }

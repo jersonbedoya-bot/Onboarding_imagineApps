@@ -96,24 +96,32 @@ export function ActionMenu({ items, label = "Más acciones" }: { items: ActionMe
           )}
           style={{ top: coords.top, left: coords.left }}
         >
-          {items.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              role="menuitem"
-              disabled={item.disabled}
-              onClick={() => {
-                setOpen(false);
-                item.onClick();
-              }}
-              className={cn(
-                "flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-                item.danger ? "text-danger hover:bg-danger-soft" : "text-ink hover:bg-brand-tint",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
+          {items.map((item, i) => {
+            // Separador antes del primer item "danger" — agrupa visualmente
+            // lo reversible (cambiar rol, restablecer contraseña) de lo
+            // irreversible (desactivar, borrar), sin depender solo del color.
+            const isFirstDanger = item.danger && !items[i - 1]?.danger;
+            return (
+              <div key={i}>
+                {isFirstDanger && <div role="separator" className="my-1 border-t border-line" />}
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={item.disabled}
+                  onClick={() => {
+                    setOpen(false);
+                    item.onClick();
+                  }}
+                  className={cn(
+                    "flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                    item.danger ? "text-danger hover:bg-danger-soft" : "text-ink hover:bg-brand-tint",
+                  )}
+                >
+                  {item.label}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </>

@@ -1,17 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { TASA_Orbiter, Work_Sans } from "next/font/google";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "900"],
+// Mismas familias que imagineapps.co: TASA Orbiter en títulos, Work Sans en
+// texto. Antes Fraunces (serif) + Inter, que no se parecían al sitio.
+const tasaOrbiter = TASA_Orbiter({
+  variable: "--font-tasa-orbiter",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+const workSans = Work_Sans({
+  variable: "--font-work-sans",
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
 });
 
@@ -32,7 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${inter.variable} h-full antialiased`}>
+    <html lang="es" className={`${tasaOrbiter.variable} ${workSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-paper text-ink font-sans">
         <ToastProvider>{children}</ToastProvider>
       </body>

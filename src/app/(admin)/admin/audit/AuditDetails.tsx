@@ -1,4 +1,4 @@
-import { AUDIT_FIELD_LABELS } from "@/lib/audit-labels";
+import { AUDIT_FIELD_LABELS, AUDIT_PLATFORM_ROLE_LABELS } from "@/lib/audit-labels";
 
 type Change = { before: unknown; after: unknown };
 
@@ -19,6 +19,18 @@ function formatValue(value: unknown): string {
 export function AuditDetails({ metadata }: { metadata: Record<string, unknown> }) {
   const changes = metadata.changes as Record<string, Change> | undefined;
   if (!changes || Object.keys(changes).length === 0) {
+    // Sin `changes` (ej. INVITATION_CREATED) el título/email ya se ve en la
+    // columna "Recurso" — pero "platformRole" (Imaginer/Editor/Admin) no
+    // aparece en ningún lado más, y es justo lo que hace falta para
+    // entender de un vistazo a qué tipo de cuenta se invitó.
+    const platformRole = typeof metadata.platformRole === "string" ? metadata.platformRole : undefined;
+    if (platformRole) {
+      return (
+        <span className="text-xs text-ink-soft">
+          <span className="font-semibold text-ink">Tipo de cuenta:</span> {AUDIT_PLATFORM_ROLE_LABELS[platformRole] ?? platformRole}
+        </span>
+      );
+    }
     return <span className="text-xs text-ink-soft">—</span>;
   }
 

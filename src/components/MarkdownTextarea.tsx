@@ -33,6 +33,20 @@ const SNIPPETS = {
   // cualquier otro formato esto se ve como texto Markdown normal (una
   // lista numerada), no se rompe nada.
   quiz: "1. ¿Pregunta divertida?\n- Opción incorrecta\n- **Opción correcta**\n- Opción incorrecta\nDato curioso que se muestra como respuesta, aciertes o no (opcional).",
+  // Estas 4 son el mismo caso que "Pregunta de quiz": solo se ven como el
+  // grid/cronología especial cuando el content item tiene ese
+  // "Formato de visualización" elegido (ver ContentForm.tsx); con cualquier
+  // otro formato es una lista Markdown normal. Antes solo el quiz tenía un
+  // punto de partida con un clic — para los demás formatos había que
+  // memorizar el patrón exacto (negrita, dos puntos, guion) a partir de un
+  // hint de una línea, la parte más técnica de todo el panel.
+  factGrid:
+    "- **Transparencia radical:** Compartimos la información relevante sin filtros, incluso cuando incomoda.\n- **Excelencia:** Buscamos hacerlo cada vez mejor, no solo que funcione.",
+  valuesGrid:
+    "1. **Empatía:** Nos ponemos en el lugar del otro antes de responder.\n2. **Impacto:** Priorizamos lo que mueve la aguja, no lo urgente.",
+  timeline:
+    "- **2020 — Fundación**: Arrancamos como un equipo de 3 personas.\n- **2023 — Primer gran cliente**: Escalamos el equipo a 20 personas.",
+  steps: "1. Abre el calendario y bloquea 90 minutos sin interrupciones.\n2. Define el resultado esperado antes de empezar.",
 } as const;
 
 /**
@@ -207,6 +221,38 @@ export function MarkdownTextarea({ id, label, error, className, value, onChange,
                 }}
               >
                 🎉 Pregunta de quiz
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.factGrid);
+                }}
+              >
+                🧩 Hecho paralelo (tarjeta)
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.valuesGrid);
+                }}
+              >
+                💎 Valor de cultura
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.timeline);
+                }}
+              >
+                🕰️ Hito de cronología
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setIsInsertMenuOpen(false);
+                  insertSnippet(SNIPPETS.steps);
+                }}
+              >
+                🔢 Paso numerado
               </MenuItem>
             </div>
           )}

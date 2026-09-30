@@ -12,7 +12,16 @@ import { Icon } from "@/components/Icon";
  * El filtrado activos/archivados lo hace el page.tsx con datos que ya trae
  * (sin fetch nuevo); este componente solo decide si se muestran o no.
  */
-export function ArchivedSection({ count, children }: { count: number; children: ReactNode }) {
+export function ArchivedSection({
+  count,
+  children,
+  label = "archivados",
+}: {
+  count: number;
+  children: ReactNode;
+  /** "Ver {label} · N" — por defecto "archivados" (contenido/procesos/líderes/etapas); /admin/roles pasa "inactivos", que es el estado real que usa ese recurso. */
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   if (count === 0) return null;
@@ -30,7 +39,7 @@ export function ArchivedSection({ count, children }: { count: number; children: 
           className={`transition-transform ${open ? "rotate-90" : ""}`}
           aria-hidden="true"
         />
-        Ver archivados · {count}
+        Ver {label} · {count}
       </button>
       {open && <div className="mt-3">{children}</div>}
     </div>

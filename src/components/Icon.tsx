@@ -34,6 +34,7 @@ export type IconName =
   | "plus"
   | "reactivate"
   | "route"
+  | "tag"
   | "trash"
   | "users"
   | "view";
@@ -145,6 +146,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M8 19h8a4 4 0 0 0 0-8H8a4 4 0 0 1 0-8h8" />
     </>
   ),
+  tag: (
+    <>
+      <path d="M20.59 13.41L11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.82z" />
+      <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
   trash: (
     <>
       <path d="M3 6h18" />
@@ -201,6 +208,7 @@ const ICON_LABELS: Record<IconName, string> = {
   plus: "Añadir",
   reactivate: "Reactivar",
   route: "Ruta",
+  tag: "Roles",
   trash: "Eliminar",
   users: "Usuarios",
   view: "Ver",

@@ -6,6 +6,7 @@ import { listQuizItems } from "@/server/services/content.service";
 import { listUsers } from "@/server/services/user.service";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { Pagination } from "@/components/admin/Pagination";
 import { QuizAnswersFilters } from "./QuizAnswersFilters";
 
 const PAGE_SIZE = 20;
@@ -75,9 +76,14 @@ export default async function AdminQuizAnswersPage({
         ]}
       />
 
-      <p className="mt-4 text-xs text-ink-soft">
-        Página {page} de {totalPages} ({total} respuestas)
-      </p>
+      <Pagination
+        basePath="/admin/quiz-answers"
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        itemLabel="respuestas"
+        searchParams={{ userId: params.userId, contentItemId: params.contentItemId }}
+      />
     </div>
   );
 }

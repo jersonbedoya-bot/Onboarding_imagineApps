@@ -44,6 +44,12 @@ export async function findByUserAndContentItem(
   return (await collection()).find({ tenantId, userId, contentItemId }).toArray();
 }
 
+/** Todas las respuestas de un usuario — usado por progress.service.resetOnboarding. */
+export async function deleteAllForUser(tenantId: ObjectId, userId: ObjectId): Promise<number> {
+  const result = await (await collection()).deleteMany({ tenantId, userId });
+  return result.deletedCount;
+}
+
 /** Listado de control para el admin (ver quiz-answer.service.listQuizAnswers) — más recientes primero. */
 export async function listByTenant(
   tenantId: ObjectId,

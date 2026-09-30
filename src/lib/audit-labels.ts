@@ -12,11 +12,15 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   USER_DELETED: "Usuario eliminado",
   USER_PASSWORD_RESET: "Contraseña restablecida",
   USER_ONBOARDING_RESET: "Onboarding reiniciado",
-  ROUTE_CREATED: "Ruta creada",
-  ROUTE_UPDATED: "Ruta editada",
-  ROUTE_PUBLISHED: "Ruta publicada",
-  ROUTE_ARCHIVED: "Ruta archivada",
-  ROUTE_REACTIVATED: "Ruta reactivada",
+  ROLE_CREATED: "Rol funcional creado",
+  ROLE_UPDATED: "Rol funcional editado",
+  ROLE_DEACTIVATED: "Rol funcional desactivado",
+  ROLE_REACTIVATED: "Rol funcional reactivado",
+  ROUTE_CREATED: "Onboarding creado",
+  ROUTE_UPDATED: "Mensajes de guía editados",
+  ROUTE_PUBLISHED: "Onboarding publicado",
+  ROUTE_ARCHIVED: "Onboarding archivado",
+  ROUTE_REACTIVATED: "Onboarding reactivado",
   STAGE_CREATED: "Módulo creado",
   STAGE_UPDATED: "Módulo editado",
   STAGE_PUBLISHED: "Módulo publicado",
@@ -50,17 +54,45 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   MEDIA_UPLOADED: "Archivo subido",
 };
 
+/**
+ * Agrupa el filtro "Acción" de /admin/audit por tipo de recurso (ver
+ * AuditFilters.tsx, <optgroup>) — antes eran ~30 valores técnicos en un
+ * único <select> plano (INVITATION_CREATED, USER_DEACTIVATED, STAGE_
+ * PUBLISHED...), difícil de escanear para encontrar uno puntual. Prefijo =
+ * primer segmento de la AuditAction (ver AUDIT_ACTIONS) antes del primer "_".
+ */
+export const AUDIT_ACTION_GROUP_LABELS: Record<string, string> = {
+  INVITATION: "Invitaciones",
+  USER: "Usuarios",
+  ROLE: "Roles funcionales",
+  ROUTE: "Onboarding completo",
+  STAGE: "Módulos",
+  CONTENT: "Contenido",
+  LEADER: "Líderes",
+  PROCESS: "Procesos",
+  STEP: "Pasos",
+  MEDIA: "Archivos",
+};
+
 /** Prefijo legible para la columna "Recurso" cuando no hay título propio que mostrar (ver metadata.title). */
 export const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   invitation: "Invitación",
   user: "Usuario",
-  route: "Ruta",
+  role: "Rol funcional",
+  route: "Onboarding",
   stage: "Módulo",
   content_item: "Contenido",
   leader: "Líder",
   process: "Proceso",
   process_step: "Paso",
   media: "Archivo",
+};
+
+/** Para la columna "Detalles" de INVITATION_CREATED (ver AuditDetails.tsx) — mismo texto que ya usa InviteUserForm. */
+export const AUDIT_PLATFORM_ROLE_LABELS: Record<string, string> = {
+  USER: "Imaginer",
+  EDITOR: "Editor",
+  ADMIN: "Administrador",
 };
 
 /**
@@ -92,5 +124,5 @@ export const AUDIT_FIELD_LABELS: Record<string, string> = {
   mediaId: "Imagen",
   photoMediaId: "Foto",
   dependsOnStageId: "Depende de",
-  isBlocking: "Bloqueante",
+  isBlocking: "Obligatorio para los que dependen de él",
 };

@@ -236,7 +236,7 @@ export function ProcessForm({
 
   return (
     <Card as="form" onSubmit={handleSubmit} className="max-w-lg">
-      <h3 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo proceso en esta etapa</h3>
+      <h3 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo proceso en este módulo</h3>
       {fields}
     </Card>
   );

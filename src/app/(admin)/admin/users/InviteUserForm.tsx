@@ -2,11 +2,18 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Input, Select, Textarea } from "@/components/Field";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 
 type RoleOption = { id: string; label: string };
+
+const PLATFORM_ROLE_DESCRIPTIONS: Record<"USER" | "EDITOR" | "ADMIN", string> = {
+  USER: "Hace el recorrido de onboarding. Necesita un rol funcional (ej. Diseño, Ventas) — se lo asignas abajo.",
+  EDITOR: "Puede crear y editar contenido, procesos y líderes del onboarding, pero no puede borrar/archivar nada ni gestionar usuarios ni roles.",
+  ADMIN: "Gestiona todo el panel: usuarios, permisos y contenido. No hace el recorrido de onboarding.",
+};
 
 /**
  * Antes vivía como Card siempre visible al pie de la página (única forma de
@@ -85,7 +92,7 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
     } catch {
       // Clipboard puede fallar por permisos del navegador — el textarea
       // sigue ahí, seleccionable a mano, así que no se pierde el mensaje.
-      setError("No se pudo copiar automáticamente — selecciona el texto de abajo y copialo a mano.");
+      setError("No se pudo copiar automáticamente — selecciona el texto de abajo y cópialo a mano.");
     }
   }
 
@@ -98,14 +105,17 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
       // Mientras se muestra el link/mensaje recién creado, un click afuera
       // (o la "X") ya no lo cierra sin querer — el usuario reportó justo
       // esto: perdía el link para siempre por cerrar el modal sin darse
-      // cuenta. Solo "Ya la copié, cerrar" (abajo) puede cerrarlo ahora.
+      // cuenta. Solo "Ya lo copié, cerrar" (abajo) puede cerrarlo ahora.
       dismissible={!result}
     >
       {result ? (
         <div className="flex flex-col gap-4">
           <div className="rounded-md border border-brand-soft bg-brand-tint p-4">
+            <p className="mb-1 text-sm text-ink">
+              La plataforma no envía correos: copia este mensaje y envíaselo tú a la persona (por correo, Slack o WhatsApp).
+            </p>
             <p className="mb-2 text-sm font-semibold text-ink">
-              ⚠️ Este mensaje no se vuelve a mostrar — copialo antes de cerrar esta ventana.
+              ⚠️ Este mensaje no se vuelve a mostrar — cópialo antes de cerrar esta ventana.
             </p>
             <Textarea readOnly value={result.message} rows={3} className="bg-card" />
             <Button type="button" variant="secondary" onClick={copyMessage} className="mt-3 px-4 py-2 text-xs">
@@ -114,7 +124,7 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="button" onClick={() => handleOpenChange(false)} className="self-start">
-            Ya la copié, cerrar
+            Ya lo copié, cerrar
           </Button>
         </div>
       ) : (
@@ -127,23 +137,33 @@ export function InviteUserForm({ roles }: { roles: RoleOption[] }) {
             value={platformRole}
             onChange={(event) => setPlatformRole(event.target.value as "USER" | "EDITOR" | "ADMIN")}
           >
-            <option value="USER">Imaginer (hace el recorrido de onboarding)</option>
-            <option value="EDITOR">Editor (edita contenido, no puede archivar/borrar ni gestionar usuarios)</option>
-            <option value="ADMIN">Administrador (gestiona el panel completo, no hace onboarding)</option>
+            <option value="USER">Imaginer</option>
+            <option value="EDITOR">Editor</option>
+            <option value="ADMIN">Administrador</option>
           </Select>
+          <p className="-mt-2 text-xs text-ink-soft">{PLATFORM_ROLE_DESCRIPTIONS[platformRole]}</p>
 
-          {platformRole === "USER" && (
-            <Select id="invite-role" label="Rol funcional" value={functionalRoleId} onChange={(event) => setFunctionalRoleId(event.target.value)}>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.label}
-                </option>
-              ))}
-            </Select>
-          )}
+          {platformRole === "USER" &&
+            (roles.length > 0 ? (
+              <Select id="invite-role" label="Rol funcional" value={functionalRoleId} onChange={(event) => setFunctionalRoleId(event.target.value)}>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.label}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <p className="text-sm text-danger">
+                Todavía no hay ningún rol funcional creado — antes de invitar a un Imaginer, crea uno en{" "}
+                <Link href="/admin/roles" className="underline">
+                  Personas → Roles
+                </Link>
+                .
+              </p>
+            ))}
 
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button type="submit" isLoading={isSubmitting} className="self-start">
+          <Button type="submit" isLoading={isSubmitting} disabled={platformRole === "USER" && roles.length === 0} className="self-start">
             Crear invitación
           </Button>
         </form>

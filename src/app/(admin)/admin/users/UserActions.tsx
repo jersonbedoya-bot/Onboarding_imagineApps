@@ -23,8 +23,6 @@ type Props = {
   functionalRoleId: string | null;
   roles: RoleOption[];
   isSelf: boolean;
-  /** false para Admin/Editor en el roster de equipo administrativo — no tienen rol funcional, no aplica el selector ni "Reiniciar onboarding". */
-  showFunctionalRoleSelect?: boolean;
 };
 
 /**
@@ -34,26 +32,17 @@ type Props = {
  * reactivar, borrar) era un botón suelto con su propio color en la fila, y
  * se veía como un mosaico. Ahora la fila muestra un solo control siempre
  * igual; el color (rojo) queda reservado a las acciones destructivas, y
- * solo se ve una vez abierto el menú. El selector de rol funcional queda
- * FUERA del menú (no es una "acción" con confirmación, es edición en línea
- * directa) — ver showFunctionalRoleSelect.
+ * solo se ve una vez abierto el menú. El rol funcional (edición en línea
+ * directa, no una "acción" con confirmación) vive en su propia columna, ver
+ * FunctionalRoleSelect — antes vivía acá duplicado con la columna de solo
+ * lectura "Rol funcional", y no quedaba claro cuál de los dos era editable.
  *
  * Antes "Cambiar nivel de acceso" era su propio componente (ChangePlatform-
  * RoleAction) al lado de este, con su propio botón — se fusionó acá porque
  * ambos se renderizan siempre juntos, y el menú necesita un solo trigger.
  */
-export function UserActions({
-  userId,
-  userName,
-  status,
-  currentPlatformRole,
-  functionalRoleId,
-  roles,
-  isSelf,
-  showFunctionalRoleSelect = true,
-}: Props) {
+export function UserActions({ userId, userName, status, currentPlatformRole, functionalRoleId, roles, isSelf }: Props) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -66,9 +55,8 @@ export function UserActions({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
-  // Reiniciar onboarding — borra el progreso guardado, vuelve a arrancar
-  // desde la primera etapa. Solo aplica a Imaginers (tienen rol funcional,
-  // ver showFunctionalRoleSelect/functionalRoleId).
+  // Reiniciar onboarding — borra progreso y respuestas de quiz, vuelve a
+  // arrancar desde el primer módulo. Solo aplica a Imaginers (tienen functionalRoleId).
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [isResettingOnboarding, setIsResettingOnboarding] = useState(false);
 
@@ -85,10 +73,8 @@ export function UserActions({
 
   async function callAction(path: string, init?: RequestInit) {
     setError(null);
-    setIsPending(true);
     const response = await fetch(path, { method: "POST", ...init });
     const body = await response.json();
-    setIsPending(false);
 
     if (!response.ok || !body.success) {
       setError(body?.error?.message ?? "La acción falló.");
@@ -114,24 +100,6 @@ export function UserActions({
       return;
     }
     setIsConfirmingDelete(false);
-    router.refresh();
-  }
-
-  async function handleRoleChange(newRoleId: string) {
-    setError(null);
-    setIsPending(true);
-    const response = await fetch(`/api/users/${userId}/role`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ functionalRoleId: newRoleId }),
-    });
-    const body = await response.json();
-    setIsPending(false);
-
-    if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo cambiar el rol.");
-      return;
-    }
     router.refresh();
   }
 
@@ -202,9 +170,7 @@ export function UserActions({
   const menuItems: ActionMenuItem[] = [
     { label: "Cambiar nivel de acceso", onClick: openChangeRole, disabled: isSelf },
     { label: "Restablecer contraseña", onClick: () => setIsResettingPassword(true) },
-    ...(showFunctionalRoleSelect && functionalRoleId
-      ? [{ label: "Reiniciar onboarding", onClick: () => setIsConfirmingReset(true) }]
-      : []),
+    ...(functionalRoleId ? [{ label: "Reiniciar onboarding", onClick: () => setIsConfirmingReset(true) }] : []),
     {
       label: status === "ACTIVE" ? "Desactivar" : "Reactivar",
       onClick: handleToggleStatus,
@@ -216,20 +182,6 @@ export function UserActions({
 
   return (
     <div className="flex items-center gap-2">
-      {showFunctionalRoleSelect && (
-        <Select
-          value={functionalRoleId ?? ""}
-          disabled={isPending}
-          onChange={(event) => handleRoleChange(event.target.value)}
-          className="w-auto min-w-[9rem] py-1.5 text-xs"
-        >
-          {roles.map((role) => (
-            <option key={role.id} value={role.id}>
-              {role.label}
-            </option>
-          ))}
-        </Select>
-      )}
       <ActionMenu items={menuItems} label={`Más acciones de ${userName}`} />
       {error && (
         <span role="alert" className="text-xs text-danger">
@@ -315,7 +267,7 @@ export function UserActions({
       <ConfirmModal
         open={isConfirmingReset}
         title="Reiniciar onboarding"
-        description={`El progreso guardado de "${userName}" se va a borrar por completo — vuelve a arrancar desde la primera etapa, como si nunca hubiera empezado. Esta acción no se puede deshacer.`}
+        description={`Se borra todo el progreso de "${userName}", incluidas sus respuestas de quiz: vuelve a empezar desde el primer módulo, como si nunca hubiera empezado. Esta acción no se puede deshacer.`}
         confirmLabel="Sí, reiniciar"
         isLoading={isResettingOnboarding}
         onConfirm={handleResetOnboarding}
@@ -325,7 +277,7 @@ export function UserActions({
       <ConfirmModal
         open={isConfirmingDelete}
         title="Borrar usuario para siempre"
-        description={`"${userName}" se va a borrar para siempre — deja de poder loguear y desaparece del listado. Esta acción no se puede deshacer (el progreso de onboarding que ya completó y su historial de auditoría no se borran).`}
+        description={`"${userName}" se va a borrar para siempre — ya no puede iniciar sesión y desaparece del listado. Esta acción no se puede deshacer (el progreso de onboarding que ya completó y su historial de auditoría no se borran).`}
         isLoading={isDeleting}
         onConfirm={handleDelete}
         onClose={() => setIsConfirmingDelete(false)}

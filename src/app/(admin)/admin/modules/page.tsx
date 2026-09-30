@@ -82,6 +82,7 @@ export default async function AdminModulesPage() {
         description="Cada módulo agrupa su contenido y sus procesos en un solo lugar."
         action={
           <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-ink-soft">Estado del onboarding:</span>
             <Badge variant={route.status === "PUBLISHED" ? "success" : "neutral"}>{CONTENT_STATUS_LABELS[route.status]}</Badge>
             {canManageStages && <RouteActions status={route.status} />}
           </div>

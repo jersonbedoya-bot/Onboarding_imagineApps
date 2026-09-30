@@ -40,7 +40,7 @@ export function OnboardingTopbar({ stages, currentStageId }: { stages: JourneySt
   const progressLabel = `${completedPhases}/${totalPhases}`;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-line bg-paper/60 backdrop-blur">
       <div className="mx-auto max-w-5xl px-6 py-3 lg:px-12 xl:max-w-6xl xl:px-16 xl:py-4">
         <div className="flex items-center gap-4">
           <Link href="/onboarding">
@@ -81,9 +81,10 @@ function TopbarLink({ href, active, children }: { href: string; active: boolean;
   return (
     <Link
       href={href}
+      // Texto blanco y activo naranja con línea debajo, como el menú de imagineapps.co.
       className={cn(
-        "whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors xl:px-3 xl:py-2 xl:text-sm",
-        active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-brand-tint hover:text-brand-strong",
+        "whitespace-nowrap border-b-2 px-2.5 py-1.5 text-xs font-semibold transition-colors xl:px-3 xl:py-2 xl:text-sm",
+        active ? "border-brand-strong text-brand-strong" : "border-transparent text-ink hover:text-brand-strong",
       )}
     >
       {children}

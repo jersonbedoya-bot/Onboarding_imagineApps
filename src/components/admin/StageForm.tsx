@@ -67,7 +67,7 @@ export function StageForm({
     setIsSubmitting(false);
 
     if (!response.ok || !body.success) {
-      setError(body?.error?.message ?? "No se pudo guardar la etapa.");
+      setError(body?.error?.message ?? "No se pudo guardar el módulo.");
       return;
     }
 
@@ -100,22 +100,26 @@ export function StageForm({
         value={dependsOnStageId}
         onChange={(event) => setDependsOnStageId(event.target.value)}
       >
-        <option value="">— Ninguna —</option>
+        <option value="">— Ninguno —</option>
         {dependsOnOptions.map((stage) => (
           <option key={stage.id} value={stage.id}>
             {stage.title}
           </option>
         ))}
       </Select>
-      <Checkbox
-        id={`stage-blocking-${mode}`}
-        label="Bloquea la siguiente etapa hasta completarse"
-        checked={isBlocking}
-        onChange={(event) => setIsBlocking(event.target.checked)}
-      />
+      <div className="flex flex-col gap-1">
+        <Checkbox
+          id={`stage-blocking-${mode}`}
+          label="Obligatorio completarlo para abrir los módulos que dependen de este"
+          checked={isBlocking}
+          onChange={(event) => setIsBlocking(event.target.checked)}
+        />
+        {/* Ver progress-derivation.deriveUnlockedStages: isBlocking solo frena a quien lo eligió en "Depende de". */}
+        <p className="ml-6 text-xs text-ink-soft">Solo frena a los módulos que eligieron este en «Depende de».</p>
+      </div>
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button type="submit" isLoading={isSubmitting} className="self-start">
-        {mode === "edit" ? "Guardar cambios" : "Crear etapa"}
+        {mode === "edit" ? "Guardar cambios" : "Crear módulo"}
       </Button>
     </div>
   );

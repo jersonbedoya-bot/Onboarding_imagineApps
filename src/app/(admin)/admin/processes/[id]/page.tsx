@@ -13,6 +13,7 @@ import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { CONTENT_STATUS_LABELS } from "@/lib/status-labels";
 import { ProcessActions } from "@/components/admin/ProcessActions";
 import { ReorderableDataTable } from "@/components/admin/ReorderableDataTable";
+import { ModuleSummaryBadge, countByStatus } from "@/components/ModuleSummaryBadge";
 import { StepForm } from "./StepForm";
 import { StepActions } from "./StepActions";
 
@@ -124,7 +125,10 @@ export default async function AdminProcessDetailPage({ params }: { params: Promi
         }
       />
 
-      <h2 className="mb-3 font-display text-lg font-semibold text-ink">Pasos</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold text-ink">Pasos</h2>
+        <ModuleSummaryBadge label="Total" counts={countByStatus(steps)} />
+      </div>
       <ReorderableDataTable
         headers={stepColumns.map((column) => column.header)}
         rows={stepRows}

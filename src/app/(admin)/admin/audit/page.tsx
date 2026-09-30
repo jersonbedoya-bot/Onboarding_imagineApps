@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AUDIT_ACTION_LABELS, AUDIT_RESOURCE_LABELS } from "@/lib/audit-labels";
+import { Pagination } from "@/components/admin/Pagination";
 import { AuditFilters } from "./AuditFilters";
 import { AuditDetails } from "./AuditDetails";
 
@@ -42,7 +43,7 @@ export default async function AdminAuditPage({
 
   return (
     <div>
-      <PageHeader title="Auditoría" description="Registro de acciones administrativas de tu tenant." />
+      <PageHeader title="Auditoría" description="Registro de acciones administrativas de tu organización." />
 
       <AuditFilters
         users={userOptions}
@@ -72,9 +73,14 @@ export default async function AdminAuditPage({
         ]}
       />
 
-      <p className="mt-4 text-xs text-ink-soft">
-        Página {page} de {totalPages} ({total} eventos)
-      </p>
+      <Pagination
+        basePath="/admin/audit"
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        itemLabel="eventos"
+        searchParams={{ userId: params.userId, action: params.action, from: params.from, to: params.to }}
+      />
     </div>
   );
 }

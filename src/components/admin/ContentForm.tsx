@@ -439,7 +439,7 @@ export function ContentForm({
 
   return (
     <Card as="form" onSubmit={handleSubmit} className="mt-6 max-w-lg">
-      <h3 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo contenido en esta etapa</h3>
+      <h3 className="mb-4 font-display text-lg font-semibold text-ink">Nuevo contenido en este módulo</h3>
       {fields}
     </Card>
   );

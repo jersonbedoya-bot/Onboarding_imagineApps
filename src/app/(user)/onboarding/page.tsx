@@ -5,6 +5,7 @@ import { getRouteContent } from "@/server/services/route.service";
 import { TerminalCelebration } from "./TerminalCelebration";
 import { EmptyState } from "@/components/EmptyState";
 import { UserMenu } from "@/components/UserMenu";
+import { RouteHeader } from "@/components/RouteHeader";
 import { OnboardingJourney } from "./OnboardingJourney";
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ stage?: string }> }) {
@@ -32,7 +33,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6">
         <EmptyState
-          title="Todavía no hay una ruta de onboarding publicada"
+          title="Tu onboarding todavía no está publicado"
           description="Cuando tu organización publique el recorrido, vas a verlo acá."
         />
         <UserMenu />
@@ -45,11 +46,11 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   // más adelante.
   const selectedStageId = requestedStageId ?? journey.currentStageId;
 
-  // El manifiesto grande es la bienvenida — tiene sentido la primera vez
-  // (Fase 01), pero repetirlo idéntico cada vez que el usuario vuelve a
-  // /onboarding en una fase posterior solo empuja el contenido real hacia
-  // abajo sin aportar nada nuevo. Se muestra solo mientras la fase actual
-  // del usuario (no la vista por ?stage=) sea la primera del recorrido.
+  // El manifiesto grande es la bienvenida — se muestra en cada visita
+  // mientras la fase actual del usuario (no la vista por ?stage=) sea la
+  // primera del recorrido; una vez completada, desaparece para no empujar
+  // el contenido real hacia abajo. /admin/messages describe esta misma
+  // regla — si cambia acá, actualizar ese texto.
   const isFirstStage = journey.currentStageId === journey.stages[0]?.id;
 
   return (
@@ -57,13 +58,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       {journey.currentStageId === null ? (
         <FinishCard />
       ) : isFirstStage ? (
-        <header className="mb-10 rounded-2xl border border-brand-soft bg-gradient-to-br from-brand-tint to-card px-8 py-10 sm:px-12 xl:py-14">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-strong">
-            Tu recorrido
-          </span>
-          <h1 className="text-gradient-brand font-display text-4xl font-semibold leading-tight sm:text-5xl xl:text-6xl">{routeContent.headline}</h1>
-          {routeContent.subtitle && <p className="mt-3 max-w-xl text-base text-ink-soft xl:text-lg">{routeContent.subtitle}</p>}
-        </header>
+        <RouteHeader headline={routeContent.headline} subtitle={routeContent.subtitle} />
       ) : null}
 
       <OnboardingJourney

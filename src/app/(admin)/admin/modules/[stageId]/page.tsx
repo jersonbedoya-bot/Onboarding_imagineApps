@@ -47,11 +47,18 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
     listStages(identity),
     listContentByStage(identity, stage._id),
     listProcessesByStage(identity, stage._id),
-    roleRepository.listByTenant(identity.tenantId),
+    roleRepository.listByTenant(identity.tenantId, { includeInactive: true }),
   ]);
 
   const stageOptions = allStages.map((s) => ({ id: s._id.toString(), title: s.title }));
-  const roleOptions = roles.map((role) => ({ id: role._id.toString(), label: role.label }));
+  // Formularios: solo roles activos. Columna "Alcance": también los
+  // inactivos, marcados — antes un rol desactivado salía como "?".
+  const roleOptions = roles
+    .filter((role) => role.status === "ACTIVE")
+    .map((role) => ({ id: role._id.toString(), label: role.label }));
+  const roleLabelById = new Map(
+    roles.map((role) => [role._id.toString(), role.status === "ACTIVE" ? role.label : `${role.label} (inactivo)`]),
+  );
 
   // allStages ya viene ordenado por `order` (stageRepository.listByRoute) —
   // se reutiliza tal cual para saber cuál es el módulo anterior/siguiente,
@@ -73,7 +80,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
       {
         header: "Alcance",
         render: (item: (typeof content)[number]) =>
-          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
+          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleLabelById.get(id.toString()) ?? "Rol eliminado").join(", "),
       },
       {
         header: "Estado",
@@ -123,7 +130,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
       {
         header: "Alcance",
         render: (item: (typeof processes)[number]) =>
-          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleOptions.find((r) => r.id === id.toString())?.label ?? "?").join(", "),
+          item.scope === "COMMON" ? "Común" : item.roleIds.map((id) => roleLabelById.get(id.toString()) ?? "Rol eliminado").join(", "),
       },
       {
         header: "Estado",
@@ -209,10 +216,11 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
       />
 
       <section className="mb-10">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-ink">Contenido</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(content)} />
         </div>
+        <p className="mb-3 text-sm text-ink-soft">Lo que el Imaginer lee o mira: texto, imágenes, videos.</p>
         <ReorderableDataTable
           headers={contentColumns.map((column) => column.header)}
           rows={contentRows}
@@ -228,10 +236,11 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-ink">Procesos</h2>
           <ModuleSummaryBadge label="Total" counts={countByStatus(processes)} />
         </div>
+        <p className="mb-3 text-sm text-ink-soft">Lo que el Imaginer hace: una tarea con pasos a completar, en orden.</p>
         <ReorderableDataTable
           headers={processColumns.map((column) => column.header)}
           rows={processRows}

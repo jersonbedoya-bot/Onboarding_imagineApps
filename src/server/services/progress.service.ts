@@ -7,6 +7,7 @@ import * as mediaRepository from "@/server/repositories/media.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as userRepository from "@/server/repositories/user.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
+import * as quizAnswerRepository from "@/server/repositories/quiz-answer.repository";
 import type { ProgressDocument } from "@/server/repositories/progress.repository";
 import { resolveVisibleContent } from "@/server/services/content.service";
 import { resolveVisibleSteps } from "@/server/services/step.service";
@@ -452,7 +453,9 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
  * guardado de un usuario. `resolveJourneyFor` vuelve a derivar de cero en
  * la próxima carga: currentStageId cae en la primera etapa desbloqueada,
  * como si el usuario nunca hubiera empezado. No toca al usuario en sí (rol,
- * estado, contraseña) — solo user_progress.
+ * estado, contraseña) — solo user_progress y quiz_answers. Las respuestas
+ * de quiz también se borran: QuizBlock las retoma al abrir el quiz, así que
+ * sin esto reaparecían ya contestadas en un onboarding "reiniciado".
  */
 export async function resetOnboarding(actingAdmin: RequestIdentity, targetUserId: ObjectId) {
   const target = await userRepository.findById(actingAdmin.tenantId, targetUserId);
@@ -460,7 +463,10 @@ export async function resetOnboarding(actingAdmin: RequestIdentity, targetUserId
     throw new NotFoundError();
   }
 
-  const deletedCount = await progressRepository.deleteAllForUser(actingAdmin.tenantId, targetUserId);
+  const [deletedCount, deletedQuizAnswers] = await Promise.all([
+    progressRepository.deleteAllForUser(actingAdmin.tenantId, targetUserId),
+    quizAnswerRepository.deleteAllForUser(actingAdmin.tenantId, targetUserId),
+  ]);
 
   await auditRepository.record({
     tenantId: actingAdmin.tenantId,
@@ -468,8 +474,8 @@ export async function resetOnboarding(actingAdmin: RequestIdentity, targetUserId
     action: "USER_ONBOARDING_RESET",
     resource: "user",
     resourceId: targetUserId,
-    metadata: { deletedCount },
+    metadata: { deletedCount, deletedQuizAnswers },
   });
 
-  return { deletedCount };
+  return { deletedCount, deletedQuizAnswers };
 }

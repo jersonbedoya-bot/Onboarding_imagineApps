@@ -4,13 +4,17 @@ import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 
+// Forma de píldora y naranja de marca, igual que los CTA de imagineapps.co
+// ("Schedule Call" / "Book a Free Consultation"). El hover de primary usa
+// brightness y no otro bg-*: ConfirmModal pisa el fondo con bg-danger y cn()
+// no resuelve conflictos, así que un hover:bg-* volvería naranja el botón rojo.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg disabled:hover:translate-y-0",
-  secondary: "bg-card text-ink border border-line hover:border-brand hover:text-brand-strong",
+  primary: "bg-brand text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg hover:brightness-110 disabled:hover:translate-y-0 disabled:hover:brightness-100",
+  secondary: "bg-transparent text-ink border border-line hover:border-brand hover:text-brand-strong",
   ghost: "bg-transparent text-brand-strong hover:bg-brand-tint",
 };
 
-const BASE_CLASSES = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-6 py-3 text-sm font-semibold transition-all duration-150";
+const BASE_CLASSES = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-6 py-3 text-sm font-semibold transition-all duration-150";
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;

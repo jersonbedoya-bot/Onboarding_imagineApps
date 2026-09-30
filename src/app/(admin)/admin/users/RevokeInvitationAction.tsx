@@ -54,7 +54,7 @@ export function RevokeInvitationAction({ id, email }: { id: string; email: strin
       <ConfirmModal
         open={isConfirming}
         title="Revocar invitación"
-        description={`La invitación a "${email}" deja de servir — el link ya enviado no va a funcionar más. Después de esto podés invitar de nuevo a este mismo email desde "+ Invitar usuario".`}
+        description={`La invitación a "${email}" deja de servir — el link ya enviado no va a funcionar más. Después de esto puedes invitar de nuevo a este mismo email desde "+ Invitar usuario".`}
         confirmLabel="Sí, revocar"
         isLoading={isPending}
         onConfirm={handleConfirm}

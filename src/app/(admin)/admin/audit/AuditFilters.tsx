@@ -1,8 +1,23 @@
 import { Card } from "@/components/Card";
 import { Select, Input } from "@/components/Field";
 import { Button } from "@/components/Button";
-import { AUDIT_ACTION_LABELS } from "@/lib/audit-labels";
+import { AUDIT_ACTION_LABELS, AUDIT_ACTION_GROUP_LABELS } from "@/lib/audit-labels";
 import type { AuditAction } from "@/server/repositories/audit.repository";
+
+function groupActions(actions: string[]): { group: string; actions: string[] }[] {
+  const order: string[] = [];
+  const byGroup = new Map<string, string[]>();
+  for (const action of actions) {
+    const prefix = action.split("_")[0];
+    const group = AUDIT_ACTION_GROUP_LABELS[prefix] ?? prefix;
+    if (!byGroup.has(group)) {
+      byGroup.set(group, []);
+      order.push(group);
+    }
+    byGroup.get(group)!.push(action);
+  }
+  return order.map((group) => ({ group, actions: byGroup.get(group)! }));
+}
 
 // Form GET plano — no necesita Client Component: el navegador arma el
 // query string y recarga la página del Server Component con los filtros.
@@ -29,10 +44,14 @@ export function AuditFilters({
 
         <Select id="action" name="action" label="Acción" defaultValue={selected.action ?? ""} className="w-auto">
           <option value="">Todas</option>
-          {actions.map((action) => (
-            <option key={action} value={action}>
-              {AUDIT_ACTION_LABELS[action as AuditAction] ?? action}
-            </option>
+          {groupActions(actions).map(({ group, actions: groupedActions }) => (
+            <optgroup key={group} label={group}>
+              {groupedActions.map((action) => (
+                <option key={action} value={action}>
+                  {AUDIT_ACTION_LABELS[action as AuditAction] ?? action}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </Select>
 

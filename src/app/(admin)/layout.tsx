@@ -31,8 +31,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     .catch(() => "USER" as const);
 
   return (
-    <div className="min-h-screen bg-paper">
-      <div className="border-b border-line bg-card">
+    // Sin bg-paper: dejaba el panel en un solo color plano, tapando el
+    // degradado de marca de body::before (globals.css). La franja superior
+    // es translúcida, igual que el header de imagineapps.co.
+    <div className="min-h-screen">
+      <div className="border-b border-line bg-paper/60 backdrop-blur">
         <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-6 py-3">
           <Logo className="flex-shrink-0 text-base" />
           <span aria-hidden className="h-4 w-px flex-shrink-0 bg-line" />

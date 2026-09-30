@@ -37,7 +37,7 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const parsed = updateRouteContentSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError(zodErrorMessage(parsed.error, "Datos de título/subtítulo inválidos."), parsed.error.flatten());
+      throw new ValidationError(zodErrorMessage(parsed.error, "Los datos de los mensajes de guía no son válidos."), parsed.error.flatten());
     }
     const route = await updateRouteContent(actingAdmin, parsed.data);
     return NextResponse.json({

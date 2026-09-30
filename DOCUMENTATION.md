@@ -183,6 +183,7 @@ src/
 │   ├── (admin)/                  # Panel administrativo (protegido)
 │   │   ├── layout.tsx
 │   │   └── admin/
+│   │       ├── page.tsx           # Dashboard de bienvenida (destino post-login de Admin/Editor)
 │   │       ├── modules/           # Ruta + etapas + su contenido y procesos, todo por módulo
 │   │       │   └── [stageId]/     # Detalle: contenido + procesos de esa etapa
 │   │       ├── processes/[id]/    # Pasos de un proceso (se llega desde su módulo)
@@ -190,6 +191,8 @@ src/
 │   │       ├── preview/          # Ver el onboarding por rol funcional, solo lectura (Admin y Editor)
 │   │       ├── messages/         # Título/subtítulo del recorrido + mensajes de guía editables (solo Admin)
 │   │       ├── users/            # Usuarios + invitaciones (solo Admin)
+│   │       ├── roles/            # Roles funcionales: crear/renombrar/desactivar (solo Admin)
+│   │       ├── quiz-answers/     # Respuestas de quiz por usuario (solo Admin)
 │   │       └── audit/            # Log de auditoría (solo Admin)
 │   ├── (public)/                 # Rutas públicas
 │   │   ├── login/
@@ -285,7 +288,7 @@ Ni EDITOR ni ADMIN hacen el recorrido de onboarding (ninguno tiene `functionalRo
 
 ### 10.2 Rol funcional (`functionalRoleId`)
 
-Define qué tipo de onboarding recibe el usuario. Iniciales: `PDM`, `UX_UI_DESIGNER`. Extensible agregando filas en la colección `roles` (ej. `DEVELOPER`, `QA`, etc.) sin tocar la arquitectura.
+Define qué tipo de onboarding recibe el usuario. El seed inicial crea `PDM` y `UX_UI_DESIGNER`; desde `/admin/roles` (solo Admin) se pueden crear más sin tocar código — `key` ya no está atado a `FUNCTIONAL_ROLE_KEYS` (esa constante en `types/enums.ts` solo documenta los 2 valores del seed), se genera a partir del nombre (`role.service.createRole`). Desactivar un rol (no hay borrado permanente) lo saca de los selects de invitación/alcance sin tocar usuarios/contenido que ya lo referencian.
 
 El rol funcional se asigna **siempre desde la invitación** (nunca elegido por el usuario en el registro — regla PRD §12). Un `ADMIN` no tiene rol funcional.
 
@@ -344,7 +347,7 @@ Todas bajo `src/app/api/`. Las rutas administrativas exigen `requireAdmin()`, sa
 | **Líderes** | `GET/POST /api/leaders`, `PATCH/DELETE /api/leaders/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/leaders/resolve` | Gestión y resolución de líderes. |
 | **Procesos** | `GET/POST /api/processes`, `PATCH/DELETE /api/processes/{id}`, `POST .../publish`, `/archive`, `/reactivate` | Gestión de procesos. |
 | **Pasos** | `GET/POST /api/steps`, `PATCH/DELETE /api/steps/{id}`, `POST .../publish`, `/archive`, `/reactivate`, `GET /api/steps/resolve` | Gestión y resolución de pasos. |
-| **Roles** | `GET /api/roles` | Listado de roles funcionales. |
+| **Roles** | `GET/POST /api/roles`, `PATCH /api/roles/{id}` (renombrar), `POST /api/roles/{id}/deactivate`, `/reactivate` | Gestión de roles funcionales — sin borrado permanente (desactivar los saca de los selects sin tocar referencias existentes). |
 | **Progreso** | `GET /api/progress/journey`, `POST /api/progress/content/{id}/read`, `/content/{id}/view`, `/steps/{id}/complete`, `/processes/{id}/complete` | "Dónde estoy", acuse de lectura (obligatorio), vista pasiva (informativo) y completar pasos/procesos. |
 | **Media** | `POST /api/media` | Subida de imágenes (Vercel Blob). |
 | **Auditoría** | `GET /api/audit` | Log de auditoría con filtros y paginación. |

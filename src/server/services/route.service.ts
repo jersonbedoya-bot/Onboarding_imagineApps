@@ -5,13 +5,14 @@ import type { RequestIdentity } from "@/server/auth/session";
 import * as routeRepository from "@/server/repositories/route.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
 
+import {
+  DEFAULT_HEADLINE,
+  DEFAULT_SUBTITLE,
+  DEFAULT_BLOCKED_NEXT_MESSAGE,
+  DEFAULT_PENDING_CONTENT_MESSAGE,
+} from "@/lib/guide-message-defaults";
+
 const DEFAULT_ROUTE_NAME = "Ruta de onboarding";
-const DEFAULT_HEADLINE = "Vamos paso a paso";
-const DEFAULT_SUBTITLE = "Recorre cada etapa y completa los pasos de tu rol.";
-// Antes quemados en OnboardingJourney.tsx — ahora son el default de fábrica,
-// editable y desactivable desde /admin/messages (ver getRouteContent).
-const DEFAULT_BLOCKED_NEXT_MESSAGE = "Completa lo pendiente de esta etapa para avanzar.";
-const DEFAULT_PENDING_CONTENT_MESSAGE = "Una parte de este contenido está en revisión — el texto definitivo todavía no está disponible.";
 
 /**
  * Creación perezosa: no hay un paso admin explícito "crear ruta" — se
@@ -54,16 +55,21 @@ export type RouteContent = {
  */
 export async function getRouteContent(tenantId: ObjectId): Promise<RouteContent> {
   const route = await routeRepository.findByTenant(tenantId);
+  const blockedText = route?.blockedNextMessage ?? DEFAULT_BLOCKED_NEXT_MESSAGE;
+  const pendingText = route?.pendingContentMessage ?? DEFAULT_PENDING_CONTENT_MESSAGE;
+  // Un aviso sin texto cuenta como apagado: route.schema.ts permite guardar
+  // "" solo con el aviso desactivado, pero un PATCH que solo reactive el
+  // toggle dejaría un <p> vacío en el recorrido.
   return {
     headline: route?.headline ?? DEFAULT_HEADLINE,
     subtitle: route?.subtitle ?? DEFAULT_SUBTITLE,
     blockedNextMessage: {
-      text: route?.blockedNextMessage ?? DEFAULT_BLOCKED_NEXT_MESSAGE,
-      enabled: route?.blockedNextMessageEnabled ?? true,
+      text: blockedText,
+      enabled: (route?.blockedNextMessageEnabled ?? true) && blockedText.trim().length > 0,
     },
     pendingContentMessage: {
-      text: route?.pendingContentMessage ?? DEFAULT_PENDING_CONTENT_MESSAGE,
-      enabled: route?.pendingContentMessageEnabled ?? true,
+      text: pendingText,
+      enabled: (route?.pendingContentMessageEnabled ?? true) && pendingText.trim().length > 0,
     },
   };
 }

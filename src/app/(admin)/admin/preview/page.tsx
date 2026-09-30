@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
+import Link from "next/link";
 import { requireContentEditor } from "@/server/auth/session";
 import { resolveJourneyPreview } from "@/server/services/progress.service";
 import { resolveVisibleLeadersWithMedia } from "@/server/services/leader.service";
@@ -8,12 +9,13 @@ import * as roleRepository from "@/server/repositories/role.repository";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Card } from "@/components/Card";
 import { LinkButton } from "@/components/Button";
+import { RouteHeader } from "@/components/RouteHeader";
 import { OnboardingJourney } from "@/app/(user)/onboarding/OnboardingJourney";
 
 /**
  * "Ver el onboarding sin cerrar sesión" — pedido explícito del usuario: al
  * editar contenido, antes había que salir del admin e iniciar sesión con
- * un usuario normal para ver cómo quedaba. Elegís qué rol funcional
+ * un usuario normal para ver cómo quedaba. Se elige qué rol funcional
  * previsualizar (el contenido difiere por rol) y se renderiza el mismo
  * OnboardingJourney real, en `previewMode` (solo lectura: oculta los
  * botones que persistirían progreso — ver ese prop).
@@ -40,10 +42,16 @@ export default async function AdminPreviewPage({ searchParams }: { searchParams:
       <div>
         <PageHeader
           title="Vista previa del onboarding"
-          description="Elegí qué rol funcional querés ver, tal como lo vería un Imaginer con ese rol — de solo lectura, no queda nada guardado."
+          description="Elige qué rol funcional quieres ver, tal como lo vería un Imaginer con ese rol — de solo lectura, no queda nada guardado."
         />
         {roles.length === 0 ? (
-          <p className="text-sm text-ink-soft">Todavía no hay roles funcionales creados.</p>
+          <p className="text-sm text-ink-soft">
+            Todavía no hay roles funcionales creados — crea uno en{" "}
+            <Link href="/admin/roles" className="underline">
+              Personas → Roles
+            </Link>
+            .
+          </p>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row">
             {roles.map((role) => (
@@ -72,28 +80,38 @@ export default async function AdminPreviewPage({ searchParams }: { searchParams:
     <div>
       <PageHeader
         title={`Vista previa · ${selectedRole.label}`}
-        description="Solo lectura: nada de lo que veas acá queda guardado ni afecta a ningún usuario real."
+        description="Solo lectura: nada de lo que veas aquí queda guardado ni afecta a ningún usuario real."
         action={
-          <LinkButton href="/admin/preview" variant="secondary" className="px-3 py-1.5 text-xs">
-            Cambiar de rol
-          </LinkButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <LinkButton href="/admin/preview/completado" variant="secondary" className="px-3 py-1.5 text-xs">
+              🎉 Ver pantalla final
+            </LinkButton>
+            <LinkButton href="/admin/preview" variant="secondary" className="px-3 py-1.5 text-xs">
+              Cambiar de rol
+            </LinkButton>
+          </div>
         }
       />
 
       {journey.stages.length === 0 ? (
-        <p className="text-sm text-ink-soft">Todavía no hay una ruta de onboarding publicada.</p>
+        <p className="text-sm text-ink-soft">Todavía no hay módulos publicados para este rol — publica el onboarding y al menos un módulo en Módulos.</p>
       ) : (
-        <OnboardingJourney
-          stages={journey.stages}
-          currentStageId={journey.stages[0].id}
-          equipoCount={equipo.length}
-          roleLabel={journey.role?.label ?? null}
-          gerencia={gerencia}
-          equipo={equipo}
-          blockedNextMessage={routeContent.blockedNextMessage}
-          pendingContentMessage={routeContent.pendingContentMessage}
-          previewMode
-        />
+        <>
+          {/* La vista previa siempre arranca en el primer módulo — mismo caso
+              en que un Imaginer real ve la bienvenida (ver onboarding/page.tsx). */}
+          <RouteHeader headline={routeContent.headline} subtitle={routeContent.subtitle} headingLevel="h2" />
+          <OnboardingJourney
+            stages={journey.stages}
+            currentStageId={journey.stages[0].id}
+            equipoCount={equipo.length}
+            roleLabel={journey.role?.label ?? null}
+            gerencia={gerencia}
+            equipo={equipo}
+            blockedNextMessage={routeContent.blockedNextMessage}
+            pendingContentMessage={routeContent.pendingContentMessage}
+            previewMode
+          />
+        </>
       )}
     </div>
   );

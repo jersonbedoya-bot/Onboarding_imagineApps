@@ -227,16 +227,11 @@ export function OnboardingJourney({
     if (nextStage) {
       setIndex(index + 1);
     } else if (previewMode) {
-      // Preview (Admin/Editor, ver admin/preview/page.tsx): nunca hay
-      // progreso real ("todo desbloqueado, nada completado"), así que llegar
-      // acá es "Admin/Editor terminó de revisar la última etapa" (a mano,
-      // con "Saltar", o porque esa etapa está vacía/readOnly) — no un cierre
-      // real de nadie. completado/page.tsx vive bajo el layout de
-      // (user)/onboarding, que redirige a cualquiera sin functionalRoleId —
-      // Admin/Editor nunca lo tienen, así que navegar ahí lo sacaría de la
-      // preview en vez de mostrarle un cierre real. Se mantiene el refresh
-      // in-place de siempre.
-      router.refresh();
+      // Preview (Admin/Editor): no hay progreso real que cerrar, pero sí la
+      // misma pantalla final que vería un Imaginer — en su propia ruta del
+      // panel, porque onboarding/completado vive bajo el layout de
+      // (user)/onboarding, que manda a /admin a quien no tiene rol funcional.
+      router.push("/admin/preview/completado");
     } else {
       // Última etapa: acá se completó lo último que hacía falta (el botón
       // "Terminar Onboarding" solo aparece con stage.status === "COMPLETE",
