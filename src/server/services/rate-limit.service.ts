@@ -1,5 +1,6 @@
 import { RateLimitedError } from "@/server/errors";
 import { normalizeEmail } from "@/lib/email";
+import { hashToken } from "@/lib/token";
 import * as rateLimitRepository from "@/server/repositories/rate-limit.repository";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -8,6 +9,11 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 // misma de login (15 min) por consistencia. Ajustar si hace falta.
 const LOGIN = { maxAttempts: 5, windowMs: FIFTEEN_MINUTES_MS };
 const ACCEPT_INVITE = { maxAttempts: 3, windowMs: FIFTEEN_MINUTES_MS };
+// Pedir ayuda con la contraseña no expone nada (la respuesta es siempre la
+// misma), pero sin límite alguien podría llenar la lista del admin.
+const FORGOT_PASSWORD = { maxAttempts: 3, windowMs: FIFTEEN_MINUTES_MS };
+const RESET_PASSWORD = { maxAttempts: 5, windowMs: FIFTEEN_MINUTES_MS };
+const RESET_PASSWORD_PER_IP = { maxAttempts: 20, windowMs: FIFTEEN_MINUTES_MS };
 
 function emailKey(email: string): string {
   return `email:${normalizeEmail(email)}`;
@@ -17,8 +23,11 @@ function ipKey(ip: string): string {
   return `ip:${ip}`;
 }
 
+// Hash, no el token crudo: un intento fallido con un token VÁLIDO (ej.
+// cuenta desactivada) dejaba el token usable guardado en texto plano en
+// rate_limit_attempts — justo lo que invitations/password_resets evitan.
 function tokenKey(token: string): string {
-  return `token:${token}`;
+  return `token:${hashToken(token)}`;
 }
 
 /**
@@ -75,4 +84,41 @@ export async function assertAcceptInviteNotRateLimited(token: string): Promise<v
 
 export async function recordFailedAcceptInvite(token: string): Promise<void> {
   await rateLimitRepository.recordAttempt("accept-invite", tokenKey(token), ACCEPT_INVITE.windowMs);
+}
+
+/**
+ * "Olvidé mi contraseña": cuenta CADA pedido (no solo fallos — un pedido
+ * nunca "falla" hacia afuera), por email y por IP, igual que login.
+ */
+export async function assertForgotPasswordNotRateLimited(email: string, ip: string | null): Promise<void> {
+  if ((await rateLimitRepository.countActive("forgot-password", emailKey(email))) >= FORGOT_PASSWORD.maxAttempts) {
+    throw new RateLimitedError();
+  }
+  if (ip && (await rateLimitRepository.countActive("forgot-password", ipKey(ip))) >= FORGOT_PASSWORD.maxAttempts) {
+    throw new RateLimitedError();
+  }
+}
+
+export async function recordForgotPassword(email: string, ip: string | null): Promise<void> {
+  await rateLimitRepository.recordAttempt("forgot-password", emailKey(email), FORGOT_PASSWORD.windowMs);
+  if (ip) await rateLimitRepository.recordAttempt("forgot-password", ipKey(ip), FORGOT_PASSWORD.windowMs);
+}
+
+/**
+ * /reset-password/[token]: por token (mismo criterio que accept-invite) y
+ * además por IP — probar tokens inventados crea una clave nueva por token,
+ * así que sin la dimensión IP nada frenaría una ráfaga de intentos.
+ */
+export async function assertResetPasswordNotRateLimited(token: string, ip: string | null): Promise<void> {
+  if ((await rateLimitRepository.countActive("reset-password", tokenKey(token))) >= RESET_PASSWORD.maxAttempts) {
+    throw new RateLimitedError();
+  }
+  if (ip && (await rateLimitRepository.countActive("reset-password", ipKey(ip))) >= RESET_PASSWORD_PER_IP.maxAttempts) {
+    throw new RateLimitedError();
+  }
+}
+
+export async function recordFailedResetPassword(token: string, ip: string | null): Promise<void> {
+  await rateLimitRepository.recordAttempt("reset-password", tokenKey(token), RESET_PASSWORD.windowMs);
+  if (ip) await rateLimitRepository.recordAttempt("reset-password", ipKey(ip), RESET_PASSWORD_PER_IP.windowMs);
 }

@@ -200,6 +200,31 @@ colección que antes no existía).
 cualquier base donde todavía no exista, sin tocar ninguna colección ya
 existente.
 
+### 9. Colección nueva `password_resets` — "Olvidé mi contraseña" sin correos
+
+Igual que #8: colección nueva, `db:bootstrap` la crea con su validador e
+índices, sin tocar nada existente.
+
+**Por qué**: la plataforma no envía correos, y hasta ahora la única salida
+para quien olvidaba su contraseña era que un admin le inventara una y se la
+dictara. Ahora la persona pide ayuda en `/forgot-password` (`REQUESTED`), el
+admin la ve arriba de todo en `/admin/users` (y en el Inicio) y genera un
+enlace de un solo uso que le comparte por Google Chat (`LINK_CREATED`, 24 h),
+y la persona elige su propia contraseña en `/reset-password/[token]`
+(`USED`). `DISMISSED` = descartada por el admin o reemplazada por un enlace
+más nuevo (solo el último sirve). El token se maneja igual que en
+`invitations`: 256 bits, solo su SHA-256 en la base. Índice único de
+`tokenHash` con `partialFilterExpression` (las solicitudes `REQUESTED`
+tienen `tokenHash: null`). La solicitud pública nunca revela si el email
+existe, y tiene rate limit por email e IP (`rate_limit_attempts`, scopes
+nuevos `forgot-password` / `reset-password` — esa colección no tiene
+validador, no hace falta `collMod`).
+
+**Pendiente de aplicar**: correr `npm run db:bootstrap` contra la base de
+producción al desplegar. Si no se corre, Mongo igual crea la colección en el
+primer uso, pero **sin** validador ni índices (en particular, sin el único
+de `tokenHash`) — por eso conviene correrlo antes.
+
 ## Migraciones de contenido (no-schema)
 
 A diferencia de todo lo de arriba, esto no toca `schema.ts` — es una
@@ -584,6 +609,88 @@ tenant que tenga los mismos títulos de contenido institucional. Si los
 títulos difieren, ajustar `PATCHES` antes de correr; cualquier item no
 listado queda con `displayFormat: "PROSE"` (el default), que es el
 comportamiento de siempre.
+
+### 9. Ajustes de contenido del primer día (PDM y UX/UI Designer, tenant imagine-apps)
+
+Misma naturaleza que #3–#7: edición de contenido normal vía los services
+(`updateContentItem`/`updateProcess`/`updateStep`/`archiveStep`/
+`updateRouteContent`), sin tocar estructura ni `schema.ts`.
+
+**Origen**: revisión de "primer día" con agentes (un PDM y un UX/UI Designer
+que entran por primera vez), sobre el contenido real publicado. Solo entran
+acá los cambios que se sostienen en el propio contenido o en decisiones ya
+tomadas:
+
+- Intro de "Tu rol": UX/UI ve 6 grupos (2 comunes + 3 propios + Gestión de
+  equipo), no 7; concordancia "propios/compartido"; primera frase de UX/UI.
+- Cumpleaños: el plazo decía "15 días hábiles", "15 días" y "2 semanas" según
+  dónde se mirara — queda "15 días hábiles" en la política y en el quiz.
+- "área" → "líder directo" / "líder de equipo" / "proyecto" (Cumpleaños,
+  Timeboxing, Project Status, 1:1).
+- Kickoff Interno: UX/UI no "se suma recién" al final — recibe accesos en
+  «Activar al equipo» y participa desde la alineación.
+- Se quita "con ayuda de Gimena" (Plan de Trabajo) y "Gabo (Planner)" de los
+  recursos de Plan de Trabajo (Experiencia) — agentes de Agents Hub ya dados
+  de baja (#3). `src/lib/pending-content.ts` deja de marcar "Crear las
+  historias de usuario" como pendiente: desplegar el código y correr este
+  script juntos.
+- Pasos duplicados: se archiva "Redactar la historia de usuario" (HUs, repetía
+  los pasos 3 y 4) y el paso 2 de Actas de Reunión pasa a describir solo el
+  borrador automático (el 3 ya pide revisarlo).
+- "Entrega y validación" (UX/UI) estaba en orden inverso: queda QA de
+  Prototipo → Revisiones internas → Revisiones con el Cliente → Handoff →
+  Entrega a Cliente, reusando los mismos valores de `order` entre esos 5.
+- Aviso para avanzar: "este modulo" → "este módulo" (no cambia si está activo).
+
+**Lo que quedó pendiente de confirmar** se resolvió en #10, salvo los
+procesos de wireframes y validación con usuarios (sin definir todavía).
+
+**Cómo aplicar**: el script es seguro sobre una base que ya cambió — cada
+reemplazo exige encontrar el texto viejo exacto y, si no está, lo informa y
+lo salta; correrlo dos veces no rompe nada.
+
+```bash
+node --env-file=.env.local --import tsx ./scripts/migrate-first-day-content-fixes.ts          # solo muestra el plan
+node --env-file=.env.local --import tsx ./scripts/migrate-first-day-content-fixes.ts --apply  # escribe
+```
+
+Ojo: escribe en la base configurada en `.env.local` (hoy, el mismo Atlas de
+producción). IDs hardcodeados para el tenant imagine-apps. El motor
+(dry-run, verificación del texto viejo, idempotencia) vive en
+`scripts/lib/content-patches.ts`, compartido con #10.
+
+### 10. Contexto real de cada rol: PDM, agentes, canal oficial (tenant imagine-apps)
+
+Misma naturaleza y mismo motor que #9. Respuestas del responsable del
+producto a lo que #9 había dejado pendiente:
+
+- **No existe el rol "PM"**: el PDM es un híbrido entre PM y QA. Toda
+  mención a "PM"/"Project Manager" pasa a "PDM" (Citas Médicas, Vacaciones,
+  Project Status y los contextos de 6 procesos de UX/UI).
+- **Los agentes no se usan**: se quitan "Agente Gabriela" (360º, Onboarding
+  de Proyecto), "Agente Ginna" (Planes de Mejora) y "Agente Claude" (Entrega
+  Parcial); los 2 pasos de Entrega Parcial que dependían de él ("usar el
+  comando indicado", "pedirle a la IA") pasan a describir el trabajo a mano.
+  Gemini se mantiene: es la herramienta real del flujo automático de actas.
+- **Canal oficial: Google Chat**, no Slack (recursos de Levantamiento de
+  Alertas, Project Status y Revisiones internas, y el resultado esperado de
+  Project Status).
+- **A quién recurrir**: la intro del PDM dice que reporta a la Directora de
+  Operaciones y que Operaciones le da accesos y enlaces internos; la de UX/UI,
+  que se apoye en el PDM de su proyecto o en Operaciones. Los pasos que
+  nombraban una herramienta sin decir cómo acceder (selector de proyectos,
+  sistema de seguimiento de NPS, Help Desk) agregan "pídeselo al equipo de
+  Operaciones".
+
+**Sigue pendiente**: procesos de wireframes y validación con usuarios.
+
+**Cómo aplicar**: igual que #9 (correr #9 antes o después da lo mismo — no
+tocan el mismo texto).
+
+```bash
+node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts          # solo muestra el plan
+node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts --apply  # escribe
+```
 
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 

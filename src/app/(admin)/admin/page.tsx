@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireContentEditor } from "@/server/auth/session";
+import { countPendingPasswordResetRequests } from "@/server/services/password-reset.service";
 import * as userRepository from "@/server/repositories/user.repository";
 import { listStages } from "@/server/services/stage.service";
 import { listUsers } from "@/server/services/user.service";
@@ -36,9 +38,14 @@ export default async function AdminHomePage() {
   const activeStages = stages.filter((s) => s.status !== "ARCHIVED");
   const publishedStages = activeStages.filter((s) => s.status === "PUBLISHED").length;
 
-  let peopleStats: { enProgreso: number; completados: number; total: number; pendientes: number } | null = null;
+  let peopleStats: { enProgreso: number; completados: number; total: number; pendientes: number; passwordRequests: number } | null =
+    null;
   if (isAdmin) {
-    const [{ items: users }, invitations] = await Promise.all([listUsers(identity, { pageSize: 200 }), listInvitations(identity)]);
+    const [{ items: users }, invitations, passwordRequests] = await Promise.all([
+      listUsers(identity, { pageSize: 200 }),
+      listInvitations(identity),
+      countPendingPasswordResetRequests(identity),
+    ]);
     const imaginers = users.filter((u) => u.platformRole === "USER" && u.functionalRoleId);
     // Mismo patrón que /admin/users (progreso por usuario) — a esta escala
     // (decenas de personas, no miles) resolver el recorrido de cada una acá
@@ -52,6 +59,7 @@ export default async function AdminHomePage() {
       completados,
       enProgreso: imaginers.length - completados,
       pendientes: invitations.filter((inv) => inv.status === "PENDING").length,
+      passwordRequests,
     };
   }
 
@@ -63,6 +71,22 @@ export default async function AdminHomePage() {
         <h1 className="font-display text-2xl font-semibold text-ink">{firstName ? `Hola, ${firstName} 👋` : "Hola 👋"}</h1>
         <p className="mt-1 text-sm text-ink-soft">Así está hoy el onboarding de tu equipo.</p>
       </div>
+
+      {peopleStats && peopleStats.passwordRequests > 0 && (
+        <Link
+          href="/admin/users"
+          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-soft bg-brand-tint px-5 py-4 transition-colors hover:border-brand"
+        >
+          <span className="text-sm text-ink">
+            🔑{" "}
+            <strong>
+              {peopleStats.passwordRequests === 1 ? "1 persona pidió" : `${peopleStats.passwordRequests} personas pidieron`}
+            </strong>{" "}
+            ayuda con su contraseña y no puede entrar.
+          </span>
+          <span className="text-sm font-semibold text-brand-strong">Atender en Usuarios ›</span>
+        </Link>
+      )}
 
       <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {peopleStats && (

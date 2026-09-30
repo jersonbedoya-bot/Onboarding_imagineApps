@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/server/db/client";
 
-export type RateLimitScope = "login" | "accept-invite";
+export type RateLimitScope = "login" | "accept-invite" | "forgot-password" | "reset-password";
 
 export type RateLimitAttemptDocument = {
   _id: ObjectId;

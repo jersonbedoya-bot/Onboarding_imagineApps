@@ -9,6 +9,7 @@ import { Modal } from "@/components/Modal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
 import type { PlatformRole } from "@/types/enums";
+import { PasswordResetLinkGenerator } from "./PasswordResetLinkGenerator";
 
 type RoleOption = { id: string; label: string };
 
@@ -47,9 +48,10 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Restablecer contraseña — no hay envío de correo en esta plataforma, así
-  // que si un imaginer la olvida, un admin la fija a mano acá y se la pasa
-  // por el canal que use (ver user.service.resetPassword).
+  // Restablecer contraseña — no hay envío de correo: lo recomendado es un
+  // enlace de un solo uso para que la persona elija la suya (ver
+  // PasswordResetLinkGenerator); fijarla a mano (user.service.resetPassword)
+  // queda como alternativa.
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -246,21 +248,32 @@ export function UserActions({ userId, userName, status, currentPlatformRole, fun
         }}
         title={`Restablecer contraseña de ${userName}`}
       >
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-ink-soft">
-            No hay envío de correo — comparte esta contraseña con {userName} por el canal que uses (Slack, WhatsApp, en persona).
-          </p>
-          <PasswordInput
-            label="Nueva contraseña"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            error={passwordError ?? undefined}
-            placeholder="Mínimo 8 caracteres, con letra y número"
-            autoFocus
-          />
-          <Button onClick={handleResetPassword} isLoading={isSubmittingPassword} className="self-start">
-            Guardar nueva contraseña
-          </Button>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-ink">Recomendado: que la elija {userName}</p>
+            <p className="text-sm text-ink-soft">
+              Genera un enlace de un solo uso y envíaselo por Google Chat. Así nadie más conoce su nueva contraseña.
+            </p>
+            {status === "ACTIVE" ? (
+              <PasswordResetLinkGenerator userId={userId} userName={userName} />
+            ) : (
+              <p className="text-xs text-ink-soft">Esta cuenta está desactivada: reactívala para poder generarle un enlace.</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-3 border-t border-line pt-5">
+            <p className="text-sm font-semibold text-ink">O fíjala tú</p>
+            <p className="text-sm text-ink-soft">No hay envío de correo: después tendrás que compartirla con {userName} por Google Chat o en persona.</p>
+            <PasswordInput
+              label="Nueva contraseña"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              error={passwordError ?? undefined}
+              placeholder="Mínimo 8 caracteres, con letra y número"
+            />
+            <Button variant="secondary" onClick={handleResetPassword} isLoading={isSubmittingPassword} className="self-start">
+              Guardar nueva contraseña
+            </Button>
+          </div>
         </div>
       </Modal>
 

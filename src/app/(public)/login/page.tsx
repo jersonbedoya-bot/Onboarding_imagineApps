@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { AuthShell } from "@/components/AuthShell";
 import { Input } from "@/components/Field";
@@ -50,14 +51,19 @@ export default function LoginPage() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
-        <PasswordInput
-          id="password"
-          name="password"
-          label="Contraseña"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
+        <div className="flex flex-col gap-1.5">
+          <PasswordInput
+            id="password"
+            name="password"
+            label="Contraseña"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <Link href="/forgot-password" className="self-end text-xs font-semibold text-ink-soft hover:text-brand-strong">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
         {error && (
           <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}

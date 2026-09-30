@@ -35,6 +35,8 @@ import {
   parseQuizQuestions,
 } from "@/lib/content-display";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
+import { StructuredContentEditor } from "@/components/admin/StructuredContentEditor";
+import { parseStructured, serializeStructured, emptyModel, type StructuredModel } from "@/lib/content-structure";
 
 type RoleOption = { id: string; label: string };
 
@@ -82,6 +84,14 @@ export function ContentForm({
   const [roleIds, setRoleIds] = useState<string[]>(initial?.roleIds ?? []);
   const [requirement, setRequirement] = useState<ContentRequirement | "">(initial?.requirement ?? "");
   const [displayFormat, setDisplayFormat] = useState<ContentDisplayFormat>(initial?.displayFormat ?? "PROSE");
+  // Editor guiado (ver content-structure.ts): no-null = se edita por campos y
+  // `body` se arma solo; null = modo texto (PROSE, o un body que no calza
+  // con el formato y la persona prefirió no reemplazarlo).
+  const [structured, setStructured] = useState<StructuredModel | null>(() => {
+    const format = initial?.displayFormat ?? "PROSE";
+    return format === "PROSE" ? null : parseStructured(format, initial?.body ?? "");
+  });
+  const [isConfirmingGuidedReplace, setIsConfirmingGuidedReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Cambiar esta key remonta <MediaUploader/> desde cero — es la única
@@ -191,6 +201,32 @@ export function ContentForm({
   }
   const formatMismatch = displayFormat !== "PROSE" && body.trim().length > 0 && !formatAppliesTo(body);
 
+  function updateStructured(next: StructuredModel) {
+    setStructured(next);
+    setBody(serializeStructured(next));
+  }
+
+  function handleFormatChange(next: ContentDisplayFormat) {
+    setDisplayFormat(next);
+    // Con un body que ya calza con el formato nuevo (o vacío), se abre el
+    // editor guiado con esos datos; si no calza, se queda en modo texto y
+    // se ofrece empezar de cero — nunca se borra lo escrito sin avisar.
+    setStructured(next === "PROSE" ? null : parseStructured(next, body));
+  }
+
+  function switchToGuided() {
+    if (displayFormat === "PROSE") return;
+    const parsed = parseStructured(displayFormat, body);
+    if (parsed) setStructured(parsed);
+    else setIsConfirmingGuidedReplace(true);
+  }
+
+  function startGuidedFromScratch() {
+    if (displayFormat === "PROSE") return;
+    updateStructured(emptyModel(displayFormat));
+    setIsConfirmingGuidedReplace(false);
+  }
+
   function toggleRole(roleId: string) {
     setRoleIds((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]));
   }
@@ -199,6 +235,10 @@ export function ContentForm({
     event.preventDefault();
     setError(null);
 
+    if (structured && !body.trim()) {
+      setError("Completa al menos una fila del editor (las filas incompletas no se guardan).");
+      return;
+    }
     if (needsMedia && !mediaId) {
       setError("Todavía no subiste la imagen (o la subida falló) — sube un archivo antes de guardar.");
       return;
@@ -260,6 +300,7 @@ export function ContentForm({
       setRoleIds([]);
       setRequirement("");
       setDisplayFormat("PROSE");
+      setStructured(null);
       setMediaUploaderKey((key) => key + 1);
       setIsModalOpen(false);
     }
@@ -276,19 +317,12 @@ export function ContentForm({
       <div className="flex flex-col gap-4">
         <h4 className="text-xs font-bold uppercase tracking-wide text-ink-soft">Contenido</h4>
         <Input id="content-title" label="Título" required value={title} onChange={(event) => setTitle(event.target.value)} />
-        <MarkdownTextarea
-          id="content-body"
-          label="Cuerpo (admite Markdown)"
-          required
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          renderPreview={renderContentPreview}
-        />
+        {/* El formato va ANTES del cuerpo: define qué editor aparece abajo. */}
         <Select
           id="content-display-format"
           label="Formato de visualización"
           value={displayFormat}
-          onChange={(event) => setDisplayFormat(event.target.value as ContentDisplayFormat)}
+          onChange={(event) => handleFormatChange(event.target.value as ContentDisplayFormat)}
         >
           {CONTENT_DISPLAY_FORMATS.map((option) => (
             <option key={option} value={option}>
@@ -296,13 +330,56 @@ export function ContentForm({
             </option>
           ))}
         </Select>
-        <p className="-mt-2 text-xs text-ink-soft">{CONTENT_DISPLAY_FORMAT_HINTS[displayFormat]}</p>
-        {formatMismatch && (
-          <p className="-mt-2 flex items-start gap-1.5 text-xs font-semibold text-danger">
-            <span aria-hidden>⚠</span>
-            Todavía no calza con &quot;{CONTENT_DISPLAY_FORMAT_LABELS[displayFormat]}&quot; — por ahora se muestra como texto normal (ver Vista previa arriba). Ajusta el Cuerpo para que siga el patrón de arriba.
-          </p>
+
+        {structured ? (
+          <>
+            <p className="-mt-2 text-xs text-ink-soft">Completa los campos: el diseño se arma solo, sin escribir ningún símbolo.</p>
+            <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
+              <StructuredContentEditor value={structured} onChange={updateStructured} />
+              <div className="flex flex-col gap-1 md:sticky md:top-0 md:self-start">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft/70">Vista previa</span>
+                <div className="min-h-[88px] rounded-md border border-line bg-paper px-3 py-2">
+                  {body.trim() ? renderContentPreview(body) : <p className="text-sm text-ink-soft/60">Completa una fila para ver cómo queda.</p>}
+                </div>
+              </div>
+            </div>
+            <button type="button" onClick={() => setStructured(null)} className="self-start text-xs font-semibold text-ink-soft hover:text-brand-strong">
+              Editar como texto (avanzado)
+            </button>
+          </>
+        ) : (
+          <>
+            {displayFormat !== "PROSE" && <p className="-mt-2 text-xs text-ink-soft">{CONTENT_DISPLAY_FORMAT_HINTS[displayFormat]}</p>}
+            <MarkdownTextarea
+              id="content-body"
+              label="Cuerpo (admite Markdown)"
+              required
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              renderPreview={renderContentPreview}
+            />
+            {formatMismatch && (
+              <p className="-mt-2 flex items-start gap-1.5 text-xs font-semibold text-danger">
+                <span aria-hidden>⚠</span>
+                Todavía no calza con &quot;{CONTENT_DISPLAY_FORMAT_LABELS[displayFormat]}&quot; — por ahora se muestra como texto normal (ver la vista previa).
+              </p>
+            )}
+            {displayFormat !== "PROSE" && (
+              <button type="button" onClick={switchToGuided} className="self-start text-xs font-semibold text-brand-strong hover:underline">
+                Usar el editor guiado
+              </button>
+            )}
+          </>
         )}
+        <ConfirmModal
+          open={isConfirmingGuidedReplace}
+          title="¿Empezar con el editor guiado?"
+          description={`El texto actual no tiene la forma de "${CONTENT_DISPLAY_FORMAT_LABELS[displayFormat]}", así que el editor guiado no puede leerlo. Si continúas, empiezas con los campos vacíos y ese texto se reemplaza al guardar.`}
+          confirmLabel="Empezar de cero"
+          tone="neutral"
+          onConfirm={startGuidedFromScratch}
+          onClose={() => setIsConfirmingGuidedReplace(false)}
+        />
       </div>
 
       <div className="flex flex-col gap-4 border-t border-line pt-6">

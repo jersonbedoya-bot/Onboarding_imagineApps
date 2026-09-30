@@ -3,14 +3,20 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/server/auth/auth";
 
 // Todo lo que no está acá requiere sesión por default (seguro por defecto).
-const PUBLIC_PATHS = new Set(["/", "/login"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/forgot-password", "/api/password-reset/request"]);
 
 // Rutas públicas con un token en el path: quien tiene el link/token (que el
-// admin comparte a mano, ver invitation.service) puede previsualizar y
-// aceptar la invitación sin estar logueado. `POST /api/invitations` (sin
-// segmento extra, la creación por el admin) NO matchea acá y sigue protegida.
+// admin comparte a mano, ver invitation.service y password-reset.service)
+// puede usarlo sin estar logueado. `POST /api/invitations` (sin segmento
+// extra, la creación por el admin) NO matchea acá y sigue protegida, igual
+// que /api/users/[id]/password-reset-* (generar/descartar, solo admin).
 function isPublicTokenRoute(pathname: string): boolean {
-  return pathname.startsWith("/accept-invite/") || /^\/api\/invitations\/[^/]+(\/accept)?$/.test(pathname);
+  return (
+    pathname.startsWith("/accept-invite/") ||
+    /^\/api\/invitations\/[^/]+(\/accept)?$/.test(pathname) ||
+    /^\/reset-password\/[^/]+$/.test(pathname) ||
+    /^\/api\/password-reset\/[^/]+$/.test(pathname)
+  );
 }
 
 /**

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/server/auth/session";
 import { listUsers } from "@/server/services/user.service";
 import { resolveJourneyFor } from "@/server/services/progress.service";
 import { listInvitations } from "@/server/services/invitation.service";
+import { listPendingPasswordResetRequests } from "@/server/services/password-reset.service";
 import * as roleRepository from "@/server/repositories/role.repository";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -14,6 +15,7 @@ import { InviteUserForm } from "./InviteUserForm";
 import { UserActions } from "./UserActions";
 import { InvitationsList } from "./InvitationsList";
 import { FunctionalRoleSelect } from "./FunctionalRoleSelect";
+import { PasswordResetRequests } from "./PasswordResetRequests";
 
 const USERS_PAGE_SIZE = 1000;
 
@@ -27,10 +29,11 @@ export default async function AdminUsersPage() {
 
   // pageSize alto a propósito: antes se usaba el default del service (20) y
   // a partir de la persona 21 desaparecían del listado sin ningún aviso.
-  const [{ items: users, total: totalUsers }, allRoles, invitations] = await Promise.all([
+  const [{ items: users, total: totalUsers }, allRoles, invitations, passwordResetRequests] = await Promise.all([
     listUsers(identity, { pageSize: USERS_PAGE_SIZE }),
     roleRepository.listByTenant(identity.tenantId, { includeInactive: true }),
     listInvitations(identity),
+    listPendingPasswordResetRequests(identity),
   ]);
 
   // Solo los roles activos se ofrecen para asignar; los inactivos se siguen
@@ -68,6 +71,10 @@ export default async function AdminUsersPage() {
   return (
     <div>
       <PageHeader title="Usuarios" description="Gestión de acceso y rol funcional de tu organización." />
+
+      <PasswordResetRequests
+        requests={passwordResetRequests.map((request) => ({ ...request, requestedAt: request.requestedAt.toISOString() }))}
+      />
 
       <section className="mb-10">
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Equipo administrativo</h2>

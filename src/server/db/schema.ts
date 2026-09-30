@@ -252,6 +252,41 @@ export const collections: CollectionDef[] = [
       { spec: { tenantId: 1, contentItemId: 1, answeredAt: -1 } },
     ],
   },
+  {
+    // "Olvidé mi contraseña" sin envío de correos (ver
+    // password-reset.service.ts): la persona pide ayuda desde /forgot-password
+    // (REQUESTED), un admin genera un link de un solo uso que comparte por
+    // chat (LINK_CREATED, solo se guarda el hash del token, igual que
+    // `invitations`), y la persona elige su contraseña (USED). DISMISSED =
+    // descartada por un admin o reemplazada por un link más nuevo.
+    name: "password_resets",
+    validator: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: ["tenantId", "userId", "status", "createdAt"],
+        properties: {
+          tenantId: objectId,
+          userId: objectId,
+          status: { enum: ["REQUESTED", "LINK_CREATED", "USED", "DISMISSED"] },
+          requestedAt: { bsonType: ["date", "null"] },
+          tokenHash: { bsonType: ["string", "null"] },
+          expiresAt: { bsonType: ["date", "null"] },
+          linkCreatedBy: { bsonType: ["objectId", "null"] },
+          linkCreatedAt: { bsonType: ["date", "null"] },
+          usedAt: { bsonType: ["date", "null"] },
+          createdAt: date,
+        },
+      },
+    },
+    indexes: [
+      // Único solo entre los que tienen token (los REQUESTED lo tienen en null).
+      { spec: { tokenHash: 1 }, options: { unique: true, partialFilterExpression: { tokenHash: { $type: "string" } } } },
+      // Solicitudes abiertas de una persona (a lo sumo una a la vez).
+      { spec: { tenantId: 1, userId: 1, status: 1 } },
+      // Vista de admin: solicitudes pendientes, más recientes primero.
+      { spec: { tenantId: 1, status: 1, createdAt: -1 } },
+    ],
+  },
 ];
 
 export async function ensureCollection(db: Db, def: CollectionDef): Promise<void> {

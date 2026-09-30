@@ -39,7 +39,7 @@ export type ProcessGroupDef = { name: string; icon: string; matches: string[] };
  * los roles), después los grupos propios de cada rol — para que el punto de
  * partida natural (primer grupo con trabajo pendiente, ver
  * defaultGroupIndex en OnboardingJourney.tsx) sea "Inicio del proyecto", no
- * un grupo de rol. Los grupos de PDM (Reporting/Riesgo) y de UX/UI
+ * un grupo de rol. Los grupos de PDM (Reportes/Riesgo) y de UX/UI
  * (Discovery/Diseño/Entrega) conviven acá porque cada usuario solo trae (vía
  * findVisibleForRole) los procesos de su propio rol + los COMMON — un grupo
  * sin procesos visibles para ese usuario simplemente se omite (ver
@@ -62,7 +62,7 @@ const PROYECTOS_Y_ROL_GROUPS: ProcessGroupDef[] = [
   // el contenido ⚠️ que tiene adentro queda más visible (primer grupo, no
   // el último). Validado contra Metologías (All).md antes de mover.
   {
-    name: "Reporting y seguimiento",
+    name: "Reportes y seguimiento",
     icon: "📊",
     matches: ["Project Status", "360º", "NPS (Net Promoter Score)", "Pulso de Operaciones", "Actas de Reunión"],
   },

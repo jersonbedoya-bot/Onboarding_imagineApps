@@ -6,12 +6,11 @@
  * esto NO reemplaza ni reescribe ese contenido, solo lo señala. La lista de
  * abajo salió de buscar en Mongo texto realmente visible para el usuario
  * (title/body/instruction) que menciona Agents Hub o a un agente por
- * nombre (Gimena, Gabo, "vibecoding") — no de la lista completa del audit
- * original, que incluía procesos donde esa mención solo vive en el campo
- * `resources` (no se renderiza hoy en la UI, ej. 360º, Planes de Mejora,
- * Onboarding de Proyecto, Entrega Parcial, Plan de Trabajo Experiencia):
- * marcar esos como "pendientes" induciría a error, porque nada roto es
- * visible ahí todavía.
+ * nombre (Gimena, Gabo, "vibecoding"). OJO: `resources` de un proceso SÍ se
+ * renderiza hoy (OnboardingJourney, ProcessCard). Los agentes no se usan en
+ * la empresa, así que se quitaron también de ahí: Gabo en
+ * scripts/migrate-first-day-content-fixes.ts, y Gabriela/Ginna/"Agente
+ * Claude" en scripts/migrate-role-context-fixes.ts.
  *
  * Match por sub-string de título, mismo criterio que phase-groups.ts.
  */
@@ -23,9 +22,9 @@ const PENDING_PROCESS_TITLES: string[] = [
 ];
 
 const PENDING_STEP_TITLES = [
-  // "Invocar a Gimena" (Generación de HUs) salió de esta lista: ese proceso
-  // se reescribió sin ninguna mención a Agents Hub/Gimena — ya no aplica.
-  "Crear las historias de usuario", // Construcción de Plan de Trabajo — "con ayuda de Gimena"
+  // "Invocar a Gimena" (Generación de HUs) y "Crear las historias de usuario"
+  // (Construcción de Plan de Trabajo) salieron de esta lista: ninguno menciona
+  // ya a Gimena (el segundo, desde scripts/migrate-first-day-content-fixes.ts).
   "Coordinar con Dev antes de codear (si aplica vibecoding)", // Handoff
   "Documentar cambios en Markdown (si aplica vibecoding)", // Handoff
 ];

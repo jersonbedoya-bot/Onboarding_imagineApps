@@ -6,6 +6,7 @@ import type { PlatformRole } from "@/types/enums";
 import * as userRepository from "@/server/repositories/user.repository";
 import * as roleRepository from "@/server/repositories/role.repository";
 import * as auditRepository from "@/server/repositories/audit.repository";
+import * as passwordResetRepository from "@/server/repositories/password-reset.repository";
 
 // Mismo costo que invitation.service (acceptInvitation) — un solo lugar
 // donde se fija el hash de un usuario ya existente, el otro es al aceptar
@@ -29,6 +30,8 @@ export async function deactivateUser(actingAdmin: RequestIdentity, targetUserId:
   if (!updated) {
     throw new NotFoundError();
   }
+  // Un enlace de nueva contraseña no debe revivir si la cuenta se reactiva.
+  await passwordResetRepository.dismissOpenForUser(actingAdmin.tenantId, targetUserId);
 
   await auditRepository.record({
     tenantId: actingAdmin.tenantId,
@@ -93,6 +96,7 @@ export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: Obj
   if (!deleted) {
     throw new NotFoundError();
   }
+  await passwordResetRepository.dismissOpenForUser(actingAdmin.tenantId, targetUserId);
 
   await auditRepository.record({
     tenantId: actingAdmin.tenantId,
@@ -105,11 +109,10 @@ export async function deleteUser(actingAdmin: RequestIdentity, targetUserId: Obj
 }
 
 /**
- * Restablecer contraseña — no hay envío de correo en esta plataforma (ver
- * BACKLOG.md), así que si un usuario la olvida, el admin es el único
- * mecanismo de recuperación: la fija a mano y se la comunica al usuario por
- * el canal que use (Slack/WhatsApp/en persona). Misma política de fuerza
- * que acceptInvitation (ver resetPasswordSchema).
+ * Restablecer contraseña a mano — alternativa al enlace de un solo uso (ver
+ * password-reset.service.ts, la opción recomendada): el admin la fija y se
+ * la comunica a la persona por Google Chat o en persona. Misma política de
+ * fuerza que acceptInvitation (ver resetPasswordSchema).
  */
 export async function resetPassword(actingAdmin: RequestIdentity, targetUserId: ObjectId, newPassword: string) {
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
@@ -117,6 +120,9 @@ export async function resetPassword(actingAdmin: RequestIdentity, targetUserId: 
   if (!updated) {
     throw new NotFoundError();
   }
+  // Si había un enlace de "elige tu contraseña" vivo, podría pisar la que
+  // acaba de fijar el admin — y la solicitud ya quedó atendida.
+  await passwordResetRepository.dismissOpenForUser(actingAdmin.tenantId, targetUserId);
 
   await auditRepository.record({
     tenantId: actingAdmin.tenantId,
