@@ -5,6 +5,7 @@ import { listQuizAnswers } from "@/server/services/quiz-answer.service";
 import { listQuizItems } from "@/server/services/content.service";
 import { listUsers } from "@/server/services/user.service";
 import { DataTable } from "@/components/DataTable";
+import { formatDate } from "@/lib/format-date";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { QuizAnswersFilters } from "./QuizAnswersFilters";
@@ -67,7 +68,7 @@ export default async function AdminQuizAnswersPage({
         columns={[
           {
             header: "Fecha",
-            render: (item) => new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(item.answeredAt),
+            render: (item) => formatDate(item.answeredAt, { dateStyle: "short", timeStyle: "short" }),
           },
           { header: "Usuario", render: (item) => usersById.get(item.userId) ?? item.userId },
           { header: "Quiz", render: (item) => quizzesById.get(item.contentItemId) ?? "—" },

@@ -25,11 +25,11 @@
  * --apply para escribir, corre por process.service/step.service reales).
  */
 import { ObjectId } from "mongodb";
-import { getDb } from "../src/server/db/client";
 import * as tenantRepository from "../src/server/repositories/tenant.repository";
 import * as processService from "../src/server/services/process.service";
 import * as stepService from "../src/server/services/step.service";
 import type { RequestIdentity } from "../src/server/auth/session";
+import { findScriptActorAdmin } from "./lib/script-actor";
 
 const APPLY = process.argv.includes("--apply");
 const BASECAMP_URL = "https://3.basecamp.com/5172885/projects";
@@ -69,9 +69,8 @@ async function main() {
 
   const tenant = await tenantRepository.findBySlug("imagine-apps");
   if (!tenant) throw new Error("tenant not found");
-  const db = await getDb();
 
-  const admin = await db.collection("users").findOne({ tenantId: tenant._id, platformRole: "ADMIN", status: "ACTIVE" });
+  const admin = await findScriptActorAdmin(tenant._id);
   if (!admin) throw new Error("no admin activo encontrado para atribuir el audit log");
   const actingAdmin: RequestIdentity = {
     userId: admin._id,

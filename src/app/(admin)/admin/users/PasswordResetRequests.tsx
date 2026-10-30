@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { PasswordResetLinkGenerator } from "./PasswordResetLinkGenerator";
+import { formatDate } from "@/lib/format-date";
 
 type RequestItem = { userId: string; name: string; email: string; requestedAt: string };
 
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+function formatRequestDate(iso: string): string {
+  return formatDate(iso, { dateStyle: "medium", timeStyle: "short" });
 }
 
 /**
@@ -58,7 +59,7 @@ export function PasswordResetRequests({ requests }: { requests: RequestItem[] })
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">{request.name}</p>
               <p className="truncate text-xs text-ink-soft">
-                {request.email} · lo pidió el {formatDate(request.requestedAt)}
+                {request.email} · lo pidió el {formatRequestDate(request.requestedAt)}
               </p>
             </div>
             <div className="flex items-center gap-2">

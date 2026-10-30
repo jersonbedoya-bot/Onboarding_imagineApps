@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { AUDIT_ACTION_LABELS, AUDIT_RESOURCE_LABELS } from "@/lib/audit-labels";
+import { formatDate } from "@/lib/format-date";
 import { Pagination } from "@/components/admin/Pagination";
 import { AuditFilters } from "./AuditFilters";
 import { AuditDetails } from "./AuditDetails";
@@ -60,7 +61,7 @@ export default async function AdminAuditPage({
             header: "Fecha",
             render: (item) => (
               <span className="whitespace-nowrap">
-                {new Intl.DateTimeFormat("es-CO", { dateStyle: "short", timeStyle: "short" }).format(item.timestamp)}
+                {formatDate(item.timestamp, { dateStyle: "short", timeStyle: "short" })}
               </span>
             ),
           },

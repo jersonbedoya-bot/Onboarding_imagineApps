@@ -2,6 +2,7 @@ import type { InvitationListItem } from "@/server/services/invitation.service";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { Badge, type BadgeVariant } from "@/components/Badge";
 import { INVITATION_STATUS_LABELS } from "@/lib/status-labels";
+import { formatDate } from "@/lib/format-date";
 import { RevokeInvitationAction } from "./RevokeInvitationAction";
 
 const STATUS_BADGE_VARIANT: Record<InvitationListItem["status"], BadgeVariant> = {
@@ -11,8 +12,8 @@ const STATUS_BADGE_VARIANT: Record<InvitationListItem["status"], BadgeVariant> =
   REVOKED: "danger",
 };
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+function formatInvitationDate(date: Date): string {
+  return formatDate(date, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 /**
@@ -46,10 +47,10 @@ export function InvitationsList({
       header: "Estado",
       render: (inv) => <Badge variant={STATUS_BADGE_VARIANT[inv.status]}>{INVITATION_STATUS_LABELS[inv.status]}</Badge>,
     },
-    { header: "Enviada", render: (inv) => formatDate(inv.createdAt) },
+    { header: "Enviada", render: (inv) => formatInvitationDate(inv.createdAt) },
     {
       header: "Expira",
-      render: (inv) => (inv.status === "PENDING" ? formatDate(inv.expiresAt) : "—"),
+      render: (inv) => (inv.status === "PENDING" ? formatInvitationDate(inv.expiresAt) : "—"),
     },
     { header: "Invitada por", render: (inv) => users.find((u) => u.id === inv.invitedBy)?.name ?? "—" },
     {

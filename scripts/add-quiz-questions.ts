@@ -32,6 +32,7 @@ import { getDb } from "../src/server/db/client";
 import * as tenantRepository from "../src/server/repositories/tenant.repository";
 import * as contentService from "../src/server/services/content.service";
 import type { RequestIdentity } from "../src/server/auth/session";
+import { findScriptActorAdmin } from "./lib/script-actor";
 
 const APPLY = process.argv.includes("--apply");
 
@@ -142,7 +143,7 @@ async function main() {
   const db = await getDb();
 
   const admin = APPLY
-    ? await db.collection("users").findOne({ tenantId: tenant._id, platformRole: "ADMIN", status: "ACTIVE" })
+    ? await findScriptActorAdmin(tenant._id)
     : null;
   if (APPLY && !admin) throw new Error("no admin activo encontrado para atribuir el audit log");
   const actingAdmin: RequestIdentity | null = admin

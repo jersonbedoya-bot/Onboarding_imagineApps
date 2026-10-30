@@ -14,15 +14,15 @@
  * que ya existe NO se pisa — si alguien lo editó desde el panel, se respeta.
  *
  * Uso:
- *   node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts          (solo muestra el plan)
- *   node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --apply  (escribe)
+ *   node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --as=tu.correo@imagineapps.co          (solo muestra el plan)
+ *   node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --as=tu.correo@imagineapps.co --apply  (escribe)
+ * `--as` es quien queda como responsable en la auditoría (ver scripts/lib/script-actor.ts).
  * OJO: .env.local apunta a la base que tenga configurada — hoy es el mismo
  * Atlas de producción. Todo pasa por los services reales (auditoría incluida).
  */
 import { readFileSync } from "fs";
 import path from "path";
 import type { ObjectId } from "mongodb";
-import { getDb } from "../src/server/db/client";
 import * as tenantRepository from "../src/server/repositories/tenant.repository";
 import * as roleRepository from "../src/server/repositories/role.repository";
 import * as routeRepository from "../src/server/repositories/route.repository";
@@ -38,6 +38,7 @@ import * as stepService from "../src/server/services/step.service";
 import { parseQuizQuestions, splitFactGrid } from "../src/lib/content-display";
 import type { ContentDisplayFormat } from "../src/types/enums";
 import type { RequestIdentity } from "../src/server/auth/session";
+import { findScriptActorAdmin } from "./lib/script-actor";
 
 // Mismo estilo que "UX/UI Designer" (cargo, neutro en género). Antes era
 // "Desarrollo": nombraba un área, no a la persona. Su `key` interna puede
@@ -371,8 +372,7 @@ async function run() {
 
   const tenant = await tenantRepository.findBySlug("imagine-apps");
   if (!tenant) throw new Error("tenant imagine-apps no encontrado");
-  const db = await getDb();
-  const adminDoc = await db.collection("users").findOne({ tenantId: tenant._id, platformRole: "ADMIN", status: "ACTIVE" });
+  const adminDoc = await findScriptActorAdmin(tenant._id);
   if (!adminDoc) throw new Error("no hay un admin activo para atribuir la auditoría");
   const admin: RequestIdentity = { userId: adminDoc._id, tenantId: tenant._id, status: "ACTIVE", platformRole: "ADMIN", functionalRoleId: null };
 

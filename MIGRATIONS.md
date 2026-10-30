@@ -237,6 +237,15 @@ schema: no es reproducible corriendo `db:bootstrap`/`db:seed`.
 
 > Numeración independiente de la sección de arriba: los `#N` de acá para
 > abajo (y en los comentarios de `scripts/`) refieren siempre a esta lista.
+>
+> **Quién queda en la auditoría**: todo script que escribe exige
+> `--as=tu.correo@imagineapps.co` (un ADMIN activo del tenant) y registra los
+> cambios a su nombre (`scripts/lib/script-actor.ts`). Antes cada script
+> tomaba "el primer admin activo", así que los cambios hechos por script
+> hasta 2026-10-30 figuran a nombre de la cuenta admin más antigua
+> (`gonzalezuve@gmail.com`, la del seed) aunque los haya ejecutado otra
+> persona. No se reescribieron: la auditoría es un registro histórico.
+> Los comandos de cada sección de abajo llevan, además, `--as=...`.
 
 ### 1. Fusión de fases del recorrido de onboarding (tenant imagine-apps)
 
@@ -756,8 +765,8 @@ por nombre/título, crea solo lo que falta y publica lo que esté en borrador;
 lo que ya existe no se pisa.
 
 ```bash
-node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts          # solo muestra el plan
-node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --apply  # escribe
+node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --as=tu.correo@imagineapps.co          # solo muestra el plan
+node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --as=tu.correo@imagineapps.co --apply  # escribe
 ```
 
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo

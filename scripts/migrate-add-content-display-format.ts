@@ -22,6 +22,7 @@ import * as tenantRepository from "../src/server/repositories/tenant.repository"
 import * as contentService from "../src/server/services/content.service";
 import type { RequestIdentity } from "../src/server/auth/session";
 import type { ContentDisplayFormat } from "../src/types/enums";
+import { findScriptActorAdmin } from "./lib/script-actor";
 
 const APPLY = process.argv.includes("--apply");
 
@@ -53,7 +54,7 @@ async function main() {
   if (!tenant) throw new Error("tenant not found");
   const db = await getDb();
 
-  const admin = await db.collection("users").findOne({ tenantId: tenant._id, platformRole: "ADMIN", status: "ACTIVE" });
+  const admin = await findScriptActorAdmin(tenant._id);
   if (!admin) throw new Error("no admin activo encontrado para atribuir el audit log");
   const actingAdmin: RequestIdentity = {
     userId: admin._id,

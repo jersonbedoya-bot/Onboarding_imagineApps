@@ -10,7 +10,6 @@
  * - Escribe siempre a través de los services reales (auditoría incluida).
  */
 import { ObjectId } from "mongodb";
-import { getDb } from "../../src/server/db/client";
 import * as tenantRepository from "../../src/server/repositories/tenant.repository";
 import * as contentRepository from "../../src/server/repositories/content.repository";
 import * as processRepository from "../../src/server/repositories/process.repository";
@@ -20,6 +19,7 @@ import * as processService from "../../src/server/services/process.service";
 import * as stepService from "../../src/server/services/step.service";
 import * as routeService from "../../src/server/services/route.service";
 import type { RequestIdentity } from "../../src/server/auth/session";
+import { findScriptActorAdmin } from "./script-actor";
 
 export type Kind = "content" | "process" | "step";
 export type TextPatch = { kind: Kind; id: string; field: string; label: string; from: string; to: string };
@@ -61,8 +61,7 @@ export async function runContentPatches(plan: ContentPatchPlan): Promise<void> {
 
   const tenant = await tenantRepository.findBySlug("imagine-apps");
   if (!tenant) throw new Error("tenant imagine-apps no encontrado");
-  const db = await getDb();
-  const adminDoc = await db.collection("users").findOne({ tenantId: tenant._id, platformRole: "ADMIN", status: "ACTIVE" });
+  const adminDoc = await findScriptActorAdmin(tenant._id);
   if (!adminDoc) throw new Error("no hay un admin activo para atribuir la auditoría");
   const admin: RequestIdentity = { userId: adminDoc._id, tenantId: tenant._id, status: "ACTIVE", platformRole: "ADMIN", functionalRoleId: null };
 
