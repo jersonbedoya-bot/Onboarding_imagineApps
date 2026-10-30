@@ -52,7 +52,7 @@ async function loadStageBundles(tenantId: ObjectId, roleId: ObjectId): Promise<S
 
   // Las etapas se comparten entre roles; lo que se filtra por rol es su
   // contenido. Una etapa sin nada visible para este rol (ej. el onboarding
-  // técnico, todo con scope ROLE de Desarrollo, visto por un PDM) no es parte
+  // técnico, todo con scope ROLE de Developer, visto por un PDM) no es parte
   // de su recorrido: se omite, en vez de mostrarse vacía y contar como "fase
   // completa". Si otra etapa dependía de ella, deriveUnlockedStages ya trata
   // una dependencia ausente como desbloqueada.

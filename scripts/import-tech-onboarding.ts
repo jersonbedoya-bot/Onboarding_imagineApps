@@ -1,12 +1,12 @@
 /**
- * Importa el onboarding técnico de la CTO como "💻 Onboarding Técnico", una
- * fase propia del rol Desarrollo (ver MIGRATIONS.md #11 de "Migraciones de
+ * Importa el onboarding técnico de la CTO como "💻 Cómo Construimos los
+ * Proyectos", una fase propia del rol Developer (ver MIGRATIONS.md #11 de "Migraciones de
  * contenido"). El contenido sale de scripts/data/tech-onboarding.json,
  * extraído de su sitio estático (HTML exportado de Notion) y convertido a
  * Markdown: cada lección es un proceso y cada sección de la lección, un
  * paso; sus 4 quizzes se unen en un solo quiz que cierra la fase.
  *
- * Todo lleva scope ROLE de Desarrollo: para PDM y UX/UI la fase entera se
+ * Todo lleva scope ROLE de Developer: para PDM y UX/UI la fase entera se
  * omite del recorrido (ver loadStageBundles en progress.service.ts).
  *
  * Idempotente: crea solo lo que falta (rol, fase, contenidos, procesos y
@@ -39,10 +39,17 @@ import { parseQuizQuestions, splitFactGrid } from "../src/lib/content-display";
 import type { ContentDisplayFormat } from "../src/types/enums";
 import type { RequestIdentity } from "../src/server/auth/session";
 
-const ROLE_LABEL = "Desarrollo";
-const STAGE_TITLE = "💻 Onboarding Técnico";
+// Mismo estilo que "UX/UI Designer" (cargo, neutro en género). Antes era
+// "Desarrollo": nombraba un área, no a la persona. Su `key` interna puede
+// seguir siendo DESARROLLO en bases donde se creó con ese nombre.
+const ROLE_LABEL = "Developer";
+// Continúa la historia del módulo anterior ("Tu Rol en los Proyectos").
+const STAGE_TITLE = "💻 Cómo Construimos los Proyectos";
 // Debe coincidir con TECH_STAGE_KEY en src/lib/phase-groups.ts (pestañas).
+// La key se genera del título al crear (y nunca cambia): por eso la fase se
+// crea con este título base y después se renombra a STAGE_TITLE.
 const STAGE_KEY = "onboarding_tecnico";
+const STAGE_KEY_SEED_TITLE = "Onboarding Técnico";
 // La fase técnica se desbloquea al terminar "Tu Rol en los Proyectos".
 const PREVIOUS_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps";
 
@@ -108,7 +115,12 @@ const EXTRA_OBJECTIVES: Record<string, string> = {
 const NOTION_ACCESS_NOTE =
   "> **Accesos:** varias guías enlazan a Notion y a Google Drive del equipo técnico. Si al abrirlas te pide permiso, solicita el acceso desde tu primer día a tu Tech Buddy o a tu líder técnico, para que no te frene más adelante.";
 
-const WELCOME_BODY = `Esta es tu ruta para arrancar en el equipo técnico de Imagine Apps: cómo configurar tu entorno, qué hacer antes de escribir la primera línea de un proyecto, los estándares del día a día y lo que exige un paso a producción.
+// Puente con el módulo anterior, no una segunda bienvenida: el dev ya pasó
+// por la cultura, su día a día y cómo vive un proyecto.
+const WELCOME_TITLE = "🧭 De Cómo Vive un Proyecto a Cómo lo Construimos";
+const WELCOME_BODY = `Ya conoces la cultura de Imagine Apps, tu día a día y cómo vive un proyecto de punta a punta: cómo arranca con el cliente, quién lo lidera y a qué ritmo avanza. Ahora viene tu parte: **cómo lo construimos**.
+
+Esta es tu ruta en el equipo técnico: cómo configurar tu entorno, qué hacer antes de escribir la primera línea de un proyecto, los estándares del día a día y lo que exige un paso a producción.
 
 > **Dato clave:** recorre las pestañas en orden, porque cada una se apoya en la anterior. Si una guía no te queda clara, pregúntale a tu Tech Buddy antes de seguir.
 
@@ -121,7 +133,7 @@ ${NOTION_ACCESS_NOTE}
 3. **Operación diaria:** cómo se trabaja todos los días (arquitectura, calidad, handoff, seguridad y monitoreo).
 4. **Producción:** lo que exige un despliegue y la publicación en tiendas móviles.
 
-Además, en **Material complementario** tienes las guías de estimación, para cuando te toque preventa o planeación. Al final, un quiz corto confirma lo esencial.`;
+Además, en **Material complementario** tienes las guías de estimación, para cuando te toque preventa o planeación. Al final, un quiz corto confirma lo esencial: necesitas acertar al menos 4 de 5 preguntas.`;
 
 const TRAINING_BODY = `Grabaciones de las sesiones Tech Shared del equipo técnico, más los cursos oficiales de Claude que recomienda el equipo.
 
@@ -133,14 +145,14 @@ const TRAINING_BODY = `Grabaciones de las sesiones Tech Shared del equipo técni
 
 // Intro de rol en "Tu Rol en los Proyectos", junto a las de PDM y UX/UI
 // (mismo formato: quién eres en el proyecto, a quién recurrir, qué grupos ves).
-const ROLE_INTRO_TITLE = "Tu rol como Desarrollador/a";
-const ROLE_INTRO_BODY = `Como **Desarrollador/a** conviertes ideas en producto real: lo que el PDM acuerda con el cliente y lo que UX/UI diseña cobra vida en tu código. Y aquí no vienes solo a cumplir tareas: vienes a crecer. Cada proyecto es una oportunidad para aprender algo nuevo, proponer mejores soluciones y ganar autonomía, con un equipo técnico que te acompaña en cada paso.
+const ROLE_INTRO_TITLE = "Tu rol como Developer";
+const ROLE_INTRO_BODY = `Como **Developer** conviertes ideas en producto real: lo que el PDM acuerda con el cliente y lo que UX/UI diseña cobra vida en tu código. Y aquí no vienes solo a cumplir tareas: vienes a crecer. Cada proyecto es una oportunidad para aprender algo nuevo, proponer mejores soluciones y ganar autonomía, con un equipo técnico que te acompaña en cada paso.
 
 > **Dato clave:** en Imagine Apps nadie crece en solitario. Si un reto te toma más de 30 minutos sin avanzar, pide ayuda: preguntar a tiempo también es hacer bien tu trabajo.
 
 Para accesos y enlaces internos (repositorios, ambientes, Notion del equipo técnico), apóyate en tu **Tech Buddy** o en tu **líder técnico**.
 
-A continuación vas a encontrar los momentos del proyecto que compartes con todo el equipo, organizados en 2 grupos comunes: **Inicio del proyecto** y **Ritmo operativo**. Elige un grupo para ver sus procesos. Después te espera el **Onboarding Técnico**, tu ruta con las guías, estándares y herramientas del equipo de Desarrollo.`;
+A continuación vas a encontrar los momentos del proyecto que compartes con todo el equipo, organizados en 2 grupos comunes: **Inicio del proyecto** y **Ritmo operativo**. Ahí vas a ver sobre todo lo que hacen PDM y UX/UI: conocerlo te ayuda a entender de dónde vienen las historias de usuario que vas a construir y en qué momentos te toca participar. Tu parte técnica llega en el siguiente módulo, **Cómo Construimos los Proyectos**.`;
 
 // Las 4 infografías del sitio de la CTO, como contenido nativo: sus cifras
 // clave son las tarjetas (FACT_GRID) y sus paneles van debajo. Cada una se
@@ -294,12 +306,15 @@ function buildQuizBody(): string {
 
 type PlannedItem = { title: string; body: string; displayFormat: ContentDisplayFormat; quizPassingScore?: number };
 
+// Mismo patrón que "(Tu Día a Día)" / "(Ritmo de Proyecto)" de los otros módulos.
+const QUIZ_TITLE = "🎉 Pon a Prueba lo que Aprendiste (Cómo Construimos)";
+
 const CONTENT_ITEMS: PlannedItem[] = [
-  { title: "👋 Bienvenida al Equipo de Desarrollo", body: WELCOME_BODY, displayFormat: "PROSE" },
+  { title: WELCOME_TITLE, body: WELCOME_BODY, displayFormat: "PROSE" },
   { title: "🎓 Centro de Capacitación", body: TRAINING_BODY, displayFormat: "FACT_GRID" },
   ...AT_A_GLANCE,
   // La CTO pide aprobar con 4 de 5 (los demás quizzes del recorrido solo piden responder).
-  { title: "🎉 Pon a Prueba lo que Aprendiste (Onboarding Técnico)", body: buildQuizBody(), displayFormat: "QUIZ", quizPassingScore: 4 },
+  { title: QUIZ_TITLE, body: buildQuizBody(), displayFormat: "QUIZ", quizPassingScore: 4 },
 ];
 
 type PlannedProcess = {
@@ -377,10 +392,11 @@ async function run() {
   console.log(stage ? `Fase "${STAGE_TITLE}": ya existe (${stage.status})` : `Fase "${STAGE_TITLE}": se crea, depende de "${previous.title}"`);
   if (!stage && apply) {
     stage = created(
-      await stageService.createStage(admin, { title: STAGE_TITLE, dependsOnStageId: previous._id, isBlocking: true }),
+      await stageService.createStage(admin, { title: STAGE_KEY_SEED_TITLE, dependsOnStageId: previous._id, isBlocking: true }),
       "la fase",
     );
     if (stage.key !== STAGE_KEY) throw new Error(`la key generada (${stage.key}) no coincide con phase-groups.ts (${STAGE_KEY})`);
+    stage = created(await stageService.updateStage(admin, stage._id, { title: STAGE_TITLE }), "el título de la fase");
   }
   if (stage && apply && stage.status === "DRAFT") await stageService.publishStage(admin, stage._id);
 

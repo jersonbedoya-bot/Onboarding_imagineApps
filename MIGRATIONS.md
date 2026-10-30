@@ -693,12 +693,22 @@ node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts 
 node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts --apply  # escribe
 ```
 
-### 11. Onboarding técnico de la CTO como fase del rol Desarrollo (tenant imagine-apps)
+### 11. Onboarding técnico de la CTO como fase del rol Developer (tenant imagine-apps)
 
 A diferencia de #9/#10, esto **crea** contenido (no edita): el rol
-**Desarrollo**, la fase **💻 Onboarding Técnico** (orden 4, depende de "🔁 Tu
-Rol en los Proyectos", bloqueante) y todo su contenido, publicado y con scope
-ROLE de Desarrollo.
+**Developer**, la fase **💻 Cómo Construimos los Proyectos** (orden 4, depende
+de "🔁 Tu Rol en los Proyectos", bloqueante) y todo su contenido, publicado y
+con scope ROLE de Developer.
+
+> Nombres: el rol se llamó primero "Desarrollo" (key `DESARROLLO`, que se
+> conserva) y la fase "💻 Onboarding Técnico" (key `onboarding_tecnico`, que
+> se conserva — las keys no cambian al renombrar). Se renombraron porque
+> "Desarrollo" nombraba un área y no a la persona, y "Desarrollador/a" marca
+> género; "Developer" sigue el estilo de "UX/UI Designer". La fase pasó a
+> continuar la historia de "Tu Rol en los Proyectos", y su bienvenida a ser un
+> puente ("ya viste cómo vive un proyecto; ahora, cómo lo construimos") en vez
+> de un segundo inicio. El script crea la fase con el título base y la
+> renombra, para que una base nueva tenga la misma key.
 
 **Origen**: el sitio estático del onboarding técnico que compartió la CTO
 (HTML exportado de Notion, 26 lecciones + 4 quizzes). Se extrajo y convirtió a
@@ -724,8 +734,8 @@ tablas sin encabezado, código en `<p><code>`).
   "asistente" (era un buscador de texto local, sin IA).
 - Los enlaces internos de su sitio (`seguridad.html`, `#instalación`…) no
   existen en la app: quedan como el nombre de la lección en negrita.
-- En "🔁 Tu Rol en los Proyectos" se suma **Tu rol como Desarrollador/a**
-  (scope ROLE de Desarrollo), junto a las intros de PDM y UX/UI. La bienvenida
+- En "🔁 Tu Rol en los Proyectos" se suma **Tu rol como Developer**
+  (scope ROLE de Developer), junto a las intros de PDM y UX/UI. La bienvenida
   técnica incluye una nota para pedir acceso a Notion/Drive desde el primer día.
 - `/onboarding` (el sitio original) queda fuera de git y de ESLint.
 - Sus 4 infografías pasan a contenido nativo: "📊 … en una mirada" (FACT_GRID,

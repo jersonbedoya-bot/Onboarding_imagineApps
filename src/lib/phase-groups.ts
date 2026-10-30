@@ -118,10 +118,11 @@ export const FASE_04_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps";
 export const FASE_COMO_TRABAJAMOS_STAGE_KEY = "modulo_2_ecosistema_de_herramientas_y_bienestar";
 
 /**
- * Onboarding técnico (rol Desarrollo), integrado desde el sitio estático de
+ * Onboarding técnico — "💻 Cómo Construimos los Proyectos", rol Developer
+ * (la key quedó del nombre original de la fase) —, integrado desde el sitio estático de
  * la CTO: cada uno de sus 4 módulos es una pestaña, y cada lección un
  * proceso (sus secciones son los pasos). Todo su contenido tiene scope ROLE
- * de Desarrollo, así que para los demás roles la etapa entera se omite del
+ * de Developer, así que para los demás roles la etapa entera se omite del
  * recorrido (ver loadStageBundles en progress.service.ts).
  */
 const TECH_STAGE_KEY = "onboarding_tecnico";
