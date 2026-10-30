@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import type { QuizQuestion } from "@/lib/content-display";
+import { Button } from "@/components/Button";
+import { QUIZ_QUESTIONS_PER_ATTEMPT, type QuizQuestion } from "@/lib/content-display";
 import { cn } from "@/lib/cn";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -12,7 +13,7 @@ const LETTERS = ["A", "B", "C", "D"];
 // explícito del usuario: un banco más grande del que se elige un
 // subconjunto al azar cada vez, para que el quiz no sea siempre exactamente
 // igual. Si el banco tiene menos preguntas que esto, se muestran todas.
-const QUESTIONS_PER_ATTEMPT = 5;
+const QUESTIONS_PER_ATTEMPT = QUIZ_QUESTIONS_PER_ATTEMPT;
 
 function shuffleArray<T>(input: T[]): T[] {
   const arr = [...input];
@@ -42,13 +43,13 @@ function shuffleQuestionOptions(question: QuizQuestion): QuizQuestion {
 type QuizState = { shuffled: QuizQuestion[]; answers: Record<number, number> };
 
 /**
- * Quiz de opción múltiple, divertido y sin evaluación real que afecte el
- * progreso (contenido con `displayFormat: "QUIZ"`, ver content-display.ts):
- * la respuesta CORRECTA no se exige — cualquier opción cuenta como
- * "respondida" — solo se exige responder las preguntas mostradas (pedido
- * explícito del usuario, ver el gate en OnboardingJourney). Nada de esto
- * afecta `user_progress` ni el avance del recorrido — es puramente
- * informativo para quien lo responde.
+ * Quiz de opción múltiple (contenido con `displayFormat: "QUIZ"`, ver
+ * content-display.ts). Por defecto la respuesta CORRECTA no se exige —
+ * cualquier opción cuenta como "respondida" — solo se exige responder las
+ * preguntas mostradas (ver el gate en OnboardingJourney). Si el quiz tiene
+ * `passingScore` (ej. el técnico: 4 de 5, pedido de la CTO), además hay que
+ * acertar ese mínimo; si no se llega, se reintenta con otras preguntas del
+ * banco. Nada de esto afecta `user_progress`.
  *
  * Sí se PERSISTE cada respuesta (ver quiz-answer.service.ts) — a pedido
  * explícito del usuario, para 2 cosas: (a) el admin puede ver qué
@@ -60,14 +61,18 @@ type QuizState = { shuffled: QuizQuestion[]; answers: Record<number, number> };
 export function QuizBlock({
   contentItemId,
   questions,
-  onAllAnsweredChange,
+  passingScore = null,
+  onCanContinueChange,
   previewMode = false,
   questionsPerAttempt = QUESTIONS_PER_ATTEMPT,
   editorPreview = false,
 }: {
   contentItemId: string;
   questions: QuizQuestion[];
-  onAllAnsweredChange?: (allAnswered: boolean) => void;
+  /** Mínimo de correctas para poder avanzar; null = basta con responder todo. */
+  passingScore?: number | null;
+  /** true cuando ya se puede avanzar: todo respondido y, si hay mínimo, alcanzado. */
+  onCanContinueChange?: (canContinue: boolean) => void;
   /**
    * true desde ContentForm.tsx (vista previa en vivo mientras se escribe
    * el quiz) o desde /admin/preview (Admin/Editor viendo el onboarding
@@ -157,15 +162,41 @@ export function QuizBlock({
   const answers = state?.answers ?? {};
   const answeredCount = Object.keys(answers).length;
   const correctCount = shuffled.filter((q, i) => answers[i] === q.correctIndex).length;
+  const allAnswered = shuffled.length > 0 && answeredCount === shuffled.length;
+  // El mínimo nunca puede exigir más aciertos que preguntas tiene el intento
+  // (un banco más chico que QUESTIONS_PER_ATTEMPT muestra menos preguntas).
+  const requiredCorrect = passingScore ? Math.min(passingScore, shuffled.length) : null;
+  const passed = allAnswered && (requiredCorrect === null || correctCount >= requiredCorrect);
+  const failed = allAnswered && !passed;
+  const [isRestarting, setIsRestarting] = useState(false);
 
   useEffect(() => {
     if (!state) return; // todavía cargando: no avisar "completo" de mentira con 0/0
-    // onAllAnsweredChange no entra en las deps a propósito: es un setState
+    // onCanContinueChange no entra en las deps a propósito: es un setState
     // del padre, su identidad cambia en cada render de OnboardingJourney sin
     // que eso deba re-disparar este efecto.
-    onAllAnsweredChange?.(shuffled.length > 0 && answeredCount === shuffled.length);
+    onCanContinueChange?.(passed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, answeredCount, shuffled.length]);
+  }, [state, passed]);
+
+  /**
+   * Nuevo intento tras no alcanzar el mínimo: primero se borran las
+   * respuestas guardadas (si no, al reabrir se retomaría el intento fallido),
+   * y se sortean preguntas que NO estaban en el intento anterior — si el banco
+   * no alcanza, se completa con las demás.
+   */
+  async function restart() {
+    setIsRestarting(true);
+    if (!previewMode && !editorPreview) {
+      await fetch(`/api/progress/content/${contentItemId}/quiz-answers`, { method: "DELETE" }).catch(() => {});
+    }
+    const previous = new Set(shuffled.map((q) => q.question));
+    const fresh = shuffleArray(questions.filter((q) => !previous.has(q.question)));
+    const filler = shuffleArray(questions.filter((q) => previous.has(q.question)));
+    const next = [...fresh, ...filler].slice(0, questionsPerAttempt).map(shuffleQuestionOptions);
+    setState({ shuffled: next, answers: {} });
+    setIsRestarting(false);
+  }
 
   function handleAnswer(index: number, optionIndex: number) {
     const question = shuffled[index];
@@ -185,9 +216,30 @@ export function QuizBlock({
 
   return (
     <div className="flex flex-col gap-4">
+      {requiredCorrect !== null && !allAnswered && (
+        <p className="text-sm text-ink-soft">
+          Para continuar necesitas acertar al menos <strong className="text-ink">{requiredCorrect} de {shuffled.length}</strong>.
+        </p>
+      )}
       {answeredCount > 0 && (
         <p className="text-xs font-semibold text-ink-soft">
           {correctCount}/{answeredCount} correctas · {answeredCount}/{shuffled.length} respondidas
+        </p>
+      )}
+      {failed && (
+        <div role="status" className="flex flex-col gap-3 rounded-lg border border-danger bg-danger-soft p-4">
+          <p className="text-sm text-ink">
+            <strong>Acertaste {correctCount} de {shuffled.length}.</strong> Necesitas al menos {requiredCorrect} para continuar. Revisa las
+            explicaciones de abajo y vuelve a intentarlo con otras preguntas.
+          </p>
+          <Button type="button" onClick={restart} isLoading={isRestarting} className="self-start">
+            Intentar de nuevo
+          </Button>
+        </div>
+      )}
+      {passed && requiredCorrect !== null && (
+        <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-ink">
+          <strong>¡Aprobado! 🎉</strong> Acertaste {correctCount} de {shuffled.length}.
         </p>
       )}
       {shuffled.map((q, i) => (

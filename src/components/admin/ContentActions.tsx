@@ -25,6 +25,7 @@ export type ContentActionItem = {
   roleIds: string[];
   requirement: ContentRequirement | null;
   displayFormat: ContentDisplayFormat | null;
+  quizPassingScore: number | null;
 };
 
 export function ContentActions({
@@ -55,6 +56,7 @@ export function ContentActions({
     roleIds: item.roleIds,
     requirement: item.requirement ?? "",
     displayFormat: item.displayFormat ?? "PROSE",
+    quizPassingScore: item.quizPassingScore,
   };
 
     return (

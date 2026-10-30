@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sitio estático de la CTO (fuera de git, ver .gitignore).
+    "onboarding/**",
   ]),
 ]);
 

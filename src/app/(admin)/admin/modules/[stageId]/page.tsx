@@ -109,6 +109,7 @@ export default async function AdminModuleDetailPage({ params }: { params: Promis
               roleIds: item.roleIds.map((id) => id.toString()),
               requirement: item.requirement,
               displayFormat: item.displayFormat,
+              quizPassingScore: item.quizPassingScore ?? null,
             }}
             roles={roleOptions}
             canManageLifecycle={canManageStages}

@@ -693,6 +693,63 @@ node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts 
 node --env-file=.env.local --import tsx ./scripts/migrate-role-context-fixes.ts --apply  # escribe
 ```
 
+### 11. Onboarding técnico de la CTO como fase del rol Desarrollo (tenant imagine-apps)
+
+A diferencia de #9/#10, esto **crea** contenido (no edita): el rol
+**Desarrollo**, la fase **💻 Onboarding Técnico** (orden 4, depende de "🔁 Tu
+Rol en los Proyectos", bloqueante) y todo su contenido, publicado y con scope
+ROLE de Desarrollo.
+
+**Origen**: el sitio estático del onboarding técnico que compartió la CTO
+(HTML exportado de Notion, 26 lecciones + 4 quizzes). Se extrajo y convirtió a
+Markdown en `scripts/data/tech-onboarding.json`, con limpieza de artefactos de
+Notion/ChatGPT (imágenes que ya faltaban en el export, "Copiar código",
+tablas sin encabezado, código en `<p><code>`).
+
+- Cada lección es un **proceso** (objetivo = su descripción, resultado
+  esperado = "Lo que no puede faltar", recurso = la guía original en Notion)
+  y cada sección de la lección es un **paso** (95 en total).
+- Sus 4 módulos + el material complementario son pestañas
+  (`TECH_GROUPS` en `src/lib/phase-groups.ts`, key `onboarding_tecnico`).
+- "Grabación de entregables" y "Traspaso por vacaciones o ausencias" la CTO
+  los dejó por publicar: van sin pasos y marcados en
+  `src/lib/pending-content.ts`.
+- Sus 4 quizzes (20 preguntas, con su explicación como dato curioso) se unen
+  en un solo QUIZ que cierra la fase. Como en el resto del recorrido, se
+  exige responder, no aprobar (ella pedía 4 de 5).
+- Centro de capacitación: solo las 4 grabaciones Tech Shared de Drive + Claude
+  Academy. Los otros 10 workshops apuntan a un sitio `capacitacion/` que no
+  vino con el material; agregarlos cuando haya URL.
+- No se portaron sus infografías (páginas visuales sueltas) ni su
+  "asistente" (era un buscador de texto local, sin IA).
+- Los enlaces internos de su sitio (`seguridad.html`, `#instalación`…) no
+  existen en la app: quedan como el nombre de la lección en negrita.
+- En "🔁 Tu Rol en los Proyectos" se suma **Tu rol como Desarrollador/a**
+  (scope ROLE de Desarrollo), junto a las intros de PDM y UX/UI. La bienvenida
+  técnica incluye una nota para pedir acceso a Notion/Drive desde el primer día.
+- `/onboarding` (el sitio original) queda fuera de git y de ESLint.
+- Sus 4 infografías pasan a contenido nativo: "📊 … en una mirada" (FACT_GRID,
+  cifras clave como tarjetas + paneles debajo), uno por pestaña — se muestran
+  dentro de su pestaña vía `contentMatches` en `phase-groups.ts`.
+- El quiz técnico exige **4 de 5** correctas (`content_items.quizPassingScore`,
+  campo nuevo y opcional: `content_items` no tiene `$jsonSchema`, así que no
+  hace falta `collMod`; los documentos previos simplemente no lo traen y se
+  leen como "sin mínimo"). Los demás quizzes no cambian.
+
+**Depende de código**: una fase sin nada visible para el rol se omite del
+recorrido (`loadStageBundles` en `progress.service.ts`). Sin ese cambio
+desplegado, PDM y UX/UI ven esta fase vacía — desplegar el código junto con
+(o antes de) correr el script.
+
+**Cómo aplicar**: idempotente — busca rol, fase, contenidos, procesos y pasos
+por nombre/título, crea solo lo que falta y publica lo que esté en borrador;
+lo que ya existe no se pisa.
+
+```bash
+node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts          # solo muestra el plan
+node --env-file=.env.local --import tsx ./scripts/import-tech-onboarding.ts --apply  # escribe
+```
+
 ## Verificación: bootstrap desde cero vs. Atlas de desarrollo
 
 Fase 5: se comparó, colección por colección, el resultado de

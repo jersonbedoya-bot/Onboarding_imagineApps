@@ -22,6 +22,7 @@ function serialize(item: ContentItemDocument) {
     videoProvider: item.videoProvider,
     requirement: item.requirement,
     displayFormat: item.displayFormat,
+    quizPassingScore: item.quizPassingScore ?? null,
     order: item.order,
     status: item.status,
   };
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
       videoUrl: parsed.data.videoUrl,
       requirement: parsed.data.requirement,
       displayFormat: parsed.data.displayFormat,
+      quizPassingScore: parsed.data.quizPassingScore,
       order: parsed.data.order,
     });
 

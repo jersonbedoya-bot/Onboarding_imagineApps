@@ -17,6 +17,10 @@ export type ContentItemDocument = {
   videoProvider: VideoProvider | null;
   requirement: ContentRequirement | null;
   displayFormat: ContentDisplayFormat; // "PROSE" = texto plano (default), ver content-display.ts
+  // Solo para displayFormat "QUIZ": mínimo de respuestas correctas para
+  // avanzar. null/ausente = basta con responder (el comportamiento de
+  // siempre — opcional porque los documentos previos a este campo no lo traen).
+  quizPassingScore?: number | null;
   order: number;
   status: ContentStatus;
   createdAt: Date;
@@ -44,6 +48,7 @@ export async function create(input: {
   // repositorio y no les incumbe el formato de visualización — "PROSE" es
   // un default razonable, mismo criterio que `status`/`createdAt` abajo.
   displayFormat?: ContentDisplayFormat;
+  quizPassingScore?: number | null;
   order: number;
 }): Promise<ContentItemDocument> {
   const doc: ContentItemDocument = {
@@ -60,6 +65,7 @@ export async function create(input: {
     videoProvider: input.videoProvider,
     requirement: input.requirement,
     displayFormat: input.displayFormat ?? "PROSE",
+    quizPassingScore: input.quizPassingScore ?? null,
     order: input.order,
     status: "DRAFT",
     createdAt: new Date(),
@@ -103,6 +109,7 @@ export async function update(
       | "videoProvider"
       | "requirement"
       | "displayFormat"
+      | "quizPassingScore"
       | "order"
     >
   >,

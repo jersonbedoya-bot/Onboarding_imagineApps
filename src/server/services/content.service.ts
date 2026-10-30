@@ -40,6 +40,15 @@ export async function listQuizItems(actingAdmin: RequestIdentity) {
   return contentRepository.listByDisplayFormat(actingAdmin.tenantId, "QUIZ");
 }
 
+/**
+ * El mínimo de correctas solo tiene sentido en un QUIZ: en cualquier otro
+ * formato queda en null, para que un contenido que deja de ser quiz no
+ * arrastre un requisito invisible.
+ */
+function quizPassingScoreFor(displayFormat: ContentDisplayFormat, score: number | null | undefined): number | null {
+  return displayFormat === "QUIZ" ? (score ?? null) : null;
+}
+
 export async function createContentItem(
   actingAdmin: RequestIdentity,
   input: {
@@ -58,6 +67,8 @@ export async function createContentItem(
     // conozca — a diferencia de `requirement`, que sí varía de verdad
     // según el tipo de contenido y no tiene un default único razonable.
     displayFormat?: ContentDisplayFormat;
+    /** Solo aplica a QUIZ (ver quizPassingScoreFor). */
+    quizPassingScore?: number | null;
     order?: number;
   },
 ) {
@@ -92,6 +103,7 @@ export async function createContentItem(
     videoProvider,
     requirement: input.requirement,
     displayFormat: input.displayFormat ?? "PROSE",
+    quizPassingScore: quizPassingScoreFor(input.displayFormat ?? "PROSE", input.quizPassingScore),
     order,
   });
 
@@ -120,6 +132,7 @@ export async function updateContentItem(
     videoUrl?: string | null;
     requirement?: ContentRequirement | null;
     displayFormat?: ContentDisplayFormat;
+    quizPassingScore?: number | null;
     order?: number;
   },
 ) {
@@ -147,6 +160,12 @@ export async function updateContentItem(
     displayFormat: patch.displayFormat,
     order: patch.order,
   };
+  // Si deja de ser QUIZ, el mínimo se limpia aunque el patch no lo mencione.
+  const effectiveFormat = patch.displayFormat ?? current.displayFormat;
+  if (patch.quizPassingScore !== undefined || effectiveFormat !== "QUIZ") {
+    const requested = patch.quizPassingScore !== undefined ? patch.quizPassingScore : current.quizPassingScore;
+    repoPatch.quizPassingScore = quizPassingScoreFor(effectiveFormat, requested);
+  }
   if (patch.videoUrl !== undefined) {
     const resolved = patch.videoUrl === null ? { videoUrl: null, videoProvider: null } : resolveVideo(patch.videoUrl);
     repoPatch.videoUrl = resolved.videoUrl;

@@ -46,6 +46,11 @@ next-env.d.ts
 /onboarding-imagine-apps UX UI.md
 /onboarding-seed-data.json
 /imagine-apps-onboarding
+# sitio estático del onboarding técnico de la CTO (fuente de scripts/data/tech-onboarding.json)
+/onboarding
+
+# artefactos del MCP de Playwright (capturas/snapshots de pruebas)
+/.playwright-mcp
 
 # backups de scripts de migración (dump de documentos reales, no versionar)
 /scripts/.backups

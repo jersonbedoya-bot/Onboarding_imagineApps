@@ -5,7 +5,7 @@ import { toErrorResponse } from "@/server/errors/handler";
 import { NotFoundError, ValidationError } from "@/server/errors";
 import { zodErrorMessage } from "@/lib/zod-error";
 import { submitQuizAnswerSchema } from "@/server/validation/quiz-answer.schema";
-import { submitQuizAnswer, getMyQuizAnswers } from "@/server/services/quiz-answer.service";
+import { submitQuizAnswer, getMyQuizAnswers, restartMyQuiz } from "@/server/services/quiz-answer.service";
 
 // Se llama una vez por pregunta respondida (no recién al terminar el quiz)
 // — ver QuizBlock.tsx: así cerrar el modal a medio responder no pierde lo
@@ -39,6 +39,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const answers = await getMyQuizAnswers(identity, new ObjectId(id));
     return NextResponse.json({ success: true, data: { answers } });
+  } catch (error) {
+    return toErrorResponse(error);
+  }
+}
+
+// "Intentar de nuevo" en un quiz con mínimo de correctas: borra el intento
+// fallido de quien pide (nunca el de otra persona) para sortear otras preguntas.
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const identity = await requireActiveUser();
+    const { id } = await params;
+    if (!ObjectId.isValid(id)) throw new NotFoundError();
+
+    await restartMyQuiz(identity, new ObjectId(id));
+    return NextResponse.json({ success: true });
   } catch (error) {
     return toErrorResponse(error);
   }

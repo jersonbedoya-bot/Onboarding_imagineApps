@@ -29,6 +29,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       videoUrl: parsed.data.videoUrl,
       requirement: parsed.data.requirement,
       displayFormat: parsed.data.displayFormat,
+      quizPassingScore: parsed.data.quizPassingScore,
       order: parsed.data.order,
     });
 

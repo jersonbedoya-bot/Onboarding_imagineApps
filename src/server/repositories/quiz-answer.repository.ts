@@ -44,6 +44,12 @@ export async function findByUserAndContentItem(
   return (await collection()).find({ tenantId, userId, contentItemId }).toArray();
 }
 
+/** Las respuestas de un usuario en UN quiz — para reintentarlo (ver quiz-answer.service.restartMyQuiz). */
+export async function deleteByUserAndContentItem(tenantId: ObjectId, userId: ObjectId, contentItemId: ObjectId): Promise<number> {
+  const result = await (await collection()).deleteMany({ tenantId, userId, contentItemId });
+  return result.deletedCount;
+}
+
 /** Todas las respuestas de un usuario — usado por progress.service.resetOnboarding. */
 export async function deleteAllForUser(tenantId: ObjectId, userId: ObjectId): Promise<number> {
   const result = await (await collection()).deleteMany({ tenantId, userId });

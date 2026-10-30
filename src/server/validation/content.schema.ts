@@ -1,8 +1,19 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { CONTENT_ITEM_TYPES, CONTENT_REQUIREMENTS, CONTENT_SCOPES, CONTENT_DISPLAY_FORMATS } from "@/types/enums";
+import { QUIZ_QUESTIONS_PER_ATTEMPT } from "@/lib/content-display";
 
 const objectIdString = z.string().refine((value) => ObjectId.isValid(value), { message: "Id inválido." });
+
+// Mínimo de correctas para avanzar en un QUIZ (null = basta con responder).
+const quizPassingScore = z
+  .number()
+  .int()
+  .min(1, { message: "El mínimo de respuestas correctas debe ser al menos 1." })
+  .max(QUIZ_QUESTIONS_PER_ATTEMPT, {
+    message: `El mínimo de respuestas correctas no puede superar las ${QUIZ_QUESTIONS_PER_ATTEMPT} preguntas de cada intento.`,
+  })
+  .nullable();
 
 const baseFields = {
   type: z.enum(CONTENT_ITEM_TYPES),
@@ -17,6 +28,7 @@ const baseFields = {
   requirement: z.enum(CONTENT_REQUIREMENTS).nullable().default(null),
   // Sin .nullable(): no hay un estado "sin formato", "PROSE" ES el default.
   displayFormat: z.enum(CONTENT_DISPLAY_FORMATS).default("PROSE"),
+  quizPassingScore: quizPassingScore.default(null),
   order: z.number().int().positive().optional(),
 };
 
@@ -51,6 +63,8 @@ export const updateContentItemSchema = z
     // .nullable(): no hay "borrar el formato", solo cambiarlo a otro valor
     // (incluido "PROSE" explícito, si se quiere volver a texto plano).
     displayFormat: z.enum(CONTENT_DISPLAY_FORMATS).optional(),
+    // Fresco (sin .default), mismo motivo que requirement.
+    quizPassingScore: quizPassingScore.optional(),
     order: baseFields.order,
   })
   .superRefine((data, ctx) => {

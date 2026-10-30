@@ -66,6 +66,20 @@ export async function getMyQuizAnswers(
   return answers.map((a) => ({ questionText: a.questionText, selectedOption: a.selectedOption }));
 }
 
+/**
+ * Descarta el intento actual de ESTE usuario para reintentar con otras
+ * preguntas — solo en quizzes con mínimo de correctas (`quizPassingScore`):
+ * sin esto QuizBlock retomaría las respuestas fallidas al reabrir. En un quiz
+ * sin mínimo no hay "reprobar", así que no hay nada que reintentar.
+ */
+export async function restartMyQuiz(identity: RequestIdentity, contentItemId: ObjectId): Promise<void> {
+  const item = await assertVisibleQuiz(identity, contentItemId);
+  if (!item.quizPassingScore) {
+    throw new ValidationError("Este quiz no tiene un mínimo de respuestas correctas: no hace falta reintentarlo.");
+  }
+  await quizAnswerRepository.deleteByUserAndContentItem(identity.tenantId, identity.userId, contentItemId);
+}
+
 export type QuizAnswerListItem = {
   id: string;
   userId: string;

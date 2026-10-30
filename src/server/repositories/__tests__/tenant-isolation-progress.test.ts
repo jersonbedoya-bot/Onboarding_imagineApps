@@ -160,8 +160,9 @@ describe("etapa isBlocking vacía — caso obligatorio de Fase 4", () => {
     const empty = journey.stages.find((s) => s.id === emptyStage._id.toString());
     const next = journey.stages.find((s) => s.id === nextStage._id.toString());
 
-    expect(empty?.status).toBe("COMPLETE");
-    expect(empty?.readOnly).toBe(true);
+    // Sin nada visible para el rol, la etapa ya no se muestra (ver
+    // loadStageBundles) — y su dependiente sigue desbloqueado.
+    expect(empty).toBeUndefined();
     expect(next?.unlocked).toBe(true);
   });
 });

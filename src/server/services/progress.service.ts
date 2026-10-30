@@ -50,11 +50,19 @@ async function loadStageBundles(tenantId: ObjectId, roleId: ObjectId): Promise<S
     groupsByStage.set(key, bucket);
   }
 
-  return contentResult.stages.map(({ stage, items }) => ({
-    stage,
-    items,
-    processGroups: groupsByStage.get(stage._id.toString()) ?? [],
-  }));
+  // Las etapas se comparten entre roles; lo que se filtra por rol es su
+  // contenido. Una etapa sin nada visible para este rol (ej. el onboarding
+  // técnico, todo con scope ROLE de Desarrollo, visto por un PDM) no es parte
+  // de su recorrido: se omite, en vez de mostrarse vacía y contar como "fase
+  // completa". Si otra etapa dependía de ella, deriveUnlockedStages ya trata
+  // una dependencia ausente como desbloqueada.
+  return contentResult.stages
+    .map(({ stage, items }) => ({
+      stage,
+      items,
+      processGroups: groupsByStage.get(stage._id.toString()) ?? [],
+    }))
+    .filter((bundle) => bundle.items.length > 0 || bundle.processGroups.length > 0);
 }
 
 function obligatoryItemsOf(bundle: StageBundle): ContentItemDocument[] {
@@ -332,6 +340,7 @@ export async function resolveJourneyPreview(tenantId: ObjectId, roleId: ObjectId
         imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
         displayFormat: item.displayFormat,
+        quizPassingScore: item.quizPassingScore ?? null,
         completed: item.requirement === "OBLIGATORY" ? false : null,
         viewed: item.requirement === "OBLIGATORY" ? null : false,
       })),
@@ -432,6 +441,7 @@ export async function resolveJourneyFor(tenantId: ObjectId, userId: ObjectId, ro
         imageUrl: item.mediaId ? (mediaUrlById.get(item.mediaId.toString()) ?? null) : null,
         requirement: item.requirement,
         displayFormat: item.displayFormat,
+        quizPassingScore: item.quizPassingScore ?? null,
         completed: item.requirement === "OBLIGATORY" ? progressByTarget.has(`CONTENT_ITEM:${item._id.toString()}`) : null,
         // Espejo de `completed` para el caso NO obligatorio: detección
         // pasiva de scroll (ver markContentAsViewed), nunca vía botón.

@@ -19,6 +19,9 @@ const PENDING_PROCESS_TITLES: string[] = [
   // Agents Hub, se reescribió para describir el flujo automatizado real
   // (Apps Script + Gemini, ver el proceso en Mongo) — dejar la lista vacía
   // en vez de borrarla, sigue siendo el lugar donde va el próximo caso.
+  // Onboarding técnico: la CTO marcó estas dos guías como "por publicar".
+  "Grabación de entregables",
+  "Traspaso por vacaciones o ausencias",
 ];
 
 const PENDING_STEP_TITLES = [

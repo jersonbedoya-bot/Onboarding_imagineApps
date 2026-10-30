@@ -24,7 +24,18 @@
 // imagine-apps-onboarding/paso-2-ciclo-de-vida.html (mockup estático, ver
 // BACKLOG.md respecto al simulador tipo quiz de esa misma referencia, que
 // NO se adoptó).
-export type ProcessGroupDef = { name: string; icon: string; matches: string[] };
+export type ProcessGroupDef = {
+  name: string;
+  icon: string;
+  matches: string[];
+  /**
+   * Content items (por sub-string de título) que pertenecen a esta pestaña:
+   * se muestran arriba de sus procesos, solo con la pestaña activa, en vez
+   * de en la lista general de la fase (ej. el resumen "en una mirada" de cada
+   * módulo técnico, que reemplaza las infografías del sitio de la CTO).
+   */
+  contentMatches?: string[];
+};
 
 /**
  * Fusión de contenido (migración de fases, ver MIGRATIONS.md): esta fase
@@ -106,8 +117,73 @@ export const FASE_04_STAGE_KEY = "modulo_4_tu_rol_en_imagine_apps";
 // en 2 secciones visuales (ver contentItemSection más abajo).
 export const FASE_COMO_TRABAJAMOS_STAGE_KEY = "modulo_2_ecosistema_de_herramientas_y_bienestar";
 
+/**
+ * Onboarding técnico (rol Desarrollo), integrado desde el sitio estático de
+ * la CTO: cada uno de sus 4 módulos es una pestaña, y cada lección un
+ * proceso (sus secciones son los pasos). Todo su contenido tiene scope ROLE
+ * de Desarrollo, así que para los demás roles la etapa entera se omite del
+ * recorrido (ver loadStageBundles en progress.service.ts).
+ */
+const TECH_STAGE_KEY = "onboarding_tecnico";
+
+const TECH_GROUPS: ProcessGroupDef[] = [
+  {
+    name: "Primeros pasos",
+    icon: "🧰",
+    contentMatches: ["Primeros pasos en una mirada"],
+    matches: [
+      "Antes de empezar",
+      "Bienvenida, README y setup",
+      "Mapa técnico y reglas de oro",
+      "Repositorio de IA",
+      "Flujo de trabajo con Gitflow",
+      "Lineamientos clave y habilidades blandas",
+    ],
+  },
+  {
+    name: "Procesos previos",
+    icon: "📐",
+    contentMatches: ["Procesos previos en una mirada"],
+    matches: [
+      "Análisis de layouts",
+      "Contrato de servicios REST",
+      "Diseño de base de datos con IA",
+      "Documentación técnica del proyecto",
+      "Infraestructura y costeo AWS",
+      "Documentación de historias de usuario",
+      "Cómo trabaja el equipo",
+      "Grabación de entregables",
+      "Team review de infraestructura",
+    ],
+  },
+  {
+    name: "Operación diaria",
+    icon: "⚙️",
+    contentMatches: ["Operación diaria en una mirada"],
+    matches: [
+      "Tus primeras entregas",
+      "Estándar de arquitectura",
+      "Calidad de código con SonarQube",
+      "Multiidioma (i18n)",
+      "Handoff técnico",
+      "Traspaso por vacaciones o ausencias",
+      "Seguridad",
+      "Monitoreo con Grafana y Prometheus",
+      "Autonomía y consolidación",
+    ],
+  },
+  {
+    name: "Producción",
+    icon: "🚢",
+    contentMatches: ["Producción en una mirada"],
+    matches: ["Despliegue a producción", "Publicación en tiendas móviles"],
+  },
+  { name: "Material complementario", icon: "📚", matches: ["Estimaciones de proyecto", "Técnicas de estimación"] },
+];
+
 const GROUPS_BY_STAGE_KEY: Record<string, ProcessGroupDef[]> = {
   [FASE_04_STAGE_KEY]: PROYECTOS_Y_ROL_GROUPS,
+  [TECH_STAGE_KEY]: TECH_GROUPS,
 };
 
 /**
@@ -125,6 +201,16 @@ export function contentItemSection(title: string): "Reglas y Herramientas" | "Bi
 }
 
 export type GroupedProcesses<T> = { name: string; icon: string; processes: T[] };
+
+/**
+ * Nombre de la pestaña a la que pertenece un content item (ver
+ * `contentMatches`), o null si va en la lista general de la fase.
+ */
+export function contentItemGroup(stageKey: string, title: string): string | null {
+  const defs = GROUPS_BY_STAGE_KEY[stageKey];
+  const owner = defs?.find((def) => def.contentMatches?.some((m) => title.includes(m)));
+  return owner?.name ?? null;
+}
 
 /**
  * Agrupa `processes` según la config de la fase. Devuelve `null` cuando la

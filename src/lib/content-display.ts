@@ -270,6 +270,14 @@ export function stepNumberIcon(index: number): string {
  * completo (no un subconjunto parcial).
  */
 export type QuizQuestion = { question: string; options: string[]; correctIndex: number; funFact?: string };
+
+/**
+ * Cuántas preguntas se muestran por intento, sorteadas del banco completo
+ * (ver QuizBlock). Vive acá y no en el componente porque también acota el
+ * mínimo de correctas configurable por quiz (content.schema.ts): no se
+ * puede exigir más aciertos que preguntas tiene un intento.
+ */
+export const QUIZ_QUESTIONS_PER_ATTEMPT = 5;
 const QUIZ_QUESTION_LINE = /^\d+\.\s*(.+)$/;
 const QUIZ_OPTION_LINE = /^[-*]\s*(.+)$/;
 const QUIZ_CORRECT_OPTION = /^\*\*(.+)\*\*$/;

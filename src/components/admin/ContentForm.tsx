@@ -33,6 +33,7 @@ import {
   splitSteps,
   stepNumberIcon,
   parseQuizQuestions,
+  QUIZ_QUESTIONS_PER_ATTEMPT,
 } from "@/lib/content-display";
 import { FormModalTrigger } from "@/components/admin/FormModalTrigger";
 import { StructuredContentEditor } from "@/components/admin/StructuredContentEditor";
@@ -50,6 +51,7 @@ export type ContentFormInitial = {
   roleIds: string[];
   requirement: ContentRequirement | "";
   displayFormat: ContentDisplayFormat;
+  quizPassingScore: number | null;
 };
 
 export function ContentForm({
@@ -84,6 +86,10 @@ export function ContentForm({
   const [roleIds, setRoleIds] = useState<string[]>(initial?.roleIds ?? []);
   const [requirement, setRequirement] = useState<ContentRequirement | "">(initial?.requirement ?? "");
   const [displayFormat, setDisplayFormat] = useState<ContentDisplayFormat>(initial?.displayFormat ?? "PROSE");
+  // "" = sin mínimo (basta con responder). String para el <select>.
+  const [quizPassingScore, setQuizPassingScore] = useState<string>(
+    initial?.quizPassingScore ? String(initial.quizPassingScore) : "",
+  );
   // Editor guiado (ver content-structure.ts): no-null = se edita por campos y
   // `body` se arma solo; null = modo texto (PROSE, o un body que no calza
   // con el formato y la persona prefirió no reemplazarlo).
@@ -285,6 +291,7 @@ export function ContentForm({
         videoUrl: videoUrl || (mode === "edit" ? null : undefined),
         requirement: requirement || null,
         displayFormat,
+        quizPassingScore: displayFormat === "QUIZ" && quizPassingScore ? Number(quizPassingScore) : null,
       }),
     });
     const result = await response.json();
@@ -307,6 +314,7 @@ export function ContentForm({
       setRoleIds([]);
       setRequirement("");
       setDisplayFormat("PROSE");
+      setQuizPassingScore("");
       setStructured(null);
       setMediaUploaderKey((key) => key + 1);
       setIsModalOpen(false);
@@ -337,6 +345,21 @@ export function ContentForm({
             </option>
           ))}
         </Select>
+        {displayFormat === "QUIZ" && (
+          <Select
+            id="content-quiz-passing-score"
+            label="Para avanzar"
+            value={quizPassingScore}
+            onChange={(event) => setQuizPassingScore(event.target.value)}
+          >
+            <option value="">Basta con responder todas las preguntas</option>
+            {Array.from({ length: QUIZ_QUESTIONS_PER_ATTEMPT }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                Acertar al menos {n} de {QUIZ_QUESTIONS_PER_ATTEMPT}
+              </option>
+            ))}
+          </Select>
+        )}
 
         {structured ? (
           <>

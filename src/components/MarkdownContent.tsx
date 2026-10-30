@@ -110,6 +110,15 @@ export function MarkdownContent({ children, className }: MarkdownContentProps) {
       </blockquote>
     ),
     code: ({ children }) => <code className="rounded bg-brand-tint px-1 py-0.5 font-mono text-xs text-ink">{children}</code>,
+    // Bloque de código (```): recuadro propio con scroll horizontal. Sin
+    // esto heredaba la "pastilla" del código en línea de arriba, línea por
+    // línea y sin fondo (ver feedback de usuario sobre el onboarding técnico).
+    // `[&>code]` anula esa pastilla solo dentro del bloque.
+    pre: ({ children }) => (
+      <pre className="mb-3 overflow-x-auto rounded-md border border-line bg-paper px-4 py-3 font-mono text-xs leading-relaxed text-ink last:mb-0 [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-xs">
+        {children}
+      </pre>
+    ),
     hr: () => <hr className="my-4 border-line" />,
     img: ({ src, alt }) =>
       typeof src === "string" ? (

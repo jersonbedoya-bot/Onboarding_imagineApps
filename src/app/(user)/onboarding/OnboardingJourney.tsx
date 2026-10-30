@@ -24,7 +24,14 @@ import { IconCardGrid } from "@/components/IconCardGrid";
 import { QuizBlock } from "@/components/QuizBlock";
 import { LeadersBoard } from "./leaders/LeadersBoard";
 import type { LeaderCardData } from "./leaders/LeaderCard";
-import { groupProcesses, FASE_04_STAGE_KEY, FASE_COMO_TRABAJAMOS_STAGE_KEY, contentItemSection, type GroupedProcesses } from "@/lib/phase-groups";
+import {
+  groupProcesses,
+  contentItemGroup,
+  FASE_04_STAGE_KEY,
+  FASE_COMO_TRABAJAMOS_STAGE_KEY,
+  contentItemSection,
+  type GroupedProcesses,
+} from "@/lib/phase-groups";
 import { isPendingProcess, isPendingStep, isPendingContentItem } from "@/lib/pending-content";
 import {
   splitFactGrid,
@@ -210,7 +217,9 @@ export function OnboardingJourney({
   // Arranca en false y QuizBlock lo vuelve a poner en false apenas se monta
   // (answeredCount arranca en 0) — cada apertura del modal es un quiz
   // fresco, así que no hace falta resetear esto a mano al abrir/cerrar.
-  const [quizAllAnswered, setQuizAllAnswered] = useState(false);
+  // "Puede continuar": todo respondido y, si el quiz tiene mínimo de
+  // correctas (ej. el técnico), alcanzado — lo decide QuizBlock.
+  const [quizCanContinue, setQuizCanContinue] = useState(false);
   // Quizzes ya respondidos una vez (por este usuario) — pedido explícito:
   // no volver a exigir responder si ya se pasó ese gate antes. Se semilla
   // con `item.viewed` de TODAS las etapas (no solo la actual) para que
@@ -419,14 +428,15 @@ export function OnboardingJourney({
           <QuizBlock
             contentItemId={quizItem?.id ?? ""}
             questions={quizQuestions}
-            onAllAnsweredChange={setQuizAllAnswered}
+            passingScore={quizItem?.quizPassingScore ?? null}
+            onCanContinueChange={setQuizCanContinue}
             previewMode={previewMode}
           />
           <Button
             className="mt-5 w-full justify-center"
             onClick={advance}
             isLoading={isAdvancing}
-            disabled={!previewMode && !quizAllAnswered}
+            disabled={!previewMode && !quizCanContinue}
           >
             {previewMode ? "Saltar (vista previa) ›" : nextStage ? "Continuar al siguiente módulo ›" : FINISH_LABEL}
           </Button>
@@ -437,12 +447,134 @@ export function OnboardingJourney({
               contenido, sin usuario real detrás) no aplica: solo necesita
               observar, no responder nada, así que el botón queda siempre
               habilitado y sin este aviso. */}
-          {!previewMode && !quizAllAnswered && (
-            <p className="mt-2 text-center text-xs text-ink-soft">Responde todas las preguntas para continuar.</p>
+          {!previewMode && !quizCanContinue && (
+            <p className="mt-2 text-center text-xs text-ink-soft">
+              {quizItem?.quizPassingScore
+                ? "Responde todas las preguntas y alcanza el mínimo de aciertos para continuar."
+                : "Responde todas las preguntas para continuar."}
+            </p>
           )}
         </Modal>
       )}
     </div>
+  );
+}
+
+type JourneyItem = JourneyStage["items"][number];
+
+/**
+ * Una card de contenido de la fase. Vivía en línea dentro de StageSection;
+ * se extrajo porque ahora se dibuja en dos lugares: la lista general de la
+ * fase y, para los contenidos que pertenecen a una pestaña (ver
+ * `contentMatches` en phase-groups.ts), arriba de los procesos de esa pestaña.
+ */
+function ContentItemCard({
+  item,
+  itemIndex,
+  celebrate,
+  gerencia,
+  pendingContentMessage,
+  previewMode,
+}: {
+  item: JourneyItem;
+  itemIndex: number;
+  /** Confeti chico al marcar como leído (solo Fase 01, ver StageSection). */
+  celebrate: boolean;
+  gerencia: LeaderCardData[];
+  pendingContentMessage: GuideMessage;
+  previewMode: boolean;
+}) {
+  const pending = isPendingContentItem(item.title);
+  // `item.displayFormat` (ver content-display.ts) reemplaza el mecanismo
+  // anterior de adivinar el layout por el título: cada formato intenta
+  // parsear `body`, y si no calza cae a MarkdownContent normal — nunca se
+  // rompe la vista.
+  const factSplit = item.displayFormat === "FACT_GRID" && item.body ? splitFactGrid(item.body) : null;
+  const valuesSplit = item.displayFormat === "VALUES_GRID" && item.body ? splitValuesGrid(item.body) : null;
+  const timelineSplit = item.displayFormat === "TIMELINE" && item.body ? splitTimeline(item.body) : null;
+  const stepsSplit = item.displayFormat === "STEPS" && item.body ? splitSteps(item.body) : null;
+
+  return (
+    <>
+      <Card
+        hover
+        id={contentItemAnchorId(item.id)}
+        className="animate-stage-in flex scroll-mt-28 flex-col gap-3"
+        style={{ animationDelay: `${Math.min(itemIndex, 5) * 70}ms` }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <span className="flex flex-wrap items-center gap-2">
+            <p className="font-display text-xl font-semibold leading-snug text-ink xl:text-2xl">{item.title}</p>
+            {pending && <PendingBadge />}
+          </span>
+          {!previewMode && item.requirement === "OBLIGATORY" && (
+            // Confeti chico solo en Fase 01: el momento más "humano" del
+            // recorrido pide algo de celebración; el confeti grande queda
+            // para el final total.
+            <MarkAsReadButton contentItemId={item.id} completed={item.completed} celebrate={celebrate} />
+          )}
+        </div>
+        <ContentViewTracker
+          contentItemId={item.id}
+          initialViewed={item.viewed ?? false}
+          enabled={!previewMode && item.requirement !== "OBLIGATORY"}
+        >
+          {factSplit ? (
+            <>
+              {factSplit.intro && <MarkdownContent>{factSplit.intro}</MarkdownContent>}
+              <IconCardGrid
+                items={factSplit.items.map((fact) => ({
+                  icon: fact.badge ? factBadgeIcon(fact.badge) : factIcon(fact.title),
+                  title: fact.title,
+                  href: fact.href,
+                  badge: fact.badge,
+                  description: fact.description,
+                }))}
+              />
+              {factSplit.outro && <MarkdownContent className="mt-3">{factSplit.outro}</MarkdownContent>}
+            </>
+          ) : valuesSplit ? (
+            <>
+              {valuesSplit.intro && <MarkdownContent>{valuesSplit.intro}</MarkdownContent>}
+              <CultureValuesGrid values={valuesSplit.values} />
+            </>
+          ) : timelineSplit ? (
+            <>
+              {timelineSplit.intro && <MarkdownContent>{timelineSplit.intro}</MarkdownContent>}
+              <HistoryTimeline items={timelineSplit.items} />
+              {timelineSplit.outro && <MarkdownContent className="mt-3">{timelineSplit.outro}</MarkdownContent>}
+            </>
+          ) : stepsSplit ? (
+            <>
+              {stepsSplit.intro && <MarkdownContent>{stepsSplit.intro}</MarkdownContent>}
+              <IconCardGrid
+                items={stepsSplit.steps.map((description, stepIndex) => ({
+                  icon: stepNumberIcon(stepIndex),
+                  description,
+                }))}
+              />
+              {stepsSplit.outro && <MarkdownContent className="mt-3">{stepsSplit.outro}</MarkdownContent>}
+            </>
+          ) : (
+            item.body && <MarkdownContent>{item.body}</MarkdownContent>
+          )}
+          {item.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.imageUrl} alt={item.title} className="max-h-80 w-full rounded-md border border-line object-cover" />
+          )}
+          {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
+        </ContentViewTracker>
+        {pending && pendingContentMessage.enabled && <p className="text-xs text-ink-soft">{pendingContentMessage.text}</p>}
+      </Card>
+      {/* La gerencia (scope COMMON) se embebe justo después de los hitos,
+          como pidió el usuario ("origen y trayectoria... ahí las cards de la
+          gerencia"), reusando el mismo LeadersBoard de /leaders. */}
+      {timelineSplit && gerencia.length > 0 && (
+        <Card>
+          <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} variant="card" />
+        </Card>
+      )}
+    </>
   );
 }
 
@@ -528,7 +660,12 @@ function StageSection({
   // El quiz ("Pon a Prueba lo que Aprendiste") nunca va en este listado: se
   // dispara en modal desde el botón "Siguiente módulo"/"Terminar Onboarding"
   // de OnboardingJourney, nunca como una card más acá abajo.
-  const visibleItems = stage.items.filter((item) => item.displayFormat !== "QUIZ");
+  // Los contenidos que pertenecen a una pestaña (ver `contentMatches` en
+  // phase-groups.ts) salen de la lista general y se dibujan dentro de ella.
+  const nonQuizItems = stage.items.filter((item) => item.displayFormat !== "QUIZ");
+  const itemGroupName = (title: string) => (groups ? contentItemGroup(stage.key, title) : null);
+  const visibleItems = nonQuizItems.filter((item) => itemGroupName(item.title) === null);
+  const activeGroupItems = activeGroup ? nonQuizItems.filter((item) => itemGroupName(item.title) === activeGroup.name) : [];
 
   return (
     <section>
@@ -594,20 +731,6 @@ function StageSection({
           {visibleItems.length > 0 && (
             <div className="flex flex-col gap-5">
               {visibleItems.map((item, itemIndex) => {
-                const pending = isPendingContentItem(item.title);
-                // La gerencia (scope COMMON) se embebe justo después de los
-                // hitos, como pidió el usuario ("origen y trayectoria... ahí
-                // las cards de la gerencia"), reusando el mismo LeadersBoard
-                // de /leaders — ver el `index === 0` puntual más abajo.
-                //
-                // `item.displayFormat` (ver content-display.ts) reemplaza el
-                // mecanismo anterior de adivinar el layout por el título:
-                // cada formato intenta parsear `body`, y si no calza cae a
-                // MarkdownContent normal — nunca se rompe la vista.
-                const factSplit = item.displayFormat === "FACT_GRID" && item.body ? splitFactGrid(item.body) : null;
-                const valuesSplit = item.displayFormat === "VALUES_GRID" && item.body ? splitValuesGrid(item.body) : null;
-                const timelineSplit = item.displayFormat === "TIMELINE" && item.body ? splitTimeline(item.body) : null;
-                const stepsSplit = item.displayFormat === "STEPS" && item.body ? splitSteps(item.body) : null;
                 // "Tu Día a Día en Imagine Apps" (ver phase-groups.ts) junta 6
                 // cards de temas distintos (reglas/herramientas + políticas de
                 // bienestar que antes vivían en la etapa Recursos, ya
@@ -620,87 +743,14 @@ function StageSection({
                     {isNewSection && (
                       <p className="mt-2 text-xs font-bold uppercase tracking-widest text-brand first:mt-0">{section}</p>
                     )}
-                    <Card
-                      hover
-                      id={contentItemAnchorId(item.id)}
-                      className="animate-stage-in flex scroll-mt-28 flex-col gap-3"
-                      style={{ animationDelay: `${Math.min(itemIndex, 5) * 70}ms` }}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <span className="flex flex-wrap items-center gap-2">
-                          <p className="font-display text-xl font-semibold leading-snug text-ink xl:text-2xl">{item.title}</p>
-                          {pending && <PendingBadge />}
-                        </span>
-                        {!previewMode && item.requirement === "OBLIGATORY" && (
-                          // Confeti chico solo en Fase 01 (index === 0, ver StageSection):
-                          // el momento más "humano" del recorrido pide algo de
-                          // celebración; el confeti grande queda para el final total.
-                          <MarkAsReadButton contentItemId={item.id} completed={item.completed} celebrate={index === 0} />
-                        )}
-                      </div>
-                      <ContentViewTracker
-                        contentItemId={item.id}
-                        initialViewed={item.viewed ?? false}
-                        enabled={!previewMode && item.requirement !== "OBLIGATORY"}
-                      >
-                        {factSplit ? (
-                          <>
-                            {factSplit.intro && <MarkdownContent>{factSplit.intro}</MarkdownContent>}
-                            <IconCardGrid
-                              items={factSplit.items.map((fact) => ({
-                                icon: fact.badge ? factBadgeIcon(fact.badge) : factIcon(fact.title),
-                                title: fact.title,
-                                href: fact.href,
-                                badge: fact.badge,
-                                description: fact.description,
-                              }))}
-                            />
-                            {factSplit.outro && <MarkdownContent className="mt-3">{factSplit.outro}</MarkdownContent>}
-                          </>
-                        ) : valuesSplit ? (
-                          <>
-                            {valuesSplit.intro && <MarkdownContent>{valuesSplit.intro}</MarkdownContent>}
-                            <CultureValuesGrid values={valuesSplit.values} />
-                          </>
-                        ) : timelineSplit ? (
-                          <>
-                            {timelineSplit.intro && <MarkdownContent>{timelineSplit.intro}</MarkdownContent>}
-                            <HistoryTimeline items={timelineSplit.items} />
-                            {timelineSplit.outro && <MarkdownContent className="mt-3">{timelineSplit.outro}</MarkdownContent>}
-                          </>
-                        ) : stepsSplit ? (
-                          <>
-                            {stepsSplit.intro && <MarkdownContent>{stepsSplit.intro}</MarkdownContent>}
-                            <IconCardGrid
-                              items={stepsSplit.steps.map((description, stepIndex) => ({
-                                icon: stepNumberIcon(stepIndex),
-                                description,
-                              }))}
-                            />
-                            {stepsSplit.outro && <MarkdownContent className="mt-3">{stepsSplit.outro}</MarkdownContent>}
-                          </>
-                        ) : (
-                          item.body && <MarkdownContent>{item.body}</MarkdownContent>
-                        )}
-                        {item.imageUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="max-h-80 w-full rounded-md border border-line object-cover"
-                          />
-                        )}
-                        {item.videoUrl && <VideoEmbed src={item.videoUrl} title={item.title} provider={item.videoProvider} />}
-                      </ContentViewTracker>
-                      {pending && pendingContentMessage.enabled && (
-                        <p className="text-xs text-ink-soft">{pendingContentMessage.text}</p>
-                      )}
-                    </Card>
-                    {timelineSplit && gerencia.length > 0 && (
-                      <Card>
-                        <LeadersBoard gerencia={gerencia} equipo={[]} equipoLabel={null} variant="card" />
-                      </Card>
-                    )}
+                    <ContentItemCard
+                      item={item}
+                      itemIndex={itemIndex}
+                      celebrate={index === 0}
+                      gerencia={gerencia}
+                      pendingContentMessage={pendingContentMessage}
+                      previewMode={previewMode}
+                    />
                   </Fragment>
                 );
               })}
@@ -731,6 +781,17 @@ function StageSection({
             <>
               <ProcessGroupNav groups={groups} active={Math.min(groupIndex, groups.length - 1)} onSelect={handleSelectGroup} />
               <div className="flex flex-col gap-4">
+                {activeGroupItems.map((item, itemIndex) => (
+                  <ContentItemCard
+                    key={item.id}
+                    item={item}
+                    itemIndex={itemIndex}
+                    celebrate={false}
+                    gerencia={[]}
+                    pendingContentMessage={pendingContentMessage}
+                    previewMode={previewMode}
+                  />
+                ))}
                 {activeGroup?.processes.map((process) => (
                   <ProcessCard
                     key={process.id}
@@ -831,6 +892,10 @@ function ProcessGroupNav({
               const withSteps = group.processes.filter((p) => p.steps.length > 0);
               const totalProcesses = withSteps.length;
               const completedProcesses = withSteps.filter((p) => p.steps.every((s) => s.completed)).length;
+              // Los "por publicar" (sin pasos) no entran en el total, pero sí
+              // se ven como cards: sin esta aclaración la pestaña decía "0/8"
+              // mostrando 9 (ver feedback de usuario).
+              const pendingProcesses = group.processes.filter((p) => p.steps.length === 0 && isPendingProcess(p.title)).length;
               const isActive = i === active;
               return (
                 <button
@@ -851,6 +916,7 @@ function ProcessGroupNav({
                   {totalProcesses > 0 && (
                     <span className={cn("text-xs tabular-nums", isActive ? "text-brand-strong" : "text-ink-soft/70")}>
                       {completedProcesses}/{totalProcesses} {totalProcesses === 1 ? "proceso" : "procesos"}
+                      {pendingProcesses > 0 && ` · ${pendingProcesses} por publicar`}
                     </span>
                   )}
                 </button>
